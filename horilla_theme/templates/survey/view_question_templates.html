@@ -1,0 +1,89 @@
+{% extends 'index.html' %}
+{% load i18n basefilters static %}
+
+{% block content %}
+    {% include "generic/components.html" %}
+
+    <style>
+        .oh-modal_close--custom {
+            position: absolute;
+            top: 25px;
+            right: 15px;
+            border: none;
+            background: none;
+            font-size: 1.5rem;
+            opacity: 0.7;
+        }
+    </style>
+    <div class="oh-modal" id="addSurvey" role="dialog" aria-labelledby="addSurvey" aria-hidden="true">
+        <div class="oh-modal__dialog">
+            <div class="oh-modal__dialog-header">
+                <h2 class="oh-modal__dialog-title" id="addEmployeeModalLabel">
+                    {% trans "Create Survey Template" %}
+                </h2>
+                <button class="oh-modal__close" aria-label="{% trans 'Close' %}">
+                    <ion-icon name="close-outline"></ion-icon>
+                </button>
+            </div>
+            <div class="oh-modal__dialog-body" id="addSurveyModalBody"></div>
+        </div>
+    </div>
+
+    <div class="oh-modal" id="updateSurvey" role="dialog" aria-labelledby="updateSurvey" aria-hidden="true">
+        <div class="oh-modal__dialog">
+            <div class="oh-modal__dialog-header">
+                <h2 class="oh-modal__dialog-title" id="addEmployeeModalLabel">
+                    {% comment %} {% trans "Update Survey Template" %} {% endcomment %}
+                </h2>
+                <button
+                    type="button"
+                    class="oh-modal_close--custom"
+                    onclick="$('#updateSurvey').removeClass('oh-modal--show')"
+                >
+                    <ion-icon name="close-outline" role="img" aria-label="{% trans 'close outline' %}"></ion-icon>
+                </button>
+            </div>
+            <div class="oh-modal__dialog-body" id="updateSurveyModalBody"></div>
+        </div>
+    </div>
+
+    <div
+        class="oh-modal"
+        id="duplicateSurveyModal"
+        role="dialog"
+        aria-labelledby="duplicateSurveyModal"
+        aria-hidden="true"
+    >
+        <div class="oh-modal__dialog">
+            <div class="oh-modal__dialog-header">
+                <h2 class="oh-modal__dialog-title" id="duplicateSurveyModalLabel">
+                    {% trans "Duplicate Survey Template" %}
+                </h2>
+                <button
+                    type="button"
+                    class="oh-modal_close--custom"
+                    onclick="$('#duplicateSurveyModal').removeClass('oh-modal--show')"
+                >
+                    <ion-icon name="close-outline" role="img" aria-label="{% trans 'close outline' %}"></ion-icon>
+                </button>
+            </div>
+            <div class="oh-modal__dialog-body" id="duplicateSurveyFormModal"></div>
+        </div>
+    </div>
+
+    <div id="surveyTabsWrapper">
+        <div hx-get="{% url 'survey-template-settings-tab-view' %}" hx-trigger="load"></div>
+    </div>
+
+    <div class="oh-modal" id="templateModal" role="dialog" aria-hidden="true">
+        <div class="oh-modal__dialog" style="max-width: 550px">
+            <div class="oh-modal__dialog-header">
+                <button type="button" class="oh-modal__close" aria-label="{% trans 'Close' %}">
+                    <ion-icon name="close-outline"></ion-icon>
+                </button>
+            </div>
+
+            <div class="oh-modal__dialog-body" id="templateModalBody"></div>
+        </div>
+    </div>
+{% endblock content %}

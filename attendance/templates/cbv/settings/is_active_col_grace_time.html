@@ -1,0 +1,31 @@
+{% load i18n %}
+{% if perms.attendance.change_gracetime %}
+    <div class="oh-switch">
+        {% if perms.attendance.change_gracetime %}
+            <input
+                type="checkbox"
+                id="isActive"
+                name="isChecked"
+                class="oh-switch__checkbox"
+                {% if instance.is_active %}
+                    checked
+                {% endif %}
+                hx-post="{% url 'update-isactive-gracetime' %}"
+                hx-trigger="change"
+                hx-vals='{"gracetimeId": "{{instance.id}}"}'
+                hx-swap="none"
+                hx-on-htmx-after-request="setTimeout(() => { reloadMessage(); }, 200);"
+            >
+        {% else %}
+            <input
+                type="checkbox"
+                id="isActive"
+                class="oh-switch__checkbox"
+                {% if instance.is_active %}
+                    checked
+                {% endif %}
+                disabled
+            >
+        {% endif %}
+    </div>
+{% endif %}

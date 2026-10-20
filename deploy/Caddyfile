@@ -1,0 +1,63 @@
+# One Caddy for both sites on the VPS (automatic Let's Encrypt HTTPS).
+# Install to /etc/caddy/Caddyfile, then:  sudo systemctl reload caddy
+# Needs DNS A records for hrms.infisetu.in and itm.infisetu.in pointing at this VPS first.
+
+hrms.infisetu.in {
+	encode zstd gzip
+
+	request_body {
+		max_size 50MB
+	}
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	# Operational metrics stay internal.
+	@metrics path /metrics /metrics/*
+	respond @metrics 404
+
+	# OPTIONAL - only let your office / VPN reach the HRMS (SSO still works from there):
+	# @outsiders {
+	#	not remote_ip 203.0.113.10 198.51.100.0/24
+	# }
+	# respond @outsiders 403
+
+	# Django (gunicorn, host network, 127.0.0.1:8000). Caddy sets X-Forwarded-For/Proto itself.
+	reverse_proxy 127.0.0.1:8000 {
+		transport http {
+			read_timeout 120s
+		}
+	}
+}
+
+itm.infisetu.in {
+	encode zstd gzip
+
+	# Biggest legitimate request is a screenshot (< 3 MB)
+	request_body {
+		max_size 4MB
+	}
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	# The HRMS totals API is internal: Django calls http://127.0.0.1:8100 directly.
+	@internal path /api/v1/*
+	respond @internal 404
+
+	# OPTIONAL - restrict the admin console to office / VPN. Agents (/api/agent/*) must stay open.
+	# @console_outsiders {
+	#	not path /api/agent/* /static/* /healthz
+	#	not remote_ip 203.0.113.10 198.51.100.0/24
+	# }
+	# respond @console_outsiders 403
+
+	reverse_proxy 127.0.0.1:8100
+}

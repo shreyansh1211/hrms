@@ -1,0 +1,4 @@
+{% load i18n %}
+<div class=" oh-table-config__td">
+    {% trans "Interviews Scheduled" %} : {% if instance.interview_count is not None %}{{instance.interview_count}}{% else %}{{instance.candidate_interview.count}}{% endif %}
+</div>

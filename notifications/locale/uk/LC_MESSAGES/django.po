@@ -1,0 +1,107 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-07 16:08+0530\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != "
+"11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % "
+"100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || "
+"(n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
+
+msgid "Mark selected notifications as unread"
+msgstr ""
+
+msgid "Notifications"
+msgstr ""
+
+msgid "level"
+msgstr ""
+
+msgid "recipient"
+msgstr ""
+
+msgid "unread"
+msgstr ""
+
+msgid "actor content type"
+msgstr ""
+
+msgid "actor object id"
+msgstr ""
+
+msgid "actor"
+msgstr ""
+
+msgid "verb"
+msgstr ""
+
+msgid "description"
+msgstr ""
+
+msgid "target content type"
+msgstr ""
+
+msgid "target object id"
+msgstr ""
+
+msgid "target"
+msgstr ""
+
+msgid "action object content type"
+msgstr ""
+
+msgid "action object object id"
+msgstr ""
+
+msgid "action object"
+msgstr ""
+
+msgid "timestamp"
+msgstr ""
+
+msgid "public"
+msgstr ""
+
+msgid "deleted"
+msgstr ""
+
+msgid "emailed"
+msgstr ""
+
+msgid "data"
+msgstr ""
+
+msgid "Notification"
+msgstr ""
+
+#, python-format
+msgid "%(actor)s %(verb)s %(action_object)s on %(target)s %(timesince)s ago"
+msgstr ""
+
+#, python-format
+msgid "%(actor)s %(verb)s %(target)s %(timesince)s ago"
+msgstr ""
+
+#, python-format
+msgid "%(actor)s %(verb)s %(action_object)s %(timesince)s ago"
+msgstr ""
+
+#, python-format
+msgid "%(actor)s %(verb)s %(timesince)s ago"
+msgstr ""
+
+msgid "Make a notification"
+msgstr ""

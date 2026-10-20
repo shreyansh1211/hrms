@@ -1,0 +1,27 @@
+{% load i18n static %}
+
+<div class="oh-inner-sidebar-content border border-[#ebebeb] rounded-md mb-5">
+    <div hx-get="{% url 'document-request-nav-cbv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" hx-trigger="load"></div>
+
+    <p class="text-xs text-gray-500 mt-1 ml-2">
+        {% trans "Review document upload requests and submit required files from HR." %}
+    </p>
+
+    <div
+        class="oh-checkpoint-badge mb-2"
+        id="selectedInstances"
+        data-ids="[]"
+        data-clicked=""
+        style="display: none"
+    >
+    </div>
+
+    <div id="view-container" class="oh-wrapper p-1">
+    </div>
+
+    <div class="oh-modal" id="viewFileModal" role="dialog" aria-labelledby="viewFileModal" aria-hidden="true">
+        <div class="oh-modal__dialog" id="viewFile"></div>
+    </div>
+</div>
+
+<script src="{% static '/document/actions.js' %}"></script>

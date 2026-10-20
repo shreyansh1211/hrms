@@ -1,0 +1,587 @@
+{% load static i18n %}
+{% comment %}
+    Inline nav bar.
+
+    A compact card-header variant of generic/horilla_nav.html for settings
+    sub-lists (IP Restriction, Grace Time, Break Point, etc.). Renders the
+    section title on the left and optional search / actions / create controls
+    on the right, styled to match the settings section headers
+    (bg-[#f3f3f3] card header).
+
+    Reuses the same context provided by HorillaNavView:
+        nav_title, search_url, search_swap_target, search_input_attrs,
+        view_types, active_view, filter_body_template, group_by_fields,
+        nested_group_by_fields, actions, create_attrs, apply_first_filter,
+        modern_filter, applied_filter_count
+
+    An entry in `actions` may instead be a GROUP - {"group": <label>,
+    "actions": [<action>, ...]} - which renders as one collapsible row
+    rather than a flat row per action. Use it when the action list scales
+    with record count (see stage_pipeline_actions() in the recruitment
+    pipeline); a flat list of hundreds of rows makes this Nav's response
+    large and slow enough to leave the whole toolbar missing on first load.
+
+    modern_filter opts into the same offcanwas slide-over panel as
+    horilla_nav.html (.oh-filter-modern styles, generic/modern_filter_panel.
+    html) instead of the classic anchored dropdown below -- mirrors that
+    template's own {% if modern_filter %}...{% else %}...{% endif %} split
+    around the shared filter_body_template/Group By block, so every page
+    still using the classic dropdown (the vast majority of this template's
+    callers) renders byte-for-byte the same as before. Only one
+    #modernFilterPanel exists in the DOM at a time -- this template is
+    always htmx-loaded into a swap target that fully replaces its previous
+    content (see e.g. requests/requests.html's #requestsContent), never
+    left stacked alongside another instance of itself.
+{% endcomment %}
+<style>
+    /* Styling for grouped actions lives here rather than as per-element
+       utility classes: with one group per record, repeating a long class
+       list on every summary/row is what made the markup dominate this
+       Nav's response size. */
+    .ohActGroup > summary {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .375rem 1rem;
+        font-size: .75rem;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: color .3s;
+        list-style: none;
+    }
+    .ohActGroup > summary::-webkit-details-marker { display: none; }
+    .ohActGroup > summary ion-icon {
+        font-size: .875rem;
+        flex-shrink: 0;
+        transition: transform .2s;
+    }
+    .ohActGroup[open] > summary ion-icon { transform: rotate(90deg); }
+    .ohActGroup > ul > li > a {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: .375rem 1rem .375rem 2.5rem;
+        font-size: .75rem;
+        white-space: nowrap;
+        transition: color .3s;
+    }
+</style>
+{% if modern_filter %}
+    {% include 'generic/modern_filter_panel.html' %}
+    {% comment %}
+        Applied-filter-count badge counter and the custom filter builder
+        ("+ Add filter", Advanced section) -- same shared partial
+        horilla_nav.html uses, see its own docstring for the full
+        explanation. Requires this template's own badge <span>s to carry
+        a "js-filter-count-badge" class (added below) for the counter to
+        find them.
+    {% endcomment %}
+    {% include 'generic/filter_count_and_custom_builder.html' %}
+{% endif %}
+<div class="text-sm font-semibold bg-[#f3f3f3] px-3 py-3 text-[#333] flex items-center justify-between gap-2 flex-wrap">
+    <span>{{ nav_title }}</span>
+
+    <div class="flex flex-wrap items-center gap-1">
+        {% if search_url %}
+            <form
+                autocomplete="off"
+                id="filterForm{{ search_swap_target|cut:'#' }}"
+                onsubmit="event.preventDefault()"
+                hx-get="{{ search_url }}"
+                hx-trigger="{% if default_group_by or apply_first_filter %}submit{% else %}load, submit{% endif %}"
+                hx-replace-url="false"
+                hx-target="{{ search_swap_target }}"
+                hx-on:submit="htmxLoadIndicator(this);"
+                class="flex flex-wrap items-center gap-1 navFilterForm"
+            >
+                <input type="text" name="nav_url" value="{{ request.path }}" hidden>
+                <input type="hidden" name="filter_applied" value="on">
+
+                {% if not hide_search %}
+                <div class="relative">
+                    <input
+                        type="text"
+                        class="text-color-600 ps-8 p-1.5 pb-2 placeholder:text-xs w-full border border-primary-500 rounded-md focus-visible:outline-0 placeholder:text-dark-100 text-sm [transition:.3s] focus:border-primary-600"
+                        name="search"
+                        aria-label="{% trans 'Search Input' %}"
+                        placeholder="{% trans 'Search' %}"
+                        autocomplete="false"
+                        {{ search_input_attrs|safe }}
+                    >
+                    <i
+                        class="fas fa-search absolute left-3 top-[1px] bottom-0 m-auto flex items-center opacity-50 text-xs"
+                    ></i>
+                    {% if search_in %}
+                    <input type="text" hidden name="search_field">
+                    <div
+                        class="search-field-dropdown absolute z-30 bg-white rounded-lg [box-shadow:0px_0px_20px_0px_rgb(0_0_0_/_8%)] min-w-[220px] py-1 left-0 mt-1 hidden"
+                    >
+                        <ul>
+                            {% for option in search_in %}
+                            <li>
+                                <a href="#"
+                                    class="search-field-option block px-3 py-2 text-xs text-color-600 hover:bg-gray-50"
+                                    onmousedown="event.preventDefault(); $('[name=search_field]').val('{{option.0}}'); $(this).closest('.search-field-dropdown').addClass('hidden'); $(this).closest('form')[0].requestSubmit();"
+                                >
+                                    {% trans "Search" %} <b>{{option.1}}</b> {% trans "for:" %}
+                                    <b class="search-field-text"></b>
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if view_types %}
+                    <div class="flex gap-1 text-[#000]">
+                        {% for type in view_types %}
+                            <li
+                                hx-swap="none"
+                                data-url="{{ type.url }}"
+                                data-type="{{ type.type }}"
+                                hx-get="{% url 'active-hnv-view-type' %}?view={{ type.type }}&path={{ request.path }}"
+                                class="tab-btn bg-white px-4 py-2 rounded-md text-xs flex items-center gap-2 border transition duration-300 border-primary-500 nav-view-btn"
+                                title="{{ type.type|title }}"
+                                onclick="$(this).closest('form').attr('hx-get','{{ type.url }}'); $(this).closest('form').find('#applyFilter').click()"
+                            >
+                                <a {{ type.attrs|safe }}><ion-icon name="{{ type.icon }}"></ion-icon></a>
+                                {% if active_view.type == type.type %}
+                                    <script>
+                                        $(".navFilterForm").attr('hx-get', '{{ type.url }}');
+                                        $(".nav-view-btn[data-type={{ type.type }}]").addClass("oh-view-btn--active")
+                                    </script>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if filter_body_template %}
+                    <div class="relative dropdown-wrapper{% if modern_filter %} oh-filter-modern{% endif %}">
+                        {% if modern_filter %}
+                            <button
+                                type="button"
+                                id="modernFilterTrigger"
+                                onclick="toggleModernFilterPanel(true)"
+                                class="px-5 py-2 h-full bg-[white] rounded-md text-xs flex items-center gap-2 border border-primary-500 hover:border-primary-600 transition duration-300 cursor-pointer"
+                            >
+                                <img
+                                    src="{% static 'horilla_theme/assets/img/icons/sort.svg' %}"
+                                    alt="{% trans 'Filter' %}"
+                                    width="15"
+                                    class="mt-[-1px]"
+                                >
+                                {% trans "Filter" %}
+                                <span class="oh-filter-count-badge js-filter-count-badge{% if not applied_filter_count %} oh-filter-count-badge--hidden{% endif %}">{{applied_filter_count|default:0}}</span>
+                            </button>
+                            <div class="oh-filter-backdrop" id="modernFilterBackdrop" onclick="toggleModernFilterPanel(false)"></div>
+                            <div class="oh-filter-panel oh-filter-modern" id="modernFilterPanel">
+                                <div class="oh-filter-panel__header">
+                                    <h3>
+                                        {% trans "Filter" %} {{nav_title}}
+                                        <span class="oh-filter-count-badge oh-filter-count-badge--header js-filter-count-badge{% if not applied_filter_count %} oh-filter-count-badge--hidden{% endif %}">{{applied_filter_count|default:0}}</span>
+                                    </h3>
+                                    <button type="button" class="oh-filter-panel__close" onclick="toggleModernFilterPanel(false)" aria-label="{% trans 'Close' %}">
+                                        <ion-icon name="close-outline"></ion-icon>
+                                    </button>
+                                </div>
+                                <div class="oh-filter-panel__search">
+                                    <input
+                                        type="text"
+                                        id="modernFilterFieldSearch"
+                                        placeholder="{% trans 'Find a filter' %}"
+                                        oninput="filterModernPanelFields(this.value)"
+                                        autocomplete="off"
+                                    >
+                                </div>
+                                <div class="oh-filter-panel__body">
+                            <div class="accordion-wrapper space-y-2">
+                                {% include filter_body_template %}
+                        {% else %}
+                            <span
+                                class="px-5 py-2 h-full bg-[white] rounded-md text-xs flex items-center gap-2 border border-primary-500 hover:border-primary-600 transition duration-300 cursor-pointer"
+                            >
+                                <img
+                                    src="{% static 'horilla_theme/assets/img/icons/sort.svg' %}"
+                                    alt="{% trans 'Filter' %}"
+                                    width="15"
+                                    class="mt-[-1px]"
+                                >
+                                {% trans "Filter" %}
+                            </span>
+                            <div class="oh-filter-dropdown dropdown-content absolute z-10 bg-white rounded-lg [box-shadow:0px_0px_20px_0px_rgb(0_0_0_/_8%)] min-w-[400px] p-3 right-0 font-normal">
+                            <div class="accordion-wrapper space-y-2">
+                                {% include filter_body_template %}
+                        {% endif %}
+                                {% if group_by_fields and not nested_group_by_fields %}
+                                    <div class="oh-accordion oh-accordion--top-divider">
+                                        <div class="oh-accordion-header"
+                                            onclick="event.stopImmediatePropagation();$(this).parent().toggleClass('oh-accordion--show');"
+                                        >
+                                            <span class="oh-filter-section-icon"><ion-icon name="layers-outline"></ion-icon></span>
+                                            {% trans 'Group By' %}
+                                        </div>
+                                        <div class="oh-accordion-body">
+                                            <div class="row">
+                                                <div class="col-sm-12 col-md-12 col-lg-6">
+                                                    <div class="oh-input-group">
+                                                        <label
+                                                            class="oh-label"
+                                                            for="id_field"
+                                                        >{% trans "Fields" %}</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-12 col-md-12 col-lg-6">
+                                                    <div class="oh-input-group">
+                                                        <select
+                                                            onchange="$(this).closest('form').find('#applyFilter').click()"
+                                                            class="oh-select mt-1 w-100"
+                                                            id="id_field"
+                                                            name="field"
+                                                            style="width: 100%"
+                                                        >
+                                                            <option value="">{% trans "Select" %}</option>
+                                                            {% for field in group_by_fields %}
+                                                                <option
+                                                                    value="{{ field.0 }}"
+                                                                    {% if default_group_by == field.0 %}selected{% endif %}
+                                                                >{{ field.1 }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                {% if nested_group_by_fields %}
+                                    {% comment %}
+                                        Same unified multi-level Group By picker as
+                                        horilla_nav.html -- each row numbered (submission
+                                        order = grouping hierarchy), removable down to one
+                                        level, preview line before Apply.
+                                    {% endcomment %}
+                                    <div class="oh-accordion oh-accordion--top-divider">
+                                        <div class="oh-accordion-header"
+                                            onclick="event.stopImmediatePropagation();$(this).parent().toggleClass('oh-accordion--show');"
+                                        >
+                                            <span class="oh-filter-section-icon"><ion-icon name="layers-outline"></ion-icon></span>
+                                            {% trans 'Group By' %}
+                                        </div>
+                                        <div class="oh-accordion-body">
+                                            <div id="nestedGroupByLevels" class="space-y-1.5" data-max-levels="{{nested_group_by_fields|length}}">
+                                                {% for value in nested_fields_selected %}
+                                                    <div class="flex items-center gap-1.5 nested-group-by-row">
+                                                        <span class="ngb-level-badge shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-md bg-primary-100 text-primary-700 text-[11px] font-semibold"></span>
+                                                        {% comment %}
+                                                            Deliberately NOT .oh-select -- see
+                                                            horilla_nav.html's own copy of this block for why
+                                                            (select2 re-init + row-cloning don't mix).
+                                                        {% endcomment %}
+                                                        <select
+                                                            onchange="ngbUpdatePreview(); ngbUpdateDisabledOptions(); ngbDisableOtherGroupBySourceIfPresent('nestedGroupByLevels'); $(this).closest('form').find('#applyFilter').click();"
+                                                            class="ngb-field-select oh-input w-100 border border-[#DEDBD4] rounded-md px-2 py-1.5 text-sm"
+                                                            name="nested_fields"
+                                                            style="margin-bottom: 0;"
+                                                        >
+                                                            <option value="">{% trans "Select" %}</option>
+                                                            {% for field in nested_group_by_fields %}
+                                                                <option value="{{field.0}}"{% if field.0 == value %} selected{% endif %}>{{ field.1 }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                        <button
+                                                            type="button"
+                                                            class="shrink-0 inline-flex items-center justify-center w-5 h-5 text-sm leading-none text-red-500 hover:text-red-600"
+                                                            onclick="ngbRemoveLevel(this)"
+                                                            title="{% trans 'Remove level' %}"
+                                                        >&times;</button>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                class="text-xs text-primary-600 hover:underline mt-2"
+                                                onclick="ngbAddLevel(this)"
+                                            >+ {% trans "Add level" %}</button>
+                                            <div id="nestedGroupByPreview" class="text-xs text-gray-600 mt-2 pt-2 border-t border-[#EAE8E3]"></div>
+                                        </div>
+                                    </div>
+                                    <script>
+                                        function ngbRenumber() {
+                                            var $rows = $('#nestedGroupByLevels .nested-group-by-row');
+                                            $rows.each(function (i) {
+                                                $(this).find('.ngb-level-badge').text(i + 1);
+                                            });
+                                        }
+                                        // ngbDisableOtherGroupBySource itself is only defined in
+                                        // horilla_nav.html (it coordinates the Filter dropdown's
+                                        // picker against nested_group_by_table.html's own
+                                        // breadcrumb copy) -- a page using this inline nav on its
+                                        // own, without horilla_nav.html also present, wouldn't have
+                                        // it, so this is guarded rather than assumed.
+                                        function ngbDisableOtherGroupBySourceIfPresent(exceptContainerId) {
+                                            if (typeof ngbDisableOtherGroupBySource === "function") {
+                                                ngbDisableOtherGroupBySource(exceptContainerId);
+                                            }
+                                        }
+                                        function ngbUpdatePreview() {
+                                            var labels = [];
+                                            $('#nestedGroupByLevels select').each(function () {
+                                                if ($(this).val()) labels.push($(this).find('option:selected').text());
+                                            });
+                                            var $preview = $('#nestedGroupByPreview');
+                                            if (labels.length > 1) {
+                                                $preview.text('{% trans "Preview"|escapejs %}: ' + labels.join(' > '));
+                                            } else {
+                                                $preview.text('');
+                                            }
+                                        }
+                                        function ngbUpdateDisabledOptions() {
+                                            var chosen = $('#nestedGroupByLevels select').map(function () {
+                                                return $(this).val();
+                                            }).get().filter(Boolean);
+                                            $('#nestedGroupByLevels select').each(function () {
+                                                var own = $(this).val();
+                                                $(this).find('option').each(function () {
+                                                    if (!$(this).val()) return;
+                                                    $(this).prop('disabled', $(this).val() !== own && chosen.indexOf($(this).val()) !== -1);
+                                                });
+                                            });
+                                        }
+                                        function ngbAddLevel(btn) {
+                                            var $container = $('#nestedGroupByLevels');
+                                            var maxLevels = parseInt($container.attr('data-max-levels'), 10) || 10;
+                                            if ($container.find('.nested-group-by-row').length >= maxLevels) return;
+                                            var $row = $container.find('.nested-group-by-row').first().clone();
+                                            $row.find('select').val('');
+                                            $container.append($row);
+                                            ngbRenumber();
+                                            ngbUpdatePreview();
+                                            ngbUpdateDisabledOptions();
+                                        }
+                                        function ngbRemoveLevel(btn) {
+                                            var $container = $('#nestedGroupByLevels');
+                                            if ($container.find('.nested-group-by-row').length <= 1) return;
+                                            $(btn).closest('.nested-group-by-row').remove();
+                                            ngbRenumber();
+                                            ngbUpdatePreview();
+                                            ngbUpdateDisabledOptions();
+                                            ngbDisableOtherGroupBySourceIfPresent('nestedGroupByLevels');
+                                            $(btn).closest('form').find('#applyFilter').click();
+                                        }
+                                        $(function () {
+                                            ngbRenumber();
+                                            ngbUpdatePreview();
+                                            ngbUpdateDisabledOptions();
+                                        });
+                                    </script>
+                                {% endif %}
+
+                                {% if not modern_filter %}
+                                <div class="flex justify-end">
+                                    <button
+                                        class="px-4 py-2 bg-primary-600 text-white rounded-md text-xs flex items-center gap-2 hover:bg-primary-800 transition duration-300 filterButton"
+                                        id="applyFilter"
+                                    >
+                                        <img
+                                            src="{% static 'horilla_theme/assets/img/icons/sort.svg' %}"
+                                            style="filter: invert(1) brightness(2)"
+                                            alt="{% trans 'Filter' %}"
+                                            width="15"
+                                            class="mt-[-1px]"
+                                        >{% trans "Apply" %}
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                        {% if modern_filter %}
+                                </div>
+                                <div class="oh-filter-panel__footer">
+                                    <button type="button" class="oh-filter-panel__clear" onclick="clearAllFilter(this)">
+                                        <ion-icon name="close-outline"></ion-icon>
+                                        {% trans "Clear all" %}
+                                    </button>
+                                    <button
+                                        class="oh-filter-panel__apply filterButton"
+                                        id="applyFilter"
+                                    >
+                                        <ion-icon name="checkmark-outline"></ion-icon>
+                                        {% trans "Apply" %}
+                                    </button>
+                                </div>
+                            </div>
+                        {% else %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <button hidden type="submit" id="applyFilter" class="oh-btn oh-btn--secondary oh-btn--small w-100">
+                        {% trans "Filter" %}
+                    </button>
+                {% endif %}
+            </form>
+        {% endif %}
+
+        <input type="hidden" id="pageInput">
+        <input type="hidden" id="sortInput">
+
+        {% if actions %}
+            <div class="relative dropdown-wrapper">
+                <button class="px-5 py-2 h-full bg-[white] rounded-md text-xs flex items-center gap-2 border border-primary-500 hover:border-primary-600 transition duration-300">
+                    <img
+                        src="{% static 'horilla_theme/assets/img/icons/setting-line.svg' %}"
+                        alt="{% trans 'Actions' %}"
+                        width="15"
+                        class="mt-[-1px]"
+                    >
+                    {% trans "Actions" %}
+                </button>
+                {# max-h + overflow-y-auto: .dropdown-content is hidden with #}
+                {# opacity/visibility (global.css), NOT display, so it stays #}
+                {# in layout even while closed and a long list still adds its #}
+                {# full height to the page's scrollable area - a Nav whose #}
+                {# actions cover many records (e.g. the pipeline's per-stage #}
+                {# actions) left a tall empty scroll gap under the content. #}
+                {# Capping it also makes such a list usable rather than #}
+                {# running it off-screen. Inert for short menus, which never #}
+                {# reach the cap. #}
+                <div class="dropdown-content absolute z-10 bg-white rounded-lg [box-shadow:0px_0px_20px_0px_rgb(0_0_0_/_8%)] min-w-[150px] py-2 right-0 font-normal max-h-[60vh] overflow-y-auto">
+                    <ul class="text-sm">
+                        {% for action in actions %}
+                            {% if action.group %}
+                                {# Grouped entry: one collapsible <details> per #}
+                                {# group instead of a flat row per action. A     #}
+                                {# Nav whose actions scale with record count     #}
+                                {# (the pipeline's per-stage ones) otherwise     #}
+                                {# renders hundreds of rows. Closed by default,  #}
+                                {# so the browser lays out only the summaries.   #}
+                                {# Styling lives in the scoped <style> above,    #}
+                                {# not per-element classes: repeating a long     #}
+                                {# class list on every row is what made this     #}
+                                {# dropdown's markup dominate the response.      #}
+                                <li>
+                                    <details class="ohActGroup">
+                                        <summary class="hover:text-primary-600">
+                                            <ion-icon name="chevron-forward-outline"></ion-icon>
+                                            {{ action.group }}
+                                        </summary>
+                                        <ul>
+                                            {% for sub in action.actions %}
+                                                <li><a class="hover:text-primary-600" {{ sub.attrs|safe }}>{{ sub.action }}</a></li>
+                                            {% endfor %}
+                                        </ul>
+                                    </details>
+                                </li>
+                            {% else %}
+                                <li>
+                                    <a
+                                        class="px-4 py-1.5 hover:text-primary-600 transition duration-300 text-xs gap-4 items-center flex w-full"
+                                        {{ action.attrs|safe }}
+                                    >
+                                        {{ action.action }}
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if create_attrs %}
+            <a
+                class="px-4 py-2 bg-brand-600 text-white rounded-md text-xs flex items-center gap-2 hover:bg-brand-800 transition duration-300 cursor-pointer"
+                {{ create_attrs|safe }}
+            >
+                <img
+                    src="{% static 'horilla_theme/assets/img/icons/more.svg' %}"
+                    alt="{% trans 'Create' %}"
+                    width="13"
+                    class="filter brightness-0 invert"
+                >
+                {% if create_label %}{{ create_label }}{% else %}{% trans "Create" %}{% endif %}
+            </a>
+        {% endif %}
+    </div>
+</div>
+<div id="filterTagContainerSectionNav" class="oh-titlebar-container__filters mb-2 mt-1 oh-wrapper"></div>
+
+<script>
+    $(document).ready(function () {
+        var $inlineNavForm = $("#filterForm{{ search_swap_target|cut:'#' }}");
+
+        $inlineNavForm.on("htmx:configRequest", function (event) {
+            if (event.detail.verb == "get" && event.target.tagName == "FORM") {
+                event.detail.path = $(this).attr("hx-get");
+            }
+        });
+
+        setTimeout(() => {
+            var $activeViewBtn = $inlineNavForm.find(".oh-view-btn--active");
+            {% if apply_first_filter %}
+            // Content is already fetched by whoever embedded this Nav, so
+            // only adopt the active view type's URL - don't fetch with it.
+            // Clicking the button (as the non-apply_first_filter path below
+            // does) runs its own onclick, which rewrites the form's hx-get
+            // AND clicks #applyFilter - re-fetching content that is already
+            // on the page. Do just the rewrite half here, so a later search
+            // or filter still submits to the right view's URL.
+            var activeViewUrl = $activeViewBtn.attr("data-url");
+            if (activeViewUrl) {
+                $inlineNavForm.attr("hx-get", activeViewUrl);
+            }
+            {% else %}
+            $activeViewBtn.click();
+            {% endif %}
+            {% if default_group_by %}
+            $inlineNavForm[0].requestSubmit();
+            {% elif apply_first_filter %}
+            if (!$activeViewBtn.length) {
+                $inlineNavForm.find("#applyFilter").click()
+            }
+            {% endif %}
+        }, 100);
+
+        let debounceTimer;
+        $inlineNavForm.find('input[name="search"]').on('keyup', function () {
+            clearTimeout(debounceTimer);
+            const value = this.value;
+
+            {% if search_in %}
+            const dropdown = $(this).closest('.relative').find('.search-field-dropdown');
+            if (value) {
+                dropdown.find('.search-field-text').text(value);
+                dropdown.removeClass('hidden');
+            } else {
+                $inlineNavForm.find('[name=search_field]').val('');
+                dropdown.addClass('hidden');
+            }
+            {% endif %}
+
+            debounceTimer = setTimeout(() => {
+                this.form.requestSubmit();
+            }, 500);
+        });
+
+        {% if search_in %}
+        $inlineNavForm.find('input[name="search"]').on('focus', function () {
+            if (this.value) {
+                $(this).closest('.relative').find('.search-field-dropdown').removeClass('hidden');
+            }
+        });
+        $inlineNavForm.find('input[name="search"]').on('blur', function () {
+            const dropdown = $(this).closest('.relative').find('.search-field-dropdown');
+            setTimeout(() => dropdown.addClass('hidden'), 200);
+        });
+        {% endif %}
+
+        $inlineNavForm.find(".nav-view-btn").click(function (e) {
+            e.preventDefault();
+            $inlineNavForm.find(".oh-view-btn--active").removeClass("oh-view-btn--active");
+            $(this).addClass("oh-view-btn--active");
+        });
+    });
+</script>

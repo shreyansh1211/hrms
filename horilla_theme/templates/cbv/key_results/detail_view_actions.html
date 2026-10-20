@@ -1,0 +1,63 @@
+{% load i18n static %}
+
+{% if not instance.is_active %}
+    <a
+        class="oh-btn oh-btn--light-bkg w-24 px-4 py-2 rounded-md text-xs flex items-center justify-center gap-2 transition duration-300"
+        hx-confirm="{% trans 'Do you want to unarchive this key Result?' %}"
+        hx-post="{% url 'archive-key-result' instance.id %}"
+        hx-target="#genericModalBody"
+        method="post"
+        title="{% trans 'Unarchive' %}"
+    >
+        <ion-icon name="archive-outline"></ion-icon>
+        {% trans "Unarchive" %}
+    </a>
+{% else %}
+    <a
+        class="oh-btn oh-btn--light-bkg w-24 px-4 py-2 rounded-md text-xs flex items-center justify-center gap-2 transition duration-300"
+        hx-confirm="{% trans 'Do you want to archive this key Result?' %}"
+        hx-post="{% url 'archive-key-result' instance.id %}"
+        hx-target="#genericModalBody"
+        method="post"
+        title="{% trans 'Archive' %}"
+    >
+        <ion-icon name="archive-outline"></ion-icon>
+        {% trans "Archive" %}
+    </a>
+{% endif %}
+
+<a
+    class="oh-btn oh-btn--light-bkg w-24 px-4 py-2 rounded-md text-xs flex items-center justify-center gap-2 transition duration-300"
+    onclick="event.stopPropagation()"
+    data-toggle="oh-modal-toggle"
+    data-target="#genericModal"
+    hx-get="{% url 'update-key-result' instance.id %}?instances_ids={{ request.GET.instance_ids }}"
+    hx-target="#genericModalBody"
+    title='{% trans "Edit" %}'
+>
+    <ion-icon name="create-outline"></ion-icon>
+    {% trans "Edit" %}
+</a>
+
+<a
+    class="w-24 px-4 py-2 bg-danger text-white rounded-md text-xs flex items-center justify-center gap-2 hover:bg-danger-dark transition duration-300"
+    onclick="event.preventDefault();event.stopPropagation()"
+    hx-confirm="{% trans 'Do you want to delete this Key result?' %}"
+    hx-post="{% url 'key-result-delete' instance.id %}?instances_ids={{request.GET.instance_ids}}"
+    hx-target="#genericModalBody"
+    title="{% trans 'Delete' %}"
+>
+    <img
+        src="{% static 'horilla_theme/assets/img/icons/trash.svg' %}"
+        alt="{% trans 'Delete' %}"
+        width="16"
+        class="mt-[-1px] filter brightness-0 invert"
+    >
+    {% trans 'Delete' %}
+</a>
+
+{% if request.GET.deleted %}
+    <script>
+        $("#reloadMessagesButton").click();
+    </script>
+{% endif %}

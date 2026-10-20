@@ -1,0 +1,110 @@
+{% extends "index.html" %}
+{% load i18n static horillafilters %}
+
+{% block content %}
+{% get_company as theme_obj %}
+    <style>
+        .expired--dot{
+            background-color:gray;
+        }
+        .cancelled--dot{
+            background-color:red;
+        }
+        .on-hold--dot{
+            background-color:orange;
+        }
+        .completed--dot{
+            background-color:yellowgreen;
+        }
+        .in-progress--dot{
+            background-color: rgb(103, 171, 238);
+        }
+        .new--dot{
+            background-color: cyan;
+        }
+        .status-completed{
+            border-left: 3.4px solid yellowgreen !important;
+            border-radius: 4px 0 0 4px;
+
+        }
+        .status-cancelled {
+
+            border-left: 3.4px solid red !important;
+            border-radius: 4px 0 0 4px;
+
+        }
+        .status-expired {
+
+            border-left: 3.4px solid gray !important;
+            border-radius: 4px 0 0 4px;
+
+        }
+        .status-on_hold {
+
+            border-left: 3.4px solid orange !important;
+            border-radius: 4px 0 0 4px;
+
+        }
+        .status-in_progress {
+
+            border-left: 3.4px solid rgb(103, 171, 238) !important;
+            border-radius: 4px 0 0 4px;
+
+        }
+        .status-new {
+
+            border-left: 3.4px solid cyan !important;
+            border-radius: 4px 0 0 4px;
+
+        }
+        .oh-badge {
+            display: inline-block;
+            padding: 0.25rem;
+            text-align: center;
+        }
+        .oh-badge--small {
+            margin-top: 0px !important;
+            min-width: 20px !important;
+            min-height: 20px !important;
+            display: flex !important;
+            font-size: 0.7rem !important;
+            align-items: center !important;
+            width: fit-content;
+            justify-content: center !important;
+            padding: 0.1rem 0.5rem;
+            height: fit-content;
+            border-radius: 30px;
+        }
+
+        .oh-badge--round {
+            display: flex;
+            justify-content: center;
+        }
+
+        .oh-badge--secondary {
+            background-color: {{ theme_obj.primary_600|default:'#017391' }};
+            color: hsl(0, 0%, 100%);
+        }
+    </style>
+
+    <div
+        hx-get="{% url 'project-nav-view' %}?{{request.GET.urlencode}}"
+        hx-trigger="load"
+    >
+    </div>
+
+    <div
+        class="oh-checkpoint-badge mb-2"
+        id="selectedInstances"
+        data-ids="[]"
+        data-clicked=""
+        style="display: none"
+    >
+    </div>
+
+    <div class="oh-wrapper" id="listContainer">
+    </div>
+
+    <script src="{% static 'cbv/deleteFunc.js' %}"></script>
+    <script src="{% static '/project/project_action.js' %}"></script>
+{% endblock %}

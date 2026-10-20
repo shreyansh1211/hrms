@@ -1,0 +1,140 @@
+{% load i18n basefilters static %}
+{% is_manager_of request.user instance as can_manage %}
+{% with can_change=perms.attendance.change_attendance can_delete=perms.attendance.delete_attendance %}
+<div class="flex items-center justify-center gap-1 flex-wrap">
+    {% if can_change or can_manage %}
+        {% if instance.attendance_overtime_approve %}
+            <button
+                type="button"
+                class="oh-btn oh-btn--success px-4 py-2 rounded-md text-xs flex items-center justify-center gap-2 transition duration-300 oh-btn--disabled"
+                title="{% trans 'Approved' %}"
+                onclick="event.stopPropagation()"
+            >
+                <ion-icon name="checkmark-done-outline"></ion-icon>
+                {% trans 'Approved' %}
+            </button>
+        {% elif minot <= instance.overtime_second %}
+            <button
+                type="button"
+                class="oh-btn oh-btn--success px-4 py-2 rounded-md text-xs flex items-center justify-center gap-2 transition duration-300"
+                title="{% trans 'Approve Overtime' %}"
+                onclick="event.preventDefault(); event.stopPropagation(); (function(pk){
+                    Swal.fire({
+                        title: '{% trans 'Are you sure?'|escapejs %}',
+                        text: '{% trans 'Do you want to approve this overtime?'|escapejs %}',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#008000',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '{% trans 'Confirm'|escapejs %}',
+                        cancelButtonText: '{% trans 'Cancel'|escapejs %}'
+                    }).then(function(result) {
+                        if (result.isConfirmed) {
+                            var f = document.getElementById('ot-approve-tab-' + pk);
+                            if (f && f.requestSubmit) f.requestSubmit();
+                        }
+                    });
+                })({{ instance.id }}); return false"
+            >
+                <ion-icon name="checkmark-done-outline"></ion-icon>
+                {% trans "Approve" %}
+            </button>
+            <form
+                id="ot-approve-tab-{{ instance.id }}"
+                hx-post="{% url 'approve-overtime' instance.id %}"
+                hx-swap="none"
+                hidden
+            >
+                {% csrf_token %}
+            </form>
+        {% elif instance.overtime_second >= 60 %}
+            <button
+                type="button"
+                class="oh-btn oh-btn--success px-4 py-2 rounded-md text-xs flex items-center justify-center gap-2 transition duration-300"
+                title="{% trans 'Approve Overtime (OT < min.OT)' %}"
+                onclick="event.preventDefault(); event.stopPropagation(); (function(pk){
+                    Swal.fire({
+                        title: '{% trans 'Are you sure?'|escapejs %}',
+                        text: '{% trans 'This does not satisfy the minimum OT requirement!'|escapejs %}',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#008000',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '{% trans 'Approve'|escapejs %}',
+                        cancelButtonText: '{% trans 'Cancel'|escapejs %}'
+                    }).then(function(result) {
+                        if (result.isConfirmed) {
+                            var f = document.getElementById('ot-approve-tab-' + pk);
+                            if (f && f.requestSubmit) f.requestSubmit();
+                        }
+                    });
+                })({{ instance.id }}); return false"
+            >
+                <ion-icon name="checkmark-done-outline"></ion-icon>
+                {% trans "Approve" %}
+            </button>
+            <form
+                id="ot-approve-tab-{{ instance.id }}"
+                hx-post="{% url 'approve-overtime' instance.id %}"
+                hx-swap="none"
+                hidden
+            >
+                {% csrf_token %}
+            </form>
+        {% endif %}
+    {% endif %}
+    {% if can_change or can_manage %}
+        <a
+            class="oh-btn oh-btn--light-bkg px-4 py-2 rounded-md text-xs flex items-center justify-center gap-2 transition duration-300"
+            data-toggle="oh-modal-toggle"
+            data-target="#genericModal"
+            hx-get="{% url 'attendance-update' instance.id %}?instance_ids={{ instance.ordered_ids }}"
+            onclick="event.stopPropagation()"
+            hx-swap="innerHTML"
+            hx-target="#genericModalBody"
+        >
+            <ion-icon name="create-outline"></ion-icon>
+            {% trans "Edit" %}
+        </a>
+    {% else %}
+        <button
+            type="button"
+            class="oh-btn oh-btn--light-bkg px-4 py-2 rounded-md text-xs flex items-center justify-center gap-2 transition duration-300"
+            title="{% trans 'Edit' %}"
+            disabled
+        >
+            <ion-icon name="create-outline"></ion-icon>
+            {% trans "Edit" %}
+        </button>
+    {% endif %}
+
+    {% if can_delete or can_manage %}
+        <form
+            hx-post="{% url 'attendance-delete' instance.id %}"
+            onclick="event.stopPropagation()"
+            hx-swap="none"
+        >
+            {% csrf_token %}
+            <button
+                type="submit"
+                class="oh-btn oh-btn--danger px-4 py-2 rounded-md text-xs flex items-center justify-center gap-2 transition duration-300"
+                title="{% trans 'Remove' %}"
+                onclick="return confirm('{% trans "Are you sure want to delete this attendance?"|escapejs %}')"
+            >
+                <ion-icon name="trash-outline"></ion-icon>
+                {% trans "Delete" %}
+            </button>
+        </form>
+    {% else %}
+        <button
+            type="button"
+            class="oh-btn oh-btn--light-bkg px-4 py-2 rounded-md text-xs flex items-center justify-center gap-2 transition duration-300"
+            title="{% trans 'Delete' %}"
+            disabled
+        >
+            <ion-icon name="trash-outline"></ion-icon>
+            {% trans "Delete" %}
+        </button>
+    {% endif %}
+</div>
+{% endwith %}

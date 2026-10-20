@@ -1,0 +1,3316 @@
+{% extends "index.html" %}
+{% load static i18n %}
+
+{% block content %}
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@7.8.0/dist/apexcharts.min.js"></script>
+    {% include "components/legend_prefs.html" %}
+    <style>
+        #chart-absenteeism .apexcharts-bar-area {
+            cursor: pointer;
+        }
+        #chart-absence-pct .apexcharts-bar-area {
+            cursor: default;
+        }
+        :root {
+            --am-indigo: var(--primary-600, #017391);
+            --md-indigo: var(--am-indigo);
+            --am-green: #22c55e;
+            --am-amber: #f59e0b;
+            --am-red: #ef4444;
+            --am-blue: #3b82f6;
+            --am-purple: #a855f7;
+            --am-cyan: #06b6d4;
+            --am-pink: #ec4899;
+            --am-sidebar-w: 300px;
+        }
+
+        .am-dashboard {
+            min-height: calc(100vh - 80px);
+            margin: -24px;
+            padding: 24px;
+            background: #ffffff;
+            font-family: inherit;
+        }
+        .dark .am-dashboard {
+            background: #000000;
+        }
+
+        /* ── Header ── */
+        .am-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .am-header h1 {
+            font-weight: 700;
+            font-size: 22px;
+        }
+        .am-header__date {
+            margin-top: 2px;
+            font-size: 13px;
+            opacity: 0.6;
+        }
+        .am-header__actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── Layout ── */
+        .am-layout {
+            display: grid;
+            grid-template-columns: 1fr var(--am-sidebar-w);
+            align-items: start;
+            gap: 20px;
+        }
+        .am-main {
+            min-width: 0;
+        }
+        .am-sidebar {
+            display: flex;
+            position: sticky;
+            top: 90px;
+            flex-direction: column;
+            gap: 16px;
+            max-height: calc(100vh - 90px - 24px);
+            overflow-y: auto;
+        }
+        .am-sidebar::-webkit-scrollbar {
+            width: 3px;
+        }
+        .am-sidebar::-webkit-scrollbar-thumb {
+            border-radius: 3px;
+            background: rgba(128, 128, 128, 0.2);
+        }
+
+        /* ── KPI ── */
+        .am-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            margin-bottom: 20px;
+            gap: 14px;
+        }
+        .am-kpi-card {
+            display: block;
+            position: relative;
+            padding: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(128, 128, 128, 0.09);
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow:
+                0 1px 4px rgba(0, 0, 0, 0.04),
+                0 4px 14px rgba(0, 0, 0, 0.05);
+            color: inherit;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .am-kpi-card::after {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 80px;
+            height: 80px;
+            transform: translate(20px, 20px);
+            border-radius: 50%;
+            background: currentColor;
+            content: "";
+            opacity: 0.06;
+            pointer-events: none;
+        }
+        .am-kpi-card:active {
+            transform: scale(0.97);
+        }
+        .am-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+            color: inherit;
+            text-decoration: none;
+        }
+        .dark .am-kpi-card {
+            border-color: rgba(255, 255, 255, 0.07);
+            background: #242424;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .am-kpi-card__icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            font-size: 18px;
+        }
+        .am-kpi-card__icon--green {
+            background: #dcfce7;
+            color: var(--am-green);
+        }
+        .am-kpi-card__icon--blue {
+            background: #dbeafe;
+            color: var(--am-blue);
+        }
+        .am-kpi-card__icon--amber {
+            background: #fef3c7;
+            color: var(--am-amber);
+        }
+        .am-kpi-card__icon--red {
+            background: #fee2e2;
+            color: var(--am-red);
+        }
+        .dark .am-kpi-card__icon--green {
+            background: #14532d;
+        }
+        .dark .am-kpi-card__icon--blue {
+            background: #1e3a5f;
+        }
+        .dark .am-kpi-card__icon--amber {
+            background: #78350f;
+        }
+        .dark .am-kpi-card__icon--red {
+            background: #7f1d1d;
+        }
+
+        .am-kpi-card__label {
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            opacity: 0.5;
+        }
+        .am-kpi-card__value {
+            margin-bottom: 6px;
+            font-weight: 800;
+            font-size: 30px;
+            line-height: 1;
+        }
+        .am-kpi-card__sub {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .am-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            gap: 3px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 11px;
+        }
+        .am-badge--green {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .am-badge--amber {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .am-badge--red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .am-badge--blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .am-badge--purple {
+            background: #f3e8ff;
+            color: #6b21a8;
+        }
+        .dark .am-badge--green {
+            background: #166534;
+            color: #bbf7d0;
+        }
+        .dark .am-badge--amber {
+            background: #92400e;
+            color: #fde68a;
+        }
+        .dark .am-badge--red {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+        .dark .am-badge--blue {
+            background: #1e3a8a;
+            color: #bfdbfe;
+        }
+        .dark .am-badge--purple {
+            background: #581c87;
+            color: #e9d5ff;
+        }
+
+        /* ── Chart grid ── */
+        .am-chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            margin-bottom: 20px;
+            gap: 18px;
+        }
+        .am-chart-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(128, 128, 128, 0.09);
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow:
+                0 1px 4px rgba(0, 0, 0, 0.04),
+                0 4px 16px rgba(0, 0, 0, 0.05);
+            transition:
+                box-shadow 0.25s ease,
+                transform 0.25s ease;
+        }
+        .am-chart-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+        }
+        .dark .am-chart-card {
+            border-color: rgba(255, 255, 255, 0.07);
+            background: #242424;
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.3),
+                0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+        .dark .am-chart-card:hover {
+            box-shadow: 0 6px 28px rgba(0, 0, 0, 0.4);
+        }
+
+        .am-chart-card::before {
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 3px;
+            border-radius: 16px 16px 0 0;
+            content: "";
+        }
+        .am-chart-card[data-chart-section="overview"]::before {
+            background: linear-gradient(90deg, #017391, #a855f7);
+        }
+        .am-chart-card[data-chart-section="attendance"]::before {
+            background: linear-gradient(90deg, #22c55e, #06b6d4);
+        }
+        .am-chart-card[data-chart-section="alerts"]::before {
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+        .am-chart-card[data-chart-section="hours"]::before {
+            background: linear-gradient(90deg, #3b82f6, #017391);
+        }
+
+        .am-chart-card--wide {
+            grid-column: span 2;
+        }
+        .am-chart-card--hidden {
+            display: none !important;
+        }
+
+        .am-chart-card__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px 4px;
+        }
+        .am-chart-card__title {
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: -0.01em;
+        }
+        .am-chart-card__subtitle {
+            margin-top: 2px;
+            font-weight: 500;
+            font-size: 11px;
+            opacity: 0.45;
+        }
+        .am-chart-card__body {
+            padding: 4px 12px 12px;
+        }
+
+        .am-chart-card__body--tight {
+            /* Grows with the chart: with many shifts the names run vertically and need
+               extra room below the columns, which a fixed height turned into a scrollbar. */
+            min-height: 320px;
+            padding: 0 4px 6px;
+            overflow-x: hidden;
+        }
+        .am-dimension-select {
+            appearance: none;
+            -webkit-appearance: none;
+            padding: 6px 28px 6px 10px;
+            border: 1px solid hsl(213, 22%, 84%);
+            border-radius: 6px;
+            background-color: #fff;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            color: inherit;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.3;
+            cursor: pointer;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .am-dimension-select:hover {
+            border-color: var(--am-indigo);
+        }
+        .am-dimension-select:focus {
+            outline: none;
+            border-color: var(--am-indigo);
+            box-shadow: 0 0 0 2px rgba(1, 115, 145, 0.15);
+        }
+        .dark .am-dimension-select {
+            background-color: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .dark .am-dimension-select option {
+            background: #1f2937;
+            color: #e5e7eb;
+        }
+
+        /* ── Skeleton ── */
+        .am-skeleton {
+            border-radius: 12px;
+            background: linear-gradient(
+                90deg,
+                rgba(128, 128, 128, 0.1) 25%,
+                transparent 50%,
+                rgba(128, 128, 128, 0.1) 75%
+            );
+            background-size: 200% 100%;
+            animation: am-shimmer 1.5s infinite;
+        }
+        @keyframes am-shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+        .am-skeleton--kpi {
+            height: 110px;
+        }
+
+        .am-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 0;
+            gap: 8px;
+            font-size: 13px;
+            text-align: center;
+            opacity: 0.6;
+        }
+        .am-empty img {
+            width: 100px;
+            opacity: 0.7;
+        }
+
+        /* ── Sidebar panels ── */
+        .am-info-panel {
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow: hidden;
+            border: 1px solid rgba(128, 128, 128, 0.12);
+            border-radius: 12px;
+            background: #ffffff;
+        }
+        .dark .am-info-panel {
+            border-color: rgba(255, 255, 255, 0.08);
+            background: #242424;
+        }
+        .am-info-panel__header {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+        }
+        .am-info-panel__title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        /* How many items the panel holds, beside its title. Hidden at zero. */
+        .am-count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: var(--am-indigo);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1;
+        }
+        .am-count-badge[hidden] { display: none; }
+        /* Title + count on one line, date / date range on the next. */
+        .am-info-panel__header--stacked {
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            gap: 4px;
+        }
+        .am-info-panel__header--stacked .am-info-panel__title {
+            white-space: nowrap;
+        }
+        .am-info-panel__header--stacked .am-info-panel__sub {
+            font-size: 11px;
+            opacity: 0.5;
+        }
+        .am-info-panel__body {
+            flex: 1;
+            max-height: calc(60vh - 80px);
+            padding: 8px 16px 12px;
+            overflow-y: auto;
+        }
+        .am-info-panel__body::-webkit-scrollbar {
+            width: 4px;
+        }
+        .am-info-panel__body::-webkit-scrollbar-thumb {
+            border-radius: 4px;
+            background: rgba(128, 128, 128, 0.2);
+        }
+        .am-info-panel__empty {
+            padding: 30px 0;
+            font-size: 12px;
+            text-align: center;
+            opacity: 0.4;
+        }
+        .am-link-subtle {
+            color: var(--am-indigo);
+            font-weight: 600;
+            font-size: 10px;
+            text-decoration: none;
+        }
+        .am-link-subtle:hover {
+            text-decoration: underline;
+        }
+
+        .am-absentee-item {
+            display: flex;
+            align-items: center;
+            margin: 0 -6px;
+            padding: 8px 0;
+            padding: 8px 6px;
+            gap: 10px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.06);
+            border-radius: 6px;
+            color: inherit;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .am-absentee-item:last-child {
+            border-bottom: none;
+        }
+        .am-absentee-item:hover {
+            background: rgba(99, 102, 241, 0.04);
+            color: inherit;
+            text-decoration: none;
+        }
+        .dark .am-absentee-item:hover {
+            background: rgba(99, 102, 241, 0.08);
+        }
+        .am-absentee-item__avatar {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            overflow: hidden;
+            border-radius: 50%;
+            background: #fee2e2;
+            color: var(--am-red);
+            font-weight: 700;
+            font-size: 11px;
+        }
+        .dark .am-absentee-item__avatar {
+            background: #7f1d1d;
+        }
+        .am-absentee-item__avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .am-absentee-item__info {
+            flex: 1;
+            min-width: 0;
+        }
+        .am-absentee-item__name {
+            overflow: hidden;
+            font-weight: 600;
+            font-size: 12px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .am-absentee-item__detail {
+            font-size: 11px;
+            opacity: 0.5;
+        }
+        .am-absentee-item__days {
+            flex-shrink: 0;
+            min-width: 30px;
+            color: var(--am-red);
+            font-weight: 700;
+            font-size: 12px;
+            text-align: right;
+        }
+
+        /* ── Period picker (mirrors onboarding/recruitment) ── */
+        .am-period-picker {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+        .am-period-picker input[type="date"] {
+            padding: 5px 8px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            border-radius: 6px;
+            outline: none;
+            background: transparent;
+            color: inherit;
+            font-size: 12px;
+            transition: border-color 0.15s;
+        }
+        .am-period-picker input[type="date"]:focus {
+            border-color: var(--am-indigo);
+        }
+        .am-period-picker__sep {
+            font-size: 11px;
+            opacity: 0.4;
+        }
+        .am-period-preset {
+            padding: 4px 10px;
+            border: 1px solid rgba(128, 128, 128, 0.15);
+            border-radius: 6px;
+            background: none;
+            color: inherit;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .am-period-preset:hover {
+            border-color: var(--am-indigo);
+            color: var(--am-indigo);
+        }
+        .am-period-preset--active {
+            border-color: var(--am-indigo);
+            background: var(--am-indigo);
+            color: #fff;
+        }
+        .am-period-preset--active:hover {
+            border-color: var(--am-indigo);
+            background: var(--am-indigo);
+            color: #fff;
+        }
+        .dark .am-period-picker input[type="date"] {
+            color-scheme: dark;
+        }
+
+        /* ── Customize panel (slide-out) ── */
+        .am-customize-overlay {
+            z-index: 1050;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .am-customize-overlay--open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .am-customize-panel {
+            display: flex;
+            z-index: 1051;
+            position: fixed;
+            top: 0;
+            right: -420px;
+            flex-direction: column;
+            width: 400px;
+            height: 100vh;
+            background: #ffffff;
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+            transition: right 0.25s ease;
+        }
+        .dark .am-customize-panel {
+            background: #242424;
+        }
+        .am-customize-panel--open {
+            right: 0;
+        }
+
+        .am-customize-panel__header {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+        }
+        .am-customize-panel__header h3 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .am-customize-panel__close {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(128, 128, 128, 0.08);
+            color: inherit;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .am-customize-panel__close:hover {
+            background: rgba(128, 128, 128, 0.16);
+        }
+
+        .am-customize-panel__body {
+            flex: 1;
+            padding: 12px 20px;
+            overflow-y: auto;
+        }
+        .am-customize-panel__body::-webkit-scrollbar {
+            width: 4px;
+        }
+        .am-customize-panel__body::-webkit-scrollbar-thumb {
+            border-radius: 4px;
+            background: rgba(128, 128, 128, 0.2);
+        }
+
+        .am-customize-panel__footer {
+            display: flex;
+            flex-shrink: 0;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-top: 1px solid rgba(128, 128, 128, 0.12);
+        }
+
+        .am-cust-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            padding: 10px 12px;
+            gap: 10px;
+            border: 1px solid rgba(128, 128, 128, 0.1);
+            border-radius: 8px;
+            background: rgba(128, 128, 128, 0.02);
+            cursor: grab;
+            transition:
+                box-shadow 0.15s,
+                border-color 0.15s;
+            user-select: none;
+        }
+        .am-cust-item:active {
+            cursor: grabbing;
+        }
+        .am-cust-item.am-dragging {
+            z-index: 10;
+            border-color: var(--am-indigo);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            opacity: 0.85;
+        }
+        .am-cust-item.am-drag-over {
+            border-top: 2px solid var(--am-indigo);
+        }
+        .am-cust-item__handle {
+            flex-shrink: 0;
+            font-size: 16px;
+            cursor: grab;
+            opacity: 0.3;
+        }
+        .am-cust-item__label {
+            flex: 1;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        .am-cust-item__toggle {
+            position: relative;
+            flex-shrink: 0;
+            width: 36px;
+            height: 20px;
+            border: none;
+            border-radius: 12px;
+            background: #e2e8f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .dark .am-cust-item__toggle {
+            background: #334155;
+        }
+        .am-cust-item__toggle::after {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            content: "";
+            transition: transform 0.2s;
+        }
+        .am-cust-item__toggle--on {
+            background: var(--am-indigo);
+        }
+        .am-cust-item__toggle--on::after {
+            transform: translateX(16px);
+        }
+
+        .am-cust-section-title {
+            padding: 12px 0 4px;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            opacity: 0.4;
+        }
+        .am-cust-section-title:first-child {
+            padding-top: 0;
+        }
+
+        /* ── Auto-refresh ── */
+        .am-refresh {
+            display: flex;
+            align-items: center;
+            margin-top: 4px;
+            gap: 6px;
+            font-size: 11px;
+            opacity: 0.5;
+        }
+        .am-refresh__dot {
+            flex-shrink: 0;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--am-green);
+        }
+        .am-refresh__dot--pulse {
+            animation: am-pulse 2s infinite;
+        }
+        @keyframes am-pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+        .am-refresh__toggle {
+            padding: 2px;
+            border: none;
+            background: none;
+            color: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        .am-refresh__toggle:hover {
+            opacity: 1;
+        }
+
+        /* ── Cursor on clickable chart areas ── */
+        #chart-late-early .apexcharts-bar-area,
+        #chart-overtime .apexcharts-bar-area,
+        #chart-att-overview .apexcharts-bar-area,
+        #chart-avg-hours .apexcharts-bar-area,
+        #chart-hours .apexcharts-bar-area,
+        #chart-absenteeism .apexcharts-bar-area,
+        #chart-calendar .apexcharts-bar-area {
+            cursor: pointer;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 1280px) {
+            .am-layout {
+                grid-template-columns: 1fr;
+            }
+            .am-sidebar {
+                position: static;
+                max-height: none;
+                overflow-y: visible;
+            }
+            .am-info-panel__body {
+                max-height: 300px;
+            }
+        }
+        @media (max-width: 1024px) {
+            .am-kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .am-chart-grid {
+                grid-template-columns: 1fr;
+            }
+            .am-chart-card--wide {
+                grid-column: span 1;
+            }
+            .am-customize-panel {
+                right: -340px;
+                width: 320px;
+            }
+        }
+        @media (max-width: 640px) {
+            .am-kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            .am-customize-panel {
+                right: -100%;
+                width: 100%;
+            }
+        }
+
+        /* Department Headcount legend: top departments as chips + "+N" popover */
+        .md-pie-legend {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px 12px 14px;
+        }
+        .md-pie-chips {
+            display: contents;
+        }
+        /* Apex keeps 15px under every chart for its own legend, which these cards do not use:
+           drop it, and tuck the chip legend up against the chart. */
+        .am-chart-card__body > [id^="chart-"] { min-height: 0 !important; }
+        .am-chart-card__body > .md-pie-legend { padding-top: 0; margin-top: 0; }
+        /* Status key above the chart, top right (same place as the main dashboard's). */
+        /* One row, always. The chips are compact and may shrink (the text ellipsises only
+           as a last resort), so the row never runs off the card's left edge, which clipped
+           the first chip ("90% or more") when it could not shrink. */
+        .am-status-key { display: flex; flex-wrap: nowrap; justify-content: flex-end; gap: 4px; padding: 0 4px 6px; min-width: 0; }
+        .am-status-key .md-pie-chip {
+            cursor: default;
+            flex: 0 1 auto;
+            min-width: 0;
+            gap: 5px;
+            padding: 2px 8px;
+            font-size: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .am-status-key .md-pie-chip__dot { width: 7px; height: 7px; }
+        .am-status-key .md-pie-chip:hover { border-color: rgba(128, 128, 128, 0.2); }
+        .md-pie-chip__name {
+            max-width: 130px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .md-pie-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            border-radius: 999px;
+            background: none;
+            color: inherit;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: opacity 0.15s, border-color 0.15s;
+        }
+        .md-pie-chip:hover {
+            border-color: var(--md-indigo);
+        }
+        /* Light card tooltip for legend chips (replaces the browser's dark native title box) */
+        .md-pie-chip[data-tip] { position: relative; }
+        .md-pie-chip[data-tip]::after {
+            content: attr(data-tip);
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 8px);
+            transform: translateX(-50%);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            background: #ffffff;
+            color: #334155;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.12s;
+            z-index: 50;
+        }
+        .md-pie-chip[data-tip]:hover::after { opacity: 1; visibility: visible; }
+        .dark .md-pie-chip[data-tip]::after { background: #242424; color: #e2e8f0; border-color: rgba(255, 255, 255, 0.12); }
+        .md-pie-chip.is-off {
+            opacity: 0.45;
+        }
+        .md-pie-chip.is-off .md-pie-chip__dot {
+            filter: grayscale(1);
+        }
+        .md-pie-chip__dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .md-pie-chip--more {
+            text-transform: capitalize;
+            color: var(--md-indigo);
+            font-weight: 600;
+            border-style: dashed;
+        }
+        .md-pie-more {
+            position: relative;
+            display: inline-block;
+        }
+        .md-pie-pop {
+            display: none;
+            position: absolute;
+            right: 0;
+            bottom: 100%;
+            padding-bottom: 8px;
+            z-index: 40;
+        }
+        .md-pie-more:hover .md-pie-pop,
+        .md-pie-more:focus-within .md-pie-pop {
+            display: block;
+        }
+        .md-pie-pop__box {
+            width: max-content;
+            min-width: 230px;
+            max-width: 340px;
+            border: 1px solid rgba(128, 128, 128, 0.15);
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+            padding: 8px 4px 6px;
+        }
+        .dark .md-pie-pop__box {
+            background: #242424;
+        }
+        .md-pie-pop__title {
+            padding: 0 10px 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            opacity: 0.55;
+        }
+        .md-pie-pop__list {
+            max-height: 190px;
+            overflow-y: auto;
+        }
+        .md-pie-pop__row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .md-pie-pop__row:hover {
+            background: rgba(128, 128, 128, 0.1);
+        }
+        .md-pie-pop__text {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            min-width: 0;
+            line-height: 1.25;
+        }
+        .md-pie-pop__text > span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .md-pie-pop__text > small {
+            white-space: nowrap;
+            font-size: 10px;
+            opacity: 0.6;
+        }
+        .md-pie-pop__row input {
+            accent-color: var(--md-indigo);
+            margin: 0;
+        }
+        .md-pie-pop__count {
+            flex-shrink: 0;
+            white-space: nowrap;
+            margin-left: auto;
+            font-size: 11px;
+            opacity: 0.55;
+        }
+        .am-chart-card:has(.md-pie-more:hover),
+        .am-chart-card:has(.md-pie-more:focus-within) {
+            z-index: 30;
+        }
+
+        .md-tip {
+            min-width: 150px;
+            padding: 10px 12px;
+            font-size: 12px;
+        }
+        .md-tip__title {
+            margin-bottom: 4px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .md-tip__row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-top: 4px;
+        }
+        .md-tip__label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .md-tip__dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .md-tip__sub {
+            font-weight: 400;
+            opacity: 0.65;
+        }
+
+    </style>
+
+    <div class="am-dashboard">
+        <!-- Header -->
+        <div class="am-header">
+            <div>
+                <h1>{% trans "Attendance Dashboard" %}</h1>
+                <div class="am-header__date" id="am-date"></div>
+                <div class="am-refresh">
+                    <span class="am-refresh__dot" id="am-refresh-dot"></span>
+                    <span id="am-refresh-text">{% trans "Just now" %}</span>
+                    <button
+                        class="am-refresh__toggle"
+                        id="am-refresh-toggle"
+                        title="{% trans 'Toggle auto-refresh' %}"
+                    >
+                        ⟳
+                    </button>
+                </div>
+            </div>
+            <div
+                class="am-header__actions"
+                style="display: flex; align-items: center; gap: 8px"
+            >
+                <div class="am-period-picker">
+                    <button class="am-period-preset" data-preset="today">
+                        {% trans "Today" %}
+                    </button>
+                    <button class="am-period-preset" data-preset="this_week">
+                        {% trans "This Week" %}
+                    </button>
+                    <button class="am-period-preset" data-preset="this_month">
+                        {% trans "This Month" %}
+                    </button>
+                    <button class="am-period-preset" data-preset="this_year">
+                        {% trans "This Year" %}
+                    </button>
+                    <input
+                        type="date"
+                        id="am-from-date"
+                        title="{% trans 'From' %}"
+                    />
+                    <span class="am-period-picker__sep">&rarr;</span>
+                    <input type="date" id="am-to-date" title="{% trans 'To' %}" />
+                </div>
+                <button
+                    class="oh-btn oh-btn--secondary"
+                    id="am-open-customize"
+                    title="{% trans 'Customize dashboard' %}"
+                    style="
+                        display: flex;
+                        align-items: center;
+                        gap: 5px;
+                        font-size: 13px;
+                    "
+                >
+                    <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                        />
+                    </svg>
+                    {% trans "Customize" %}
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="am-kpi-grid" id="am-kpi-grid">
+            <div class="am-skeleton am-skeleton--kpi"></div>
+            <div class="am-skeleton am-skeleton--kpi"></div>
+            <div class="am-skeleton am-skeleton--kpi"></div>
+            <div class="am-skeleton am-skeleton--kpi"></div>
+        </div>
+
+        <!-- Main layout with sidebar -->
+        <div class="am-layout">
+            <!-- Left: Charts -->
+            <div class="am-main">
+                <div class="am-chart-grid" id="am-charts-container">
+                    <!-- Daily attendance rate (colored bar; id kept for prefs) -->
+                    <div
+                        class="am-chart-card am-chart-card--wide"
+                        data-chart-id="calendar_heatmap"
+                        data-chart-section="attendance"
+                        data-chart-label="{% trans 'Daily Attendance Rate' %}"
+                        data-chart-wide="1"
+                    >
+                        <div class="am-chart-card__header">
+                            <div>
+                                <div class="am-chart-card__title">
+                                    {% trans "Daily Attendance Rate" %}
+                                </div>
+                                <div
+                                    class="am-chart-card__subtitle"
+                                    id="calendar-month"
+                                >
+                                    {% trans "Present rate by day" %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="am-chart-card__body">
+                            <div class="am-status-key">
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#22c55e"></span>{% blocktrans %}80% or more{% endblocktrans %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#f59e0b"></span>{% blocktrans %}50–79%{% endblocktrans %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#f97316"></span>{% blocktrans %}25–49%{% endblocktrans %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#ef4444"></span>{% blocktrans %}Below 25%{% endblocktrans %}</span>
+                            </div>
+                            <div id="chart-calendar"></div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Overview -->
+                    <div
+                        class="am-chart-card am-chart-card--wide"
+                        data-chart-id="attendance_overview"
+                        data-chart-section="attendance"
+                        data-chart-label="{% trans 'Attendance Daily Overview' %}"
+                        data-chart-wide="1"
+                    >
+                        <div class="am-chart-card__header">
+                            <div>
+                                <div class="am-chart-card__title">
+                                    {% trans "Attendance Daily Overview" %}
+                                </div>
+                                <div
+                                    class="am-chart-card__subtitle"
+                                    id="att-overview-subtitle"
+                                >
+                                    {% trans "On-time, late arrivals & early departures by department" %} — {% trans "Today" %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="am-chart-card__body">
+                            <div class="am-status-key">
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#22c55e"></span>{% trans "On Time" %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#f59e0b"></span>{% trans "Late Arrival" %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#ef4444"></span>{% trans "Early Departure" %}</span>
+                            </div>
+                            <div id="chart-att-overview"></div>
+                            <div class="md-pie-legend" id="am-pie-legend-overview"></div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance % (Shift / Department / Work Type) -->
+                    <div
+                        class="am-chart-card"
+                        data-chart-id="absenteeism_trend"
+                        data-chart-section="alerts"
+                        data-chart-label="{% trans 'Attendance %' %}"
+                    >
+                        <div class="am-chart-card__header">
+                            <div>
+                                <div class="am-chart-card__title">
+                                    {% trans "Attendance Percentage" %}
+                                </div>
+                                <div
+                                    class="am-chart-card__subtitle"
+                                    id="absenteeism-subtitle"
+                                >
+                                    {% trans "Attendance % by shift" %}
+                                </div>
+                            </div>
+                            <select
+                                id="attendance-dimension"
+                                class="am-dimension-select"
+                                aria-label="{% trans 'Group attendance % by' %}"
+                            >
+                                <option value="shift">{% trans "Shift-wise" %}</option>
+                                <option value="department">{% trans "Department-wise" %}</option>
+                                <option value="work_type">{% trans "Work Type-wise" %}</option>
+                            </select>
+                        </div>
+                        <div class="am-chart-card__body am-chart-card__body--tight">
+                            <div class="am-status-key">
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#22c55e"></span>{% blocktrans %}90% or more{% endblocktrans %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#f59e0b"></span>{% blocktrans %}75–89%{% endblocktrans %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#f97316"></span>{% blocktrans %}50–74%{% endblocktrans %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#ef4444"></span>{% blocktrans %}25–49%{% endblocktrans %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#b91c1c"></span>{% blocktrans %}Below 25%{% endblocktrans %}</span>
+                            </div>
+                            <div id="chart-absenteeism"></div>
+                            <div class="md-pie-legend" id="am-pie-legend-attendance"></div>
+                        </div>
+                    </div>
+
+                    <!-- Absence % (Shift / Department / Work Type) -->
+                    <div
+                        class="am-chart-card"
+                        data-chart-id="absence_pct"
+                        data-chart-section="alerts"
+                        data-chart-label="{% trans 'Absence %' %}"
+                    >
+                        <div class="am-chart-card__header">
+                            <div>
+                                <div class="am-chart-card__title">
+                                    {% trans "Absence Percentage" %}
+                                </div>
+                                <div
+                                    class="am-chart-card__subtitle"
+                                    id="absence-pct-subtitle"
+                                >
+                                    {% trans "Absence % by shift" %}
+                                </div>
+                            </div>
+                            <select
+                                id="absence-dimension"
+                                class="am-dimension-select"
+                                aria-label="{% trans 'Group absence % by' %}"
+                            >
+                                <option value="shift">{% trans "Shift-wise" %}</option>
+                                <option value="department">{% trans "Department-wise" %}</option>
+                                <option value="work_type">{% trans "Work Type-wise" %}</option>
+                            </select>
+                        </div>
+                        <div class="am-chart-card__body am-chart-card__body--tight">
+                            <div class="am-status-key">
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#22c55e"></span>{% blocktrans %}10% or less{% endblocktrans %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#f59e0b"></span>{% blocktrans %}11–25%{% endblocktrans %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#f97316"></span>{% blocktrans %}26–49%{% endblocktrans %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#ef4444"></span>{% blocktrans %}50% or more{% endblocktrans %}</span>
+                            </div>
+                            <div id="chart-absence-pct"></div>
+                            <div class="md-pie-legend" id="am-pie-legend-absence"></div>
+                        </div>
+                    </div>
+
+                    <!-- Late Come / Early Out -->
+                    <div
+                        class="am-chart-card"
+                        data-chart-id="late_early"
+                        data-chart-section="alerts"
+                        data-chart-label="{% trans 'Late Arrival & Early Departure' %}"
+                    >
+                        <div class="am-chart-card__header">
+                            <div>
+                                <div class="am-chart-card__title">
+                                    {% trans "Late Arrival & Early Departure" %}
+                                </div>
+                                <div
+                                    class="am-chart-card__subtitle"
+                                    id="late-early-subtitle"
+                                >
+                                    {% trans "Today — by department" %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="am-chart-card__body">
+                            <div class="am-status-key">
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#f59e0b"></span>{% trans "Late Arrival" %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#ef4444"></span>{% trans "Early Departure" %}</span>
+                            </div>
+                            <div id="chart-late-early"></div>
+                            <div class="md-pie-legend" id="am-pie-legend-late-early"></div>
+                        </div>
+                    </div>
+
+                    <!-- Avg Working Hours -->
+                    <div
+                        class="am-chart-card"
+                        data-chart-id="avg_hours"
+                        data-chart-section="hours"
+                        data-chart-label="{% trans 'Avg Working Hours' %}"
+                    >
+                        <div class="am-chart-card__header">
+                            <div>
+                                <div class="am-chart-card__title">
+                                    {% trans "Avg Working Hours" %}
+                                </div>
+                                <div
+                                    class="am-chart-card__subtitle"
+                                    id="avg-hours-month"
+                                >
+                                    {% trans "Per day by department" %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="am-chart-card__body">
+                            <div class="am-status-key">
+                                    <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#22c55e"></span>{% blocktrans %}8h or more{% endblocktrans %}</span>
+                                    <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#f59e0b"></span>{% blocktrans %}6–8h{% endblocktrans %}</span>
+                                    <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#f97316"></span>{% blocktrans %}4–6h{% endblocktrans %}</span>
+                                    <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#ef4444"></span>{% blocktrans %}Below 4h{% endblocktrans %}</span>
+                                </div>
+                                <div id="chart-avg-hours"></div>
+                            <div class="md-pie-legend" id="am-pie-legend-avg-hours"></div>
+                        </div>
+                    </div>
+
+                    <!-- Overtime by Department -->
+                    <div
+                        class="am-chart-card"
+                        data-chart-id="overtime_dept"
+                        data-chart-section="hours"
+                        data-chart-label="{% trans 'Overtime by Department' %}"
+                    >
+                        <div class="am-chart-card__header">
+                            <div>
+                                <div class="am-chart-card__title">
+                                    {% trans "Overtime by Department" %}
+                                </div>
+                                <div class="am-chart-card__subtitle">
+                                    <span id="ot-month"
+                                        >{% trans "This month" %}</span
+                                    >
+                                    — {% trans "Approved vs pending hours" %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="am-chart-card__body">
+                            <div class="am-status-key">
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#22c55e"></span>{% trans "Approved" %}</span>
+                                <span class="md-pie-chip"><span class="md-pie-chip__dot" style="background:#f59e0b"></span>{% trans "Pending" %}</span>
+                            </div>
+                            <div id="chart-overtime"></div>
+                            <div class="md-pie-legend" id="am-pie-legend-overtime"></div>
+                        </div>
+                    </div>
+
+                    <!-- Hours Distribution -->
+                    <div
+                        class="am-chart-card"
+                        data-chart-id="hours_distribution"
+                        data-chart-section="hours"
+                        data-chart-label="{% trans 'Hours Distribution' %}"
+                    >
+                        <div class="am-chart-card__header">
+                            <div>
+                                <div class="am-chart-card__title">
+                                    {% trans "Hours Distribution" %}
+                                </div>
+                                <div class="am-chart-card__subtitle">
+                                    {% trans "Employees with pending hours, by department" %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="am-chart-card__body">
+                            <div id="chart-hours"></div>
+                            <div class="md-pie-legend" id="am-pie-legend-hours"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right sidebar -->
+            <div class="am-sidebar">
+                <div class="am-info-panel">
+                    <div class="am-info-panel__header am-info-panel__header--stacked">
+                        <div class="am-info-panel__title">
+                            {% trans "Frequent Absentees" %}<span
+                                id="am-absentees-count"
+                                class="am-count-badge"
+                                hidden
+                                title="{% trans 'This month' %}"
+                                >0</span
+                            >
+                        </div>
+                        <span
+                            class="am-info-panel__sub"
+                            id="absentees-month"
+                            >{% trans "This month" %}</span
+                        >
+                    </div>
+                    <div class="am-info-panel__body" id="am-absentees">
+                        <div class="am-info-panel__empty">
+                            {% trans "Loading..." %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customize Panel (slide-out) -->
+    <div class="am-customize-overlay" id="am-customize-overlay"></div>
+    <div class="am-customize-panel" id="am-customize-panel">
+        <div class="am-customize-panel__header">
+            <h3>{% trans "Customize Dashboard" %}</h3>
+            <button class="am-customize-panel__close" id="am-close-customize">
+                &times;
+            </button>
+        </div>
+        <div class="am-customize-panel__body" id="am-customize-list"></div>
+        <div class="am-customize-panel__footer">
+            <button class="oh-btn oh-btn--light-bkg" id="am-reset-customize">
+                {% trans "Reset to default" %}
+            </button>
+            <button class="oh-btn oh-btn--secondary" id="am-save-customize">
+                {% trans "Save" %}
+            </button>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const isDark =
+                document.documentElement.classList.contains("dark") ||
+                document.body.classList.contains("dark");
+            const textColor = isDark ? "#cbd5e1" : "#334155";
+            const subTextColor = isDark ? "#64748b" : "#94a3b8";
+            const gridColor = isDark
+                ? "rgba(255,255,255,0.05)"
+                : "rgba(0,0,0,0.05)";
+            const cardBg = isDark ? "#242424" : "#ffffff";
+            const COLORS = [
+                "#017391",
+                "#22c55e",
+                "#f59e0b",
+                "#ef4444",
+                "#3b82f6",
+                "#a855f7",
+                "#06b6d4",
+                "#ec4899",
+                "#14b8a6",
+                "#f97316",
+            ];
+            const ANIM = {
+                enabled: true,
+                easing: "easeinout",
+                speed: 700,
+                animateGradually: { enabled: true, delay: 80 },
+                dynamicAnimation: { enabled: true, speed: 500 },
+            };
+            const GRID = {
+                borderColor: gridColor,
+                strokeDashArray: 5,
+                padding: { left: 4, right: 4 },
+            };
+            const TOOLTIP_STYLE = {
+                theme: isDark ? "dark" : "light",
+                style: { fontSize: "12px" },
+            };
+            const LEGEND_STYLE = {
+                position: "bottom",
+                labels: { colors: textColor },
+                fontSize: "11px",
+                fontWeight: 500,
+                markers: { width: 8, height: 8, radius: 3 },
+                itemMargin: { horizontal: 8 },
+            };
+            const XAXIS_STYLE = {
+                labels: {
+                    style: { colors: textColor, fontSize: "11px", fontWeight: 500 },
+                },
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+            };
+            const YAXIS_STYLE = {
+                labels: { style: { colors: textColor, fontSize: "11px" } },
+            };
+            const STORAGE_KEY = "am_dashboard_prefs_v2";
+            // Format dates in the language selected in Infisetu MIS, not the browser's.
+            const uiLocale = window.CURRENT_LANGUAGE || "en-US";
+
+            const SECTION_LABELS = {
+                overview: '{% trans "Overview"|escapejs %}',
+                attendance: '{% trans "Attendance"|escapejs %}',
+                alerts: '{% trans "Alerts"|escapejs %}',
+                hours: '{% trans "Hours & Overtime"|escapejs %}',
+            };
+
+            const emptyHtml = (msg) =>
+                `<div class="am-empty"><img src="/static/images/ui/no_records.svg" alt="">${msg}</div>`;
+
+            const attendanceUrl = "{% url 'attendance-view' %}";
+            const attendanceUrlFor = (id) =>
+                id ? `${attendanceUrl}?employee_id=${id}` : "#";
+
+            function navigate(url, params) {
+                const qs = new URLSearchParams();
+                qs.set("filter_applied", "true");
+                Object.entries(params || {}).forEach(([k, v]) => {
+                    if (v !== undefined && v !== null && v !== "") qs.set(k, v);
+                });
+                const sep = url.includes("?") ? "&" : "?";
+                window.location.href = url + sep + qs.toString();
+            }
+
+            document.getElementById("am-date").textContent =
+                new Date().toLocaleDateString(uiLocale, {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                });
+
+            // ═══════════════════════════════════════════
+            //  CHART REORDER + VISIBILITY SYSTEM
+            // ═══════════════════════════════════════════
+            function getDefaultOrder() {
+                const cards = document.querySelectorAll(
+                    "#am-charts-container [data-chart-id]",
+                );
+                return Array.from(cards).map((c) => ({
+                    id: c.dataset.chartId,
+                    visible: true,
+                }));
+            }
+
+            function loadPrefs() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (!raw) return null;
+                    const parsed = JSON.parse(raw);
+                    if (
+                        !Array.isArray(parsed) ||
+                        (parsed.length > 0 && typeof parsed[0] !== "object")
+                    ) {
+                        localStorage.removeItem(STORAGE_KEY);
+                        return null;
+                    }
+                    return parsed;
+                } catch {
+                    return null;
+                }
+            }
+
+            function savePrefs(prefs) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+            }
+
+            function applyPrefs(prefs) {
+                if (!prefs) return;
+                const container = document.getElementById("am-charts-container");
+                const cards = {};
+                container.querySelectorAll("[data-chart-id]").forEach((c) => {
+                    cards[c.dataset.chartId] = c;
+                });
+
+                prefs.forEach((p) => {
+                    const card = cards[p.id];
+                    if (card) {
+                        container.appendChild(card);
+                        if (p.visible === false)
+                            card.classList.add("am-chart-card--hidden");
+                        else card.classList.remove("am-chart-card--hidden");
+                    }
+                });
+
+                Object.keys(cards).forEach((id) => {
+                    if (!prefs.find((p) => p.id === id)) {
+                        container.appendChild(cards[id]);
+                        cards[id].classList.remove("am-chart-card--hidden");
+                    }
+                });
+            }
+
+            applyPrefs(loadPrefs());
+
+            // ── Customize panel ──
+            const overlay = document.getElementById("am-customize-overlay");
+            const panel = document.getElementById("am-customize-panel");
+            const listEl = document.getElementById("am-customize-list");
+
+            function openCustomize() {
+                renderCustomizeList(loadPrefs() || getDefaultOrder());
+                overlay.classList.add("am-customize-overlay--open");
+                panel.classList.add("am-customize-panel--open");
+            }
+            function closeCustomize() {
+                overlay.classList.remove("am-customize-overlay--open");
+                panel.classList.remove("am-customize-panel--open");
+            }
+
+            function renderCustomizeList(prefs) {
+                const allCards = {};
+                document
+                    .querySelectorAll("#am-charts-container [data-chart-id]")
+                    .forEach((c) => {
+                        allCards[c.dataset.chartId] = {
+                            id: c.dataset.chartId,
+                            label: c.dataset.chartLabel,
+                            section: c.dataset.chartSection,
+                        };
+                    });
+
+                const ordered = [];
+                prefs.forEach((p) => {
+                    if (allCards[p.id])
+                        ordered.push({
+                            ...allCards[p.id],
+                            visible: p.visible !== false,
+                        });
+                });
+                Object.keys(allCards).forEach((id) => {
+                    if (!ordered.find((o) => o.id === id))
+                        ordered.push({ ...allCards[id], visible: true });
+                });
+
+                let html = "";
+                let lastSection = "";
+                ordered.forEach((item) => {
+                    if (item.section !== lastSection) {
+                        html += `<div class="am-cust-section-title">${SECTION_LABELS[item.section] || item.section}</div>`;
+                        lastSection = item.section;
+                    }
+                    html += `
+                    <div class="am-cust-item" draggable="true" data-cust-id="${item.id}">
+                        <span class="am-cust-item__handle">&#x2630;</span>
+                        <div class="am-cust-item__label">${item.label}</div>
+                        <button class="am-cust-item__toggle ${item.visible ? "am-cust-item__toggle--on" : ""}" data-cust-toggle="${item.id}" title="{% trans "Toggle visibility"|escapejs %}"></button>
+                    </div>`;
+                });
+
+                listEl.innerHTML = html;
+                initDragAndDrop();
+            }
+
+            function initDragAndDrop() {
+                let dragEl = null;
+                listEl.querySelectorAll(".am-cust-item").forEach((item) => {
+                    item.addEventListener("dragstart", (e) => {
+                        dragEl = item;
+                        item.classList.add("am-dragging");
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", "");
+                    });
+                    item.addEventListener("dragend", () => {
+                        if (dragEl) dragEl.classList.remove("am-dragging");
+                        listEl
+                            .querySelectorAll(".am-cust-item")
+                            .forEach((i) => i.classList.remove("am-drag-over"));
+                        dragEl = null;
+                    });
+                    item.addEventListener("dragover", (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (item !== dragEl) item.classList.add("am-drag-over");
+                    });
+                    item.addEventListener("dragleave", () =>
+                        item.classList.remove("am-drag-over"),
+                    );
+                    item.addEventListener("drop", (e) => {
+                        e.preventDefault();
+                        item.classList.remove("am-drag-over");
+                        if (dragEl && item !== dragEl) {
+                            const items = Array.from(
+                                listEl.querySelectorAll(".am-cust-item"),
+                            );
+                            if (items.indexOf(dragEl) < items.indexOf(item)) {
+                                item.parentNode.insertBefore(
+                                    dragEl,
+                                    item.nextSibling,
+                                );
+                            } else {
+                                item.parentNode.insertBefore(dragEl, item);
+                            }
+                        }
+                    });
+                });
+                listEl.querySelectorAll(".am-cust-item__toggle").forEach((btn) => {
+                    btn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        btn.classList.toggle("am-cust-item__toggle--on");
+                    });
+                });
+            }
+
+            function getCustomizeState() {
+                return Array.from(listEl.querySelectorAll(".am-cust-item")).map(
+                    (item) => ({
+                        id: item.dataset.custId,
+                        visible: item
+                            .querySelector(".am-cust-item__toggle")
+                            .classList.contains("am-cust-item__toggle--on"),
+                    }),
+                );
+            }
+
+            document
+                .getElementById("am-open-customize")
+                .addEventListener("click", openCustomize);
+            document
+                .getElementById("am-close-customize")
+                .addEventListener("click", closeCustomize);
+            overlay.addEventListener("click", closeCustomize);
+            document
+                .getElementById("am-save-customize")
+                .addEventListener("click", () => {
+                    const prefs = getCustomizeState();
+                    savePrefs(prefs);
+                    applyPrefs(prefs);
+                    closeCustomize();
+                });
+            document
+                .getElementById("am-reset-customize")
+                .addEventListener("click", () => {
+                    localStorage.removeItem(STORAGE_KEY);
+                    location.reload();
+                });
+
+
+            // ── Chart instance registry ──
+            const chartInstances = {};
+            function renderChart(key, el, options) {
+                if (!el) return null;
+                if (chartInstances[key]) {
+                    chartInstances[key].destroy();
+                    chartInstances[key] = null;
+                }
+                const chart = new ApexCharts(el, options);
+                chartInstances[key] = chart;
+                chart.render();
+                return chart;
+            }
+
+            // ═══════════════════════════════════════════
+            //  AUTO-REFRESH
+            // ═══════════════════════════════════════════
+            const REFRESH_INTERVAL = 300000; // 5 minutes
+            const REFRESH_KEY = "am_auto_refresh";
+            let refreshTimer = null;
+            let lastRefresh = Date.now();
+            const refreshDot = document.getElementById("am-refresh-dot");
+            const refreshText = document.getElementById("am-refresh-text");
+            const refreshToggle = document.getElementById("am-refresh-toggle");
+            let autoRefreshOn = localStorage.getItem(REFRESH_KEY) !== "off";
+
+            function updateRefreshText() {
+                const mins = Math.floor((Date.now() - lastRefresh) / 60000);
+                refreshText.textContent =
+                    mins < 1
+                        ? '{% trans "Just now"|escapejs %}'
+                        : mins + '{% trans "m ago"|escapejs %}';
+            }
+            registerAutoRefresh(setInterval(updateRefreshText, 30000));
+
+            function startAutoRefresh() {
+                autoRefreshOn = true;
+                localStorage.setItem(REFRESH_KEY, "on");
+                refreshDot.classList.add("am-refresh__dot--pulse");
+                refreshToggle.textContent = "⟳";
+                refreshToggle.title =
+                    '{% trans "Auto-refresh ON (5 min)"|escapejs %}';
+                // Wrapped so a hidden tab does not keep fetching; refreshes once on return.
+                const refreshTick = autoRefreshWhenVisible(() => {
+                    lastRefresh = Date.now();
+                    updateRefreshText();
+                    refreshAllData();
+                });
+                refreshTimer = setInterval(refreshTick, REFRESH_INTERVAL);
+                registerAutoRefresh(refreshTimer);
+            }
+            function stopAutoRefresh() {
+                autoRefreshOn = false;
+                localStorage.setItem(REFRESH_KEY, "off");
+                refreshDot.classList.remove("am-refresh__dot--pulse");
+                refreshToggle.textContent = "⏸";
+                refreshToggle.title = '{% trans "Auto-refresh OFF"|escapejs %}';
+                if (refreshTimer) {
+                    clearInterval(refreshTimer);
+                    refreshTimer = null;
+                }
+            }
+            refreshToggle.addEventListener("click", () => {
+                if (autoRefreshOn) stopAutoRefresh();
+                else startAutoRefresh();
+            });
+            if (autoRefreshOn) startAutoRefresh();
+            else stopAutoRefresh();
+
+            // ═══════════════════════════════════════════
+            //  PERIOD PICKER
+            // ═══════════════════════════════════════════
+            const AM_PERIOD_KEY = "am_dashboard_period_v1";
+            const amFromInput = document.getElementById("am-from-date");
+            const amToInput = document.getElementById("am-to-date");
+            const _pad2 = (n) => String(n).padStart(2, "0");
+            const _ymd = (d) =>
+                d.getFullYear() +
+                "-" +
+                _pad2(d.getMonth() + 1) +
+                "-" +
+                _pad2(d.getDate());
+            function _firstOfMonth(d) {
+                return new Date(d.getFullYear(), d.getMonth(), 1);
+            }
+            function _lastOfMonth(d) {
+                return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+            }
+            function amInitPeriod() {
+                const saved = sessionStorage.getItem(AM_PERIOD_KEY);
+                if (saved) {
+                    try {
+                        const p = JSON.parse(saved);
+                        if (p && p.from && p.to) {
+                            amFromInput.value = p.from;
+                            amToInput.value = p.to;
+                            return;
+                        }
+                    } catch (e) {}
+                }
+                const t = new Date();
+                amFromInput.value = _ymd(_firstOfMonth(t));
+                amToInput.value = _ymd(_lastOfMonth(t));
+            }
+            function amSavePeriod() {
+                sessionStorage.setItem(
+                    AM_PERIOD_KEY,
+                    JSON.stringify({
+                        from: amFromInput.value,
+                        to: amToInput.value,
+                    }),
+                );
+            }
+            function amPeriodParams() {
+                const f = amFromInput.value,
+                    t = amToInput.value;
+                return f && t
+                    ? "from_date=" +
+                            encodeURIComponent(f) +
+                            "&to_date=" +
+                            encodeURIComponent(t)
+                    : "";
+            }
+            function urlWithPeriod(u) {
+                const qs = amPeriodParams();
+                if (!qs) return u;
+                return u + (u.indexOf("?") >= 0 ? "&" : "?") + qs;
+            }
+            function fetchP(url) {
+                return fetch(urlWithPeriod(url));
+            }
+
+            function _weekBounds(t) {
+                const dow = (t.getDay() + 6) % 7; // 0 = Monday
+                const f = new Date(t.getFullYear(), t.getMonth(), t.getDate() - dow);
+                return [f, new Date(f.getFullYear(), f.getMonth(), f.getDate() + 6)];
+            }
+            function _presetRanges() {
+                const t = new Date();
+                const [wf, wt] = _weekBounds(t);
+                return {
+                    today: [_ymd(t), _ymd(t)],
+                    this_week: [_ymd(wf), _ymd(wt)],
+                    this_month: [
+                        _ymd(_firstOfMonth(t)),
+                        _ymd(_lastOfMonth(t)),
+                    ],
+                    this_year: [
+                        _ymd(new Date(t.getFullYear(), 0, 1)),
+                        _ymd(new Date(t.getFullYear(), 11, 31)),
+                    ],
+                };
+            }
+            function amHighlightPreset() {
+                const ranges = _presetRanges();
+                let active = "";
+                for (const k in ranges) {
+                    if (
+                        amFromInput.value === ranges[k][0] &&
+                        amToInput.value === ranges[k][1]
+                    )
+                        active = k;
+                }
+                document
+                    .querySelectorAll(".am-period-preset")
+                    .forEach((b) =>
+                        b.classList.toggle(
+                            "am-period-preset--active",
+                            b.dataset.preset === active,
+                        ),
+                    );
+            }
+            function amPeriodChanged() {
+                amSavePeriod();
+                amHighlightPreset();
+                refreshAllData();
+            }
+            function amSetPreset(p) {
+                const r = _presetRanges()[p];
+                if (!r) return;
+                amFromInput.value = r[0];
+                amToInput.value = r[1];
+                amPeriodChanged();
+            }
+            document
+                .querySelectorAll(".am-period-preset")
+                .forEach((b) =>
+                    b.addEventListener("click", () =>
+                        amSetPreset(b.dataset.preset),
+                    ),
+                );
+            [amFromInput, amToInput].forEach((i) =>
+                i.addEventListener("change", () => {
+                    if (!amFromInput.value || !amToInput.value) return;
+                    if (amToInput.value < amFromInput.value) {
+                        amToInput.value = amFromInput.value;
+                    }
+                    amPeriodChanged();
+                }),
+            );
+            amInitPeriod();
+            amHighlightPreset();
+
+            // ═══════════════════════════════════════════
+            //  DATA FETCHES
+            // ═══════════════════════════════════════════
+
+            // ─── KPI CARDS ───
+            function loadKpiCards() {
+                fetchP("{% url 'attendance-dashboard-kpi' %}")
+                    .then((r) => r.json())
+                    .then((data) => {
+                        document.getElementById("am-kpi-grid").innerHTML = `
+                    <a href="{% url 'request-attendance-view' %}?open_tab=2&attendance_date=${data.date}&filter_applied=on" class="am-kpi-card">
+                        <div class="am-kpi-card__icon am-kpi-card__icon--green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg></div>
+                        <div class="am-kpi-card__label">{% trans "Checked In Today"|escapejs %}</div>
+                        <div class="am-kpi-card__value">${data.present_today}</div>
+                    </a>
+                    <a href="{% url 'request-attendance-view' %}?open_tab=2&attendance_date=${data.date}&attendance_on_time=True&filter_applied=on" class="am-kpi-card">
+                        <div class="am-kpi-card__icon am-kpi-card__icon--blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                        <div class="am-kpi-card__label">{% trans "On Time"|escapejs %}</div>
+                        <div class="am-kpi-card__value">${data.on_time}</div>
+                    </a>
+                    <a href="{% url 'late-come-early-out-view' %}?type=late_come&attendance_date=${data.date}&filter_applied=on" class="am-kpi-card">
+                        <div class="am-kpi-card__icon am-kpi-card__icon--amber"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                        <div class="am-kpi-card__label">{% trans "Late Arrival"|escapejs %}</div>
+                        <div class="am-kpi-card__value">${data.late_come}</div>
+                    </a>
+                    <a href="{% url 'employee-view' %}?expected_to_check_in=${data.date}&is_active=True&filter_applied=on" class="am-kpi-card">
+                        <div class="am-kpi-card__icon am-kpi-card__icon--red"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/></svg></div>
+                        <div class="am-kpi-card__label">{% trans "Not Checked In Today"|escapejs %}</div>
+                        <div class="am-kpi-card__value">${data.expected_to_check_in}</div>
+
+                    </a>
+                    <a href="{% url 'attendance-view' %}?open_tab=2&attendance_overtime_approve=False&attendance_validated=True&attendance_date=${data.date}&filter_applied=on" class="am-kpi-card">
+                        <div class="am-kpi-card__icon am-kpi-card__icon--amber"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                        <div class="am-kpi-card__label">{% trans "Pending OT Requests"|escapejs %}</div>
+                        <div class="am-kpi-card__value">${data.pending_overtime}</div>
+                    </a>`;
+                    })
+                    .catch(() => {
+                        document.getElementById("am-kpi-grid").innerHTML =
+                            emptyHtml('{% trans "Unable to load KPIs"|escapejs %}');
+                    });
+            }
+            loadKpiCards();
+
+            // ─── LATE COME & EARLY OUT ───
+            // Chips under the chart are the departments; ticking one off takes its column out.
+            let lateEarlyRaw = null;
+            const lateEarlyLegend = createPieLegend({
+                el: document.getElementById("am-pie-legend-late-early"),
+                chartKey: "late-early",
+                noun: '{% trans "departments"|escapejs %}',
+                maxChips: 50,
+                onChange: () => loadLateEarly(lateEarlyRaw),
+            });
+            function loadLateEarly(cached) {
+                (cached ? Promise.resolve(cached) : fetchP("{% url 'attendance-dashboard-late-early' %}").then((r) => r.json()))
+                    .then((data) => {
+                        lateEarlyRaw = data;
+                        const subEl = document.getElementById(
+                            "late-early-subtitle",
+                        );
+                        if (subEl)
+                            subEl.textContent = data.month
+                                ? '{% trans "By department"|escapejs %}' +
+                                    " — " +
+                                    data.month
+                                : '{% trans "By department"|escapejs %}';
+                        const everyDept = [
+                            ...new Set([
+                                ...data.late_come.map((d) => d.department),
+                                ...data.early_out.map((d) => d.department),
+                            ]),
+                        ];
+                        const lateCount = (name) => data.late_come.filter((d) => d.department === name).reduce((a, d) => a + d.count, 0);
+                        const earlyCount = (name) => data.early_out.filter((d) => d.department === name).reduce((a, d) => a + d.count, 0);
+                        if (!cached && everyDept.length) {
+                            lateEarlyLegend.set(everyDept.map((name, i) => ({
+                                name, value: lateCount(name) + earlyCount(name), color: deptColor(i),
+                                detail: lateCount(name) + ' {% trans "late"|escapejs %} · ' + earlyCount(name) + ' {% trans "early"|escapejs %}',
+                            })));
+                        }
+                        const picked = new Set(lateEarlyLegend.selectedNames());
+                        const allDepts = everyDept.filter((name) => picked.has(name));
+                        if (!everyDept.length) {
+                            document.querySelector("#chart-late-early").innerHTML =
+                                emptyHtml(
+                                    '{% trans "No late/early records"|escapejs %}',
+                                );
+                            lateEarlyLegend.clear();
+                            return;
+                        }
+                        const lateMap = {};
+                        data.late_come.forEach((d) => {
+                            lateMap[d.department] = d.count;
+                        });
+                        const earlyMap = {};
+                        data.early_out.forEach((d) => {
+                            earlyMap[d.department] = d.count;
+                        });
+                        renderChart(
+                            "late-early",
+                            document.querySelector("#chart-late-early"),
+                            {
+                                series: [
+                                    {
+                                        name: '{% trans "Late Arrival"|escapejs %}',
+                                        data: allDepts.map((d) => lateMap[d] || 0),
+                                    },
+                                    {
+                                        name: '{% trans "Early Departure"|escapejs %}',
+                                        data: allDepts.map((d) => earlyMap[d] || 0),
+                                    },
+                                ],
+                                chart: {
+                                    type: "bar",
+                                    height: 300,
+                                    toolbar: { show: false },
+                                    background: "transparent",
+                                    fontFamily: "inherit",
+                                    stacked: true,
+                                    animations: ANIM,
+                                    events: {
+                                        dataPointSelection: (e, ctx, config) => {
+                                            const dept =
+                                                allDepts[config.dataPointIndex];
+                                            if (!dept) return;
+                                            // The segment clicked is one type (series 0 late,
+                                            // 1 early) of one department: open exactly those
+                                            // records, grouped Type > Employee.
+                                            const params = new URLSearchParams({
+                                                department: dept,
+                                                type: config.seriesIndex === 0 ? "late_come" : "early_out",
+                                                attendance_date__gte: data.from_date,
+                                                attendance_date__lte: data.to_date,
+                                                filter_applied: "true",
+                                            });
+                                            params.append("nested_fields", "type");
+                                            params.append("nested_fields", "employee_id");
+                                            window.location.href =
+                                                "{% url 'late-come-early-out-view' %}?" + params.toString();
+                                        },
+                                    },
+                                },
+                                colors: ["#f59e0b", "#ef4444"],
+                                fill: {
+                                    type: "gradient",
+                                    gradient: {
+                                        type: "vertical",
+                                        shadeIntensity: 0.25,
+                                        opacityFrom: 1,
+                                        opacityTo: 0.85,
+                                    },
+                                },
+                                plotOptions: {
+                                    bar: {
+                                        borderRadius: 6,
+                                        borderRadiusApplication: "end",
+                                        columnWidth: "58%",
+                                    },
+                                },
+                                xaxis: { ...XAXIS_STYLE, categories: allDepts },
+                                yaxis: { ...YAXIS_STYLE },
+                                grid: GRID,
+                                dataLabels: {
+                                    enabled: true,
+                                    style: {
+                                        fontSize: "11px",
+                                        colors: ["#fff"],
+                                        fontWeight: 700,
+                                    },
+                                },
+                                legend: { show: false },
+                                tooltip: { ...TOOLTIP_STYLE },
+                                states: {
+                                    hover: {
+                                        filter: { type: "darken", value: 0.85 },
+                                    },
+                                },
+                            },
+                        );
+                    })
+                    .catch(() => {
+                        document.querySelector("#chart-late-early").innerHTML =
+                            emptyHtml('{% trans "Unable to load"|escapejs %}');
+                    });
+            }
+            loadLateEarly();
+
+            // ─── OVERTIME BY DEPARTMENT ───
+            // Chips under the chart are the departments; ticking one off takes its row out.
+            let overtimeRaw = null;
+            const overtimeLegend = createPieLegend({
+                el: document.getElementById("am-pie-legend-overtime"),
+                chartKey: "overtime",
+                noun: '{% trans "departments"|escapejs %}',
+                maxChips: 50,
+                onChange: () => loadOvertimeDept(overtimeRaw),
+            });
+            function loadOvertimeDept(cached) {
+                (cached ? Promise.resolve(cached) : fetchP("{% url 'attendance-dashboard-overtime' %}").then((r) => r.json()))
+                    .then((raw) => {
+                        overtimeRaw = raw;
+                        const data = { ...raw };
+                        document.getElementById("ot-month").textContent =
+                            data.month;
+                        if (!raw.departments.length) {
+                            document.querySelector("#chart-overtime").innerHTML =
+                                emptyHtml(
+                                    '{% trans "No overtime data"|escapejs %}',
+                                );
+                            overtimeLegend.clear();
+                            return;
+                        }
+                        if (!cached) {
+                            overtimeLegend.set(raw.departments.map((d, i) => ({
+                                name: d.department, value: (d.approved_hours + d.pending_hours).toFixed(1) + "h", color: deptColor(i),
+                                detail: d.approved_hours.toFixed(1) + "h " + '{% trans "approved"|escapejs %}' + " · " + d.pending_hours.toFixed(1) + "h " + '{% trans "pending"|escapejs %}',
+                            })));
+                        }
+                        const picked = new Set(overtimeLegend.selectedNames());
+                        data.departments = raw.departments.filter((d) => picked.has(d.department));
+                        renderChart(
+                            "overtime",
+                            document.querySelector("#chart-overtime"),
+                            {
+                                series: [
+                                    {
+                                        name: '{% trans "Approved"|escapejs %}',
+                                        data: data.departments.map(
+                                            (d) => d.approved_hours,
+                                        ),
+                                    },
+                                    {
+                                        name: '{% trans "Pending"|escapejs %}',
+                                        data: data.departments.map(
+                                            (d) => d.pending_hours,
+                                        ),
+                                    },
+                                ],
+                                chart: {
+                                    type: "bar",
+                                    height: 300,
+                                    toolbar: { show: false },
+                                    background: "transparent",
+                                    fontFamily: "inherit",
+                                    stacked: true,
+                                    animations: ANIM,
+                                    events: {
+                                        dataPointSelection: (e, ctx, config) => {
+                                            const dept =
+                                                data.departments[
+                                                    config.dataPointIndex
+                                                ]?.department;
+                                            if (!dept) return;
+                                            // Series order: 0 Approved, 1 Pending
+                                            // (see the `series` array above).
+                                            // open_tab: 2 = "OT Attendances" (see
+                                            // AttendancesTabView), which already
+                                            // scopes to validated rows with
+                                            // overtime > 0 -- the natural landing
+                                            // spot for this chart, not the plain
+                                            // Attendance list's default tab.
+                                            // field: "employee_id" pre-applies
+                                            // the list's own Group By so the
+                                            // destination reads as a per-
+                                            // employee breakdown within that
+                                            // department, not one flat table.
+                                            navigate(
+                                                "{% url 'attendance-view' %}",
+                                                {
+                                                    open_tab: 2,
+                                                    field: "employee_id",
+                                                    department: dept,
+                                                    attendance_date__gte:
+                                                        data.from_date,
+                                                    attendance_date__lte:
+                                                        data.to_date,
+                                                    overtime_second__gte:
+                                                        "00:00:01",
+                                                    attendance_overtime_approve:
+                                                        config.seriesIndex === 0
+                                                            ? "True"
+                                                            : "False",
+                                                },
+                                            );
+                                        },
+                                    },
+                                },
+                                colors: ["#22c55e", "#f59e0b"],
+                                plotOptions: {
+                                    bar: {
+                                        borderRadius: 5,
+                                        borderRadiusApplication: "end",
+                                        horizontal: true,
+                                        barHeight: "55%",
+                                    },
+                                },
+                                xaxis: {
+                                    ...XAXIS_STYLE,
+                                    categories: data.departments.map(
+                                        (d) => d.department,
+                                    ),
+                                    labels: {
+                                        ...XAXIS_STYLE.labels,
+                                        formatter: (v) =>
+                                            (parseFloat(v) || 0).toFixed(1) + "h",
+                                    },
+                                },
+                                yaxis: {
+                                    labels: {
+                                        style: {
+                                            colors: textColor,
+                                            fontSize: "11px",
+                                            fontWeight: 500,
+                                        },
+                                    },
+                                },
+                                grid: GRID,
+                                dataLabels: { enabled: false },
+                                legend: { show: false },
+                                tooltip: {
+                                    ...TOOLTIP_STYLE,
+                                    y: {
+                                        formatter: (v, { dataPointIndex: i }) =>
+                                            `${(parseFloat(v) || 0).toFixed(1)} hrs (${data.departments[i].employees} emp)`,
+                                    },
+                                },
+                            },
+                        );
+                    })
+                    .catch(() => {
+                        document.querySelector("#chart-overtime").innerHTML =
+                            emptyHtml('{% trans "No overtime data"|escapejs %}');
+                    });
+            }
+            loadOvertimeDept();
+
+            // ─── HOURS DISTRIBUTION ───
+            // Chips under the chart are the departments; ticking one off takes its column out.
+            let hoursRaw = null;
+            const hoursLegend = createPieLegend({
+                el: document.getElementById("am-pie-legend-hours"),
+                chartKey: "hours",
+                noun: '{% trans "departments"|escapejs %}',
+                maxChips: 50,
+                onChange: () => loadHoursDistribution(hoursRaw),
+            });
+            // Re-fit the department names when the window is resized (see fitAxisLabels,
+            // shared with the Avg Working Hours chart).
+            let hoursResizeTimer = null;
+            window.addEventListener("resize", () => {
+                clearTimeout(hoursResizeTimer);
+                hoursResizeTimer = setTimeout(() => { if (hoursRaw) loadHoursDistribution(hoursRaw); }, 200);
+            });
+            function loadHoursDistribution(cached) {
+                (cached ? Promise.resolve(cached) : fetchP("{% url 'attendance-dashboard-hours' %}").then((r) => r.json()))
+                    .then((raw) => {
+                        hoursRaw = raw;
+                        const data = { ...raw };
+                        if (!raw.departments.length) {
+                            document.querySelector("#chart-hours").innerHTML =
+                                emptyHtml('{% trans "No data"|escapejs %}');
+                            hoursLegend.clear();
+                            return;
+                        }
+                        if (!cached) {
+                            hoursLegend.set(raw.departments.map((d, i) => ({
+                                name: d.department, value: d.pending_hours.toFixed(1) + "h", color: deptColor(i),
+                                detail: d.pending_employees + ' {% trans "employees with pending hours"|escapejs %}',
+                            })));
+                        }
+                        const picked = new Set(hoursLegend.selectedNames());
+                        data.departments = raw.departments.filter((d) => picked.has(d.department));
+                        const fit = fitAxisLabels(
+                            document.querySelector("#chart-hours"),
+                            data.departments.map((d) => d.department),
+                            Math.max(...data.departments.map((d) => d.pending_hours)).toFixed(1) + "h",
+                        );
+                        renderChart(
+                            "hours",
+                            document.querySelector("#chart-hours"),
+                            {
+                                series: [
+                                    {
+                                        name: '{% trans "Pending"|escapejs %}',
+                                        data: data.departments.map(
+                                            (d) => d.pending_hours,
+                                        ),
+                                    },
+                                ],
+                                chart: {
+                                    type: "bar",
+                                    // Taller by whatever the tilted names need beyond two wrapped lines.
+                                    height: 300 + Math.max(0, fit.band - 48),
+                                    toolbar: { show: false },
+                                    background: "transparent",
+                                    fontFamily: "inherit",
+                                    animations: ANIM,
+                                    events: {
+                                        dataPointSelection: (e, ctx, config) => {
+                                            const dept =
+                                                data.departments[
+                                                    config.dataPointIndex
+                                                ]?.department;
+                                            if (!dept) return;
+                                            // This chart counts the Hour
+                                            // Account balance (AttendanceOverTime),
+                                            // not Attendance rows -- a different
+                                            // page/filter set than every other
+                                            // chart on this dashboard.
+                                            navigate(
+                                                "{% url 'attendance-overtime-view' %}",
+                                                {
+                                                    department_name: dept,
+                                                    pending_hours__gte: "00:00:01",
+                                                },
+                                            );
+                                        },
+                                    },
+                                },
+                                colors: ["#f59e0b"],
+                                fill: {
+                                    type: "gradient",
+                                    gradient: {
+                                        type: "vertical",
+                                        shadeIntensity: 0.3,
+                                        opacityFrom: 1,
+                                        opacityTo: 0.85,
+                                    },
+                                },
+                                plotOptions: {
+                                    bar: {
+                                        borderRadius: 6,
+                                        borderRadiusApplication: "end",
+                                        columnWidth: "58%",
+                                    },
+                                },
+                                xaxis: {
+                                    ...XAXIS_STYLE,
+                                    // Few departments: names wrap onto lines. Many: full names
+                                    // tilted, so they never run into each other or the chips.
+                                    categories: data.departments.map((d) =>
+                                        fit.mode === "wrap" ? d.department.split(" ") : d.department,
+                                    ),
+                                    labels: {
+                                        ...XAXIS_STYLE.labels,
+                                        rotate: fit.rotate,
+                                        rotateAlways: fit.mode !== "wrap",
+                                        hideOverlappingLabels: false,
+                                        trim: false,
+                                        maxHeight: fit.band,
+                                        ...(fit.mode === "wrap" ? {} : { formatter: (v) => fit.truncate(String(v)) }),
+                                    },
+                                },
+                                yaxis: {
+                                    ...YAXIS_STYLE,
+                                    min: 0,
+                                    forceNiceScale: true,
+                                    labels: {
+                                        ...YAXIS_STYLE.labels,
+                                        formatter: (v) => (parseFloat(v) || 0).toFixed(0) + "h",
+                                    },
+                                },
+                                grid: GRID,
+                                dataLabels: {
+                                    // Columns too narrow for "31.3h" would clip it; the tooltip has the value.
+                                    enabled: fit.showValues,
+                                    formatter: (v) => (parseFloat(v) || 0).toFixed(1) + "h",
+                                    style: {
+                                        fontSize: "11px",
+                                        fontWeight: 700,
+                                        colors: ["#fff"],
+                                    },
+                                    background: { enabled: false },
+                                },
+                                legend: { show: false },
+                                tooltip: {
+                                    ...TOOLTIP_STYLE,
+                                    y: {
+                                        formatter: (v, { dataPointIndex: i }) =>
+                                            `${(parseFloat(v) || 0).toFixed(1)} hrs (${data.departments[i].pending_employees} emp)`,
+                                    },
+                                },
+                                states: {
+                                    hover: {
+                                        filter: { type: "darken", value: 0.85 },
+                                    },
+                                },
+                            },
+                        );
+                    })
+                    .catch(() => {
+                        document.querySelector("#chart-hours").innerHTML =
+                            emptyHtml('{% trans "Unable to load"|escapejs %}');
+                    });
+            }
+            loadHoursDistribution();
+
+            // ─── DAILY ATTENDANCE RATE ───
+            function loadCalendarHeatmap() {
+                fetchP("{% url 'attendance-dashboard-calendar' %}")
+                    .then((r) => r.json())
+                    .then((data) => {
+                        document.getElementById("calendar-month").textContent =
+                            data.period_label ||
+                            data.month ||
+                            '{% trans "Present rate by day"|escapejs %}';
+                        if (!data.days.length) {
+                            document.querySelector("#chart-calendar").innerHTML =
+                                emptyHtml('{% trans "No data"|escapejs %}');
+                            return;
+                        }
+                        const dense = data.days.length > 31;
+                        const categories = data.days.map((d) =>
+                            d.label !== undefined ? d.label : d.dom,
+                        );
+                        renderChart(
+                            "calendar",
+                            document.querySelector("#chart-calendar"),
+                            {
+                                series: [
+                                    {
+                                        name: '{% trans "Attendance Rate"|escapejs %}',
+                                        data: data.days.map((d) => d.rate),
+                                    },
+                                ],
+                                chart: {
+                                    type: "bar",
+                                    height: 220,
+                                    toolbar: { show: false },
+                                    background: "transparent",
+                                    fontFamily: "inherit",
+                                    animations: ANIM,
+                                    events: {
+                                        dataPointSelection: (e, ctx, config) => {
+                                            const day =
+                                                data.days[config.dataPointIndex];
+                                            if (!day || !day.from_date) return;
+                                            navigate(
+                                                "{% url 'attendance-view' %}",
+                                                {
+                                                    open_tab: 3,
+                                                    attendance_validated: "True",
+                                                    attendance_date__gte: day.from_date,
+                                                    attendance_date__lte: day.to_date,
+                                                },
+                                            );
+                                        },
+                                    },
+                                },
+                                colors: data.days.map((d) =>
+                                    d.rate >= 80
+                                        ? "#22c55e"
+                                        : d.rate >= 50
+                                            ? "#f59e0b"
+                                            : d.rate >= 25
+                                                ? "#f97316"
+                                                : "#ef4444",
+                                ),
+                                plotOptions: {
+                                    bar: {
+                                        borderRadius: 3,
+                                        columnWidth: dense ? "60%" : "85%",
+                                        distributed: true,
+                                    },
+                                },
+                                xaxis: {
+                                    ...XAXIS_STYLE,
+                                    categories: categories,
+                                    // Every day of the month is named; only a long range
+                                    // (weekly bars) thins its labels out.
+                                    tickAmount: dense ? Math.min(data.days.length, 16) : data.days.length,
+                                    labels: {
+                                        style: {
+                                            colors: data.days.map(() => textColor),
+                                            fontSize: "10px",
+                                        },
+                                        rotate: dense ? -45 : 0,
+                                        rotateAlways: false,
+                                        hideOverlappingLabels: dense,
+                                    },
+                                },
+                                yaxis: {
+                                    ...YAXIS_STYLE,
+                                    max: 100,
+                                    labels: {
+                                        ...YAXIS_STYLE.labels,
+                                        formatter: (v) => v + "%",
+                                    },
+                                },
+                                grid: GRID,
+                                dataLabels: { enabled: false },
+                                legend: { show: false },
+                                tooltip: {
+                                    ...TOOLTIP_STYLE,
+                                    y: {
+                                        formatter: (v, { dataPointIndex: i }) => {
+                                            const day = data.days[i];
+                                            const prefix =
+                                                data.aggregate === "weekly"
+                                                    ? '{% trans "Week of"|escapejs %}' +
+                                                        " " +
+                                                        day.day +
+                                                        " — "
+                                                    : "";
+                                            return (
+                                                prefix +
+                                                v +
+                                                "% (" +
+                                                day.count +
+                                                " " +
+                                                '{% trans "present"|escapejs %}' +
+                                                ")"
+                                            );
+                                        },
+                                    },
+                                },
+                            },
+                        );
+                    })
+                    .catch(() => {
+                        document.querySelector("#chart-calendar").innerHTML =
+                            emptyHtml('{% trans "Unable to load"|escapejs %}');
+                    });
+            }
+            loadCalendarHeatmap();
+
+            // One tooltip card for every chart: bold title, then a coloured-dot row per value.
+            const tipCard = (title, rows) => `<div class="md-tip"><div class="md-tip__title">${escHtml(title)}</div>`
+                + rows.map(r => `<div class="md-tip__row"${r.indent ? ' style="padding-left:14px;font-size:11px;opacity:.8"' : ''}><span class="md-tip__label">${r.color ? `<i class="md-tip__dot" style="background:${r.color}"></i>` : ''}${escHtml(r.label)}</span><span${r.total ? ' style="font-weight:700"' : ''}>${escHtml(String(r.value))}${r.sub ? ` <span class="md-tip__sub">${escHtml(r.sub)}</span>` : ''}</span></div>`).join('')
+                + '</div>';
+            // ─── Shared pie/donut legend ───
+            // One row only: as many chips as fit, then a "+N" chip whose hover
+            // popover lists the rest with checkboxes. Every item starts selected, minus
+            // whatever the user unticked before (see LegendPrefs). Unselected items are
+            // zeroed out of the series, so the canvas never carries extra labels.
+            const escHtml = (v) => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            function createPieLegend({ el, chartKey, noun, topN = 5, maxChips = null, toSeries = null, onChange = null }) {
+                const prefId = el.id || chartKey;
+                let items = [];
+                let selected = null;
+                const dot = (c) => `<span class="md-pie-chip__dot" style="background:${c}"></span>`;
+
+                function series() {
+                    return items.map(it => selected.has(it.name) ? it.value : 0);
+                }
+                function syncChart() {
+                    const chart = chartInstances[chartKey];
+                    if (onChange) { onChange(); return; }
+                    if (chart) chart.updateSeries(toSeries ? toSeries(series()) : series());
+                }
+                let visible = 0;
+                function chipsHtml(k) {
+                    return items.slice(0, k).map(it => {
+                        const on = selected.has(it.name);
+                        return `<button type="button" class="md-pie-chip${on ? '' : ' is-off'}" data-name="${escHtml(it.name)}" data-tip="${escHtml(it.name)}: ${it.detail != null ? escHtml(it.detail) : it.value}">${dot(it.color)}<span class="md-pie-chip__name">${escHtml(it.name)}</span></button>`;
+                    }).join('');
+                }
+                // Toggling only touches the chips and checkbox states, never the
+                // popover element, so it stays open while items are ticked.
+                function refreshState() {
+                    const chips = el.querySelector('.md-pie-chips');
+                    if (chips) chips.innerHTML = chipsHtml(visible);
+                    el.querySelectorAll('input[data-name]').forEach(cb => {
+                        cb.checked = selected.has(cb.dataset.name);
+                    });
+                }
+                function toggle(name) {
+                    if (selected.has(name)) {
+                        if (selected.size > 1) selected.delete(name);
+                    } else {
+                        selected.add(name);
+                    }
+                    LegendPrefs.save(prefId, items.map(i => i.name), selected);
+                    refreshState();
+                    syncChart();
+                }
+                function build(k) {
+                    visible = k;
+                    const rest = items.slice(k);
+                    let html = `<span class="md-pie-chips">${chipsHtml(k)}</span>`;
+                    if (rest.length) {
+                        html += `<span class="md-pie-more"><button type="button" class="md-pie-chip md-pie-chip--more">+${rest.length} ${escHtml(noun)}</button>`
+                            + `<div class="md-pie-pop"><div class="md-pie-pop__box"><div class="md-pie-pop__list">`
+                            + rest.map(it => `<label class="md-pie-pop__row"><input type="checkbox" data-name="${escHtml(it.name)}"${selected.has(it.name) ? ' checked' : ''}>${dot(it.color)}<span class="md-pie-pop__text"><span>${escHtml(it.name)}</span>${it.detail != null ? `<small>${escHtml(it.detail)}</small>` : ''}</span><span class="md-pie-pop__count">${it.value}</span></label>`).join('')
+                            + `</div></div></div></span>`;
+                    }
+                    el.innerHTML = html;
+                }
+                function render() {
+                    let k = Math.min(maxChips || topN, items.length);
+                    build(k);
+                    while (k > 1 && el.scrollWidth > el.clientWidth + 1) {
+                        k--;
+                        build(k);
+                    }
+                }
+                el.addEventListener('click', (e) => {
+                    const chip = e.target.closest('.md-pie-chip[data-name]');
+                    if (chip) toggle(chip.dataset.name);
+                });
+                el.addEventListener('change', (e) => {
+                    if (e.target.matches('input[data-name]')) toggle(e.target.dataset.name);
+                });
+                let resizeTimer = null;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(() => { if (items.length) render(); }, 150);
+                });
+                return {
+                    set(newItems) {
+                        items = newItems;
+                        const names = items.map(i => i.name);
+                        selected = LegendPrefs.initial(prefId, names);
+                        render();
+                    },
+                    series,
+                    selectedNames() { return items.filter(it => selected.has(it.name)).map(it => it.name); },
+                    clear() { items = []; el.innerHTML = ''; },
+                };
+            }
+            // One colour per department, never reused: ten well-separated base colours,
+            // then golden-angle hues so any number of departments stays distinct.
+            const DEPT_PALETTE = ['#3b82f6','#22c55e','#f59e0b','#ef4444','#a855f7','#06b6d4','#ec4899','#84cc16','#f97316','#14b8a6'];
+            const deptColor = (i) => i < DEPT_PALETTE.length ? DEPT_PALETTE[i] : `hsl(${Math.round((i * 137.508) % 360)}, 65%, ${i % 2 ? 45 : 58}%)`;
+                        // ─── ATTENDANCE % (SHIFT / DEPARTMENT / WORK TYPE) ───
+            // Shared horizontal-bar renderer: one row per group, coloured by
+            // `colorFor(rate)`, label "rate% (days)" from the backend payload.
+            const RATE_FILTER_PARAMS = {
+                shift: "employee_id__employee_work_info__shift_id",
+                department: "employee_id__employee_work_info__department_id",
+                work_type: "employee_id__employee_work_info__work_type_id",
+            };
+            // One entry per rate chart: its config, the rows last fetched, and the dates they cover.
+            // The chips under the chart (the shifts / departments / work types of the basis picked
+            // in the select) decide which rows are drawn.
+            const rateState = {};
+            function drawRateChart(key) {
+                const st = rateState[key];
+                if (!st) return;
+                const { cfg, data } = st;
+                const el = document.querySelector(cfg.el);
+                const names = new Set(cfg.legend.selectedNames());
+                const items = st.items.filter((d) => names.has(d[cfg.labelKey]));
+                // Vertical columns, one per group, coloured by the rate band.
+                const maxRate = Math.max(...items.map((d) => d.rate), 0);
+                const axisMax = cfg.fitAxis
+                    ? Math.min(100, Math.max(10, Math.ceil((maxRate * 1.2) / 10) * 10))
+                    : 100;
+                // Many groups (e.g. dozens of shifts): name them tilted/vertical with room
+                // reserved below, and drop the on-bar values that would overlap (the
+                // tooltip carries them). See fitAxisLabels.
+                const fit = fitAxisLabels(
+                    el,
+                    items.map((d) => String(d[cfg.labelKey])),
+                    Math.max(...items.map((d) => d.rate), 0) + "%",
+                );
+                renderChart(cfg.key, el, {
+                    series: [{ name: cfg.seriesName, data: items.map((d) => d.rate) }],
+                    chart: {
+                        type: "bar",
+                        // Taller by whatever the names need beyond two wrapped lines.
+                        height: 250 + Math.max(0, fit.band - 48),
+                        toolbar: { show: false },
+                        background: "transparent",
+                        fontFamily: "inherit",
+                        animations: ANIM,
+                        events: cfg.clickable === false ? {} : {
+                            dataPointSelection: (e, ctx, config) => {
+                                const item = items[config.dataPointIndex];
+                                if (!item || !item.id) return;
+                                navigate(attendanceUrl, {
+                                    open_tab: 3,
+                                    attendance_validated: "True",
+                                    [cfg.filterParam]: item.id,
+                                    attendance_date__gte: data.from_date,
+                                    attendance_date__lte: data.to_date,
+                                });
+                            },
+                        },
+                    },
+                    colors: items.map((d) => cfg.colorFor(d.rate)),
+                    plotOptions: {
+                        bar: {
+                            borderRadius: 6,
+                            borderRadiusApplication: "end",
+                            horizontal: false,
+                            columnWidth: items.length <= 3 ? "30%" : items.length <= 6 ? "45%" : "60%",
+                            distributed: true,
+                            dataLabels: { position: "top" },
+                        },
+                    },
+                    xaxis: {
+                        ...XAXIS_STYLE,
+                        categories: items.map((d) =>
+                            fit.mode === "wrap" ? String(d[cfg.labelKey]).split(" ") : String(d[cfg.labelKey]),
+                        ),
+                        labels: {
+                            rotate: fit.rotate,
+                            rotateAlways: fit.mode !== "wrap",
+                            trim: false,
+                            hideOverlappingLabels: fit.thin,
+                            maxHeight: fit.band,
+                            style: { colors: items.map(() => textColor), fontSize: "11px", fontWeight: 500 },
+                            ...(fit.mode === "wrap" ? {} : { formatter: (v) => fit.truncate(String(v)) }),
+                        },
+                    },
+                    yaxis: {
+                        min: 0,
+                        max: axisMax,
+                        tickAmount: axisMax <= 20 ? axisMax / 5 : 5,
+                        labels: { style: { colors: textColor, fontSize: "11px" }, formatter: (v) => Math.round(v) + "%" },
+                    },
+                    // Headroom so a label above a full-height column is not cut off.
+                    grid: { ...GRID, padding: { ...(GRID.padding || {}), top: fit.showValues ? 20 : 0 } },
+                    dataLabels: {
+                        enabled: fit.showValues,
+                        offsetY: -18,
+                        formatter: (v) => v + "%",
+                        style: { fontSize: "11px", fontWeight: 600, colors: [textColor] },
+                    },
+                    legend: { show: false },
+                    tooltip: {
+                        ...TOOLTIP_STYLE,
+                        shared: false,
+                        intersect: true,
+                        custom: ({ dataPointIndex }) => {
+                            const d = items[dataPointIndex];
+                            if (!d) return "";
+                            return tipCard(d[cfg.labelKey], [
+                                { color: cfg.colorFor(d.rate), label: cfg.seriesName, value: d.rate + "%" },
+                                { label: cfg.countLabel, value: d[cfg.countKey] + " / " + d.expected_days },
+                            ]);
+                        },
+                    },
+                    states: { hover: { filter: { type: "darken", value: 0.85 } } },
+                });
+            }
+            let rateResizeTimer = null;
+            window.addEventListener("resize", () => {
+                clearTimeout(rateResizeTimer);
+                rateResizeTimer = setTimeout(() => {
+                    Object.keys(rateState).forEach((key) => drawRateChart(key));
+                }, 200);
+            });
+            function loadRateChart(cfg) {
+                cfg.filterParam = RATE_FILTER_PARAMS[cfg.dimension];
+                const el = document.querySelector(cfg.el);
+                fetchP(cfg.url)
+                    .then((r) => r.json())
+                    .then((data) => {
+                        const items = data[cfg.listKey] || [];
+                        const subEl = document.getElementById(cfg.subtitleId);
+                        if (subEl && data.month)
+                            subEl.textContent = cfg.subtitle + " — " + data.month;
+                        // Reset before redraw so switching between a basis
+                        // with data and one without never leaves stale content.
+                        if (chartInstances[cfg.key]) {
+                            chartInstances[cfg.key].destroy();
+                            chartInstances[cfg.key] = null;
+                        }
+                        el.innerHTML = "";
+                        if (!items.length) {
+                            cfg.legend.clear();
+                            el.innerHTML = emptyHtml('{% trans "No data"|escapejs %}');
+                            return;
+                        }
+                        rateState[cfg.key] = { cfg, data, items };
+                        cfg.legend.set(items.map((d, i) => ({
+                            name: d[cfg.labelKey],
+                            value: d.rate + "%",
+                            color: cfg.colorFor(d.rate),
+                            detail: d[cfg.countKey] + " / " + d.expected_days + " " + cfg.countLabel,
+                        })));
+                        drawRateChart(cfg.key);
+                    })
+                    .catch(() => {
+                        el.innerHTML = emptyHtml('{% trans "Unable to load"|escapejs %}');
+                    });
+            }
+            const attendanceColor = (r) =>
+                r >= 90 ? "#22c55e" : r >= 75 ? "#f59e0b" : r >= 50 ? "#f97316" : r >= 25 ? "#ef4444" : "#b91c1c";
+            const ATTENDANCE_SUBTITLES = {
+                shift: '{% trans "Attendance % by shift"|escapejs %}',
+                department: '{% trans "Attendance % by department"|escapejs %}',
+                work_type: '{% trans "Attendance % by work type"|escapejs %}',
+            };
+            const attendanceLegend = createPieLegend({
+                el: document.getElementById("am-pie-legend-attendance"),
+                chartKey: "absenteeism",
+                noun: '{% trans "groups"|escapejs %}',
+                topN: 8,
+                onChange: () => drawRateChart("absenteeism"),
+            });
+            const absenceLegend = createPieLegend({
+                el: document.getElementById("am-pie-legend-absence"),
+                chartKey: "absence_pct",
+                noun: '{% trans "groups"|escapejs %}',
+                topN: 8,
+                onChange: () => drawRateChart("absence_pct"),
+            });
+            const attendanceSelect = document.getElementById("attendance-dimension");
+            function loadAttendancePct() {
+                const dimension = attendanceSelect.value;
+                loadRateChart({
+                    url:
+                        "{% url 'attendance-dashboard-percentage' %}?dimension=" +
+                        encodeURIComponent(dimension),
+                    el: "#chart-absenteeism",
+                    key: "absenteeism",
+                    dimension,
+                    listKey: "items",
+                    labelKey: "label",
+                    countKey: "present_days",
+                    subtitleId: "absenteeism-subtitle",
+                    subtitle: ATTENDANCE_SUBTITLES[dimension],
+                    seriesName: '{% trans "Attendance %"|escapejs %}',
+                    countLabel: '{% trans "days present"|escapejs %}',
+                    colorFor: attendanceColor,
+                    legend: attendanceLegend,
+                });
+            }
+            attendanceSelect.addEventListener("change", loadAttendancePct);
+            loadAttendancePct();
+
+            // ─── ABSENCE % (SHIFT / DEPARTMENT / WORK TYPE) ───
+            const absenceColor = (r) =>
+                r <= 10 ? "#22c55e" : r <= 25 ? "#f59e0b" : r < 50 ? "#f97316" : "#ef4444";
+            const ABSENCE_SUBTITLES = {
+                shift: '{% trans "Absence % by shift"|escapejs %}',
+                department: '{% trans "Absence % by department"|escapejs %}',
+                work_type: '{% trans "Absence % by work type"|escapejs %}',
+            };
+            const absenceSelect = document.getElementById("absence-dimension");
+            function loadAbsencePct() {
+                const dimension = absenceSelect.value;
+                loadRateChart({
+                    url:
+                        "{% url 'attendance-dashboard-absence-percentage' %}?dimension=" +
+                        encodeURIComponent(dimension),
+                    el: "#chart-absence-pct",
+                    key: "absence_pct",
+                    dimension,
+                    listKey: "items",
+                    labelKey: "label",
+                    countKey: "absent_days",
+                    subtitleId: "absence-pct-subtitle",
+                    subtitle: ABSENCE_SUBTITLES[dimension],
+                    seriesName: '{% trans "Absence %"|escapejs %}',
+                    countLabel: '{% trans "days absent"|escapejs %}',
+                    colorFor: absenceColor,
+                    fitAxis: true,
+                    clickable: false,
+                    legend: absenceLegend,
+                });
+            }
+            absenceSelect.addEventListener("change", loadAbsencePct);
+            loadAbsencePct();
+
+                        // ─── AVG WORKING HOURS ───
+            // Chips under the chart are the departments; ticking one off takes its column out.
+            let avgHoursRaw = null;
+            const avgHoursLegend = createPieLegend({
+                el: document.getElementById("am-pie-legend-avg-hours"),
+                chartKey: "avg-hours",
+                noun: '{% trans "departments"|escapejs %}',
+                maxChips: 50,
+                onChange: () => loadAvgHours(avgHoursRaw),
+            });
+            const avgHoursColor = (h) => (h >= 8 ? "#22c55e" : h >= 6 ? "#f59e0b" : "#ef4444");
+
+            // Decide how the department names go under their columns, from the real
+            // width each column gets (measured with the chart's own font), so names
+            // never run into each other however many departments are showing:
+            //   wrap     - every column is wide enough for its longest word: names wrap
+            //              onto lines, horizontal.
+            //   tilt     - otherwise full names at -45 degrees, with room reserved below.
+            //   vertical - columns narrower still: names at -90 degrees.
+            // Very long names are cut with an ellipsis (the tooltip has the full name).
+            function fitAxisLabels(el, names, valueText) {
+                const ctx = (fitAxisLabels.ctx = fitAxisLabels.ctx || document.createElement("canvas").getContext("2d"));
+                const family = getComputedStyle(el).fontFamily || "sans-serif";
+                ctx.font = "500 11px " + family;
+                const width = (t) => ctx.measureText(t).width;
+                const plot = Math.max(200, (el.clientWidth || 800) - 70); // minus the y-axis gutter
+                const slot = plot / Math.max(names.length, 1);
+                const widestWord = Math.max(...names.map((n) => Math.max(...n.split(" ").map(width))));
+                let mode = "wrap", rotate = 0, band = 48, maxPx = Infinity;
+                if (slot < widestWord + 8) {
+                    mode = slot >= 22 ? "tilt" : "vertical";
+                    rotate = mode === "tilt" ? -45 : -90;
+                    maxPx = mode === "tilt" ? 170 : 120;
+                    const widest = Math.min(maxPx, Math.max(...names.map(width)));
+                    band = Math.ceil(mode === "tilt" ? widest * 0.71 + 14 : widest + 10);
+                }
+                ctx.font = "700 11px " + family;
+                const showValues = slot * 0.55 >= width(valueText) + 6;
+                const truncate = (t) => {
+                    ctx.font = "500 11px " + family;
+                    if (width(t) <= maxPx) return t;
+                    while (t.length > 1 && width(t + "\u2026") > maxPx) t = t.slice(0, -1);
+                    return t + "\u2026";
+                };
+                // Even vertical names need ~14px a column; below that, let ApexCharts
+                // thin the names out instead of stacking them on top of each other.
+                return { mode, rotate, band, truncate, showValues, thin: slot < 14 };
+            }
+            let avgHoursResizeTimer = null;
+            window.addEventListener("resize", () => {
+                clearTimeout(avgHoursResizeTimer);
+                avgHoursResizeTimer = setTimeout(() => { if (avgHoursRaw) loadAvgHours(avgHoursRaw); }, 200);
+            });
+
+            function loadAvgHours(cached) {
+                (cached ? Promise.resolve(cached) : fetchP("{% url 'attendance-dashboard-avg-hours' %}").then((r) => r.json()))
+                    .then((raw) => {
+                        avgHoursRaw = raw;
+                        const data = { ...raw };
+                        document.getElementById("avg-hours-month").textContent =
+                            data.month;
+                        if (!raw.departments.length) {
+                            document.querySelector("#chart-avg-hours").innerHTML =
+                                emptyHtml('{% trans "No data"|escapejs %}');
+                            avgHoursLegend.clear();
+                            return;
+                        }
+                        if (!cached) {
+                            avgHoursLegend.set(raw.departments.map((d) => ({
+                                name: d.department, value: d.avg_hours_per_day + "h", color: avgHoursColor(d.avg_hours_per_day),
+                                detail: d.avg_hours_per_day + " h/day · " + d.employees + ' {% trans "employees"|escapejs %}',
+                            })));
+                        }
+                        const picked = new Set(avgHoursLegend.selectedNames());
+                        data.departments = raw.departments.filter((d) => picked.has(d.department));
+                        const fit = fitAxisLabels(
+                            document.querySelector("#chart-avg-hours"),
+                            data.departments.map((d) => d.department),
+                            Math.max(...data.departments.map((d) => d.avg_hours_per_day)) + "h",
+                        );
+                        renderChart(
+                            "avg-hours",
+                            document.querySelector("#chart-avg-hours"),
+                            {
+                                series: [
+                                    {
+                                        name: '{% trans "Avg Hrs/Day"|escapejs %}',
+                                        data: data.departments.map(
+                                            (d) => d.avg_hours_per_day,
+                                        ),
+                                    },
+                                ],
+                                chart: {
+                                    type: "bar",
+                                    // Taller by whatever the tilted names need beyond two wrapped lines.
+                                    height: 300 + Math.max(0, fit.band - 48),
+                                    toolbar: { show: false },
+                                    background: "transparent",
+                                    fontFamily: "inherit",
+                                    animations: ANIM,
+                                    events: {
+                                        dataPointSelection: (e, ctx, config) => {
+                                            const dept =
+                                                data.departments[
+                                                    config.dataPointIndex
+                                                ]?.department;
+                                            if (!dept) return;
+                                            navigate(
+                                                "{% url 'attendance-view' %}",
+                                                {
+                                                    department: dept,
+                                                    attendance_date__gte:
+                                                        data.from_date,
+                                                    attendance_date__lte:
+                                                        data.to_date,
+                                                },
+                                            );
+                                        },
+                                    },
+                                },
+                                colors: data.departments.map((d) =>
+                                    d.avg_hours_per_day >= 8
+                                        ? "#22c55e"
+                                        : d.avg_hours_per_day >= 6
+                                            ? "#f59e0b"
+                                            : d.avg_hours_per_day >= 4
+                                                ? "#f97316"
+                                                : "#ef4444",
+                                ),
+                                fill: {
+                                    type: "gradient",
+                                    gradient: {
+                                        type: "vertical",
+                                        shadeIntensity: 0.3,
+                                        opacityFrom: 1,
+                                        opacityTo: 0.8,
+                                    },
+                                },
+                                plotOptions: {
+                                    bar: {
+                                        borderRadius: 6,
+                                        borderRadiusApplication: "end",
+                                        columnWidth: "55%",
+                                        distributed: true,
+                                    },
+                                },
+                                xaxis: {
+                                    ...XAXIS_STYLE,
+                                    // Few departments: names wrap onto lines. Many: full names
+                                    // tilted, so they never run into each other or the chips.
+                                    categories: data.departments.map((d) =>
+                                        fit.mode === "wrap" ? d.department.split(" ") : d.department,
+                                    ),
+                                    labels: {
+                                        ...XAXIS_STYLE.labels,
+                                        rotate: fit.rotate,
+                                        rotateAlways: fit.mode !== "wrap",
+                                        hideOverlappingLabels: false,
+                                        trim: false,
+                                        maxHeight: fit.band,
+                                        ...(fit.mode === "wrap" ? {} : { formatter: (v) => fit.truncate(String(v)) }),
+                                    },
+                                },
+                                yaxis: {
+                                    ...YAXIS_STYLE,
+                                    labels: {
+                                        ...YAXIS_STYLE.labels,
+                                        formatter: (v) => v + "h",
+                                    },
+                                },
+                                grid: GRID,
+                                dataLabels: {
+                                    // Columns too narrow for "8.6h" would clip it; the tooltip has the value.
+                                    enabled: fit.showValues,
+                                    formatter: (v) => v + "h",
+                                    style: {
+                                        fontSize: "11px",
+                                        fontWeight: 700,
+                                        colors: ["#fff"],
+                                    },
+                                    background: { enabled: false },
+                                },
+                                legend: { show: false },
+                                tooltip: {
+                                    ...TOOLTIP_STYLE,
+                                    y: {
+                                        formatter: (v, { dataPointIndex: i }) =>
+                                            `${v} hrs/day (${data.departments[i].employees} {% trans "employees"|escapejs %})`,
+                                    },
+                                },
+                            },
+                        );
+                    })
+                    .catch(() => {
+                        document.querySelector("#chart-avg-hours").innerHTML =
+                            emptyHtml('{% trans "Unable to load"|escapejs %}');
+                    });
+            }
+            loadAvgHours();
+
+            // ─── TOP ABSENTEES ───
+            function loadTopAbsentees() {
+                fetchP("{% url 'attendance-dashboard-absentees' %}")
+                    .then((r) => r.json())
+                    .then((data) => {
+                        const el = document.getElementById("am-absentees");
+                        document.getElementById("absentees-month").textContent =
+                            data.month;
+                        const badge = document.getElementById("am-absentees-count");
+                        badge.textContent = data.absentees.length;
+                        badge.hidden = !data.absentees.length;
+                        if (!data.absentees.length) {
+                            el.innerHTML =
+                                '<div class="am-info-panel__empty">' +
+                                '{% trans "No absences in this period"|escapejs %}' +
+                                "</div>";
+                            return;
+                        }
+                        el.innerHTML = data.absentees
+                            .map((a) => {
+                                const initials = (a.name || "?")
+                                    .split(" ")
+                                    .map((w) => w[0])
+                                    .join("")
+                                    .slice(0, 2)
+                                    .toUpperCase();
+                                const avatarInner = a.avatar
+                                    ? `<img src="${a.avatar}" alt="" onerror="this.parentElement.textContent='${initials}'">`
+                                    : initials;
+                                return `
+                    <a href="${attendanceUrlFor(a.id)}" class="am-absentee-item">
+                        <div class="am-absentee-item__avatar">${avatarInner}</div>
+                        <div class="am-absentee-item__info">
+                            <div class="am-absentee-item__name">${a.name}</div>
+                            <div class="am-absentee-item__detail">${a.present_days}/${a.total_days} {% trans "days present"|escapejs %}</div>
+                        </div>
+                        <div class="am-absentee-item__days">${a.absent_days}d</div>
+                    </a>`;
+                            })
+                            .join("");
+                    })
+                    .catch(() => {
+                        document.getElementById("am-absentees").innerHTML =
+                            '<div class="am-info-panel__empty">' +
+                            '{% trans "No absences in this period"|escapejs %}' +
+                            "</div>";
+                    });
+            }
+            loadTopAbsentees();
+
+            // ─── ATTENDANCE DAILY OVERVIEW ───
+            // Same chart as the main dashboard: today's on-time / late / early-out split of each
+            // department (100% columns). The chips under it are the departments; click one to take
+            // it out of the chart.
+            let attData = null;
+            const attOverviewLegend = createPieLegend({
+                el: document.getElementById("am-pie-legend-overview"),
+                chartKey: "att-overview",
+                noun: '{% trans "departments"|escapejs %}',
+                maxChips: 50,
+                onChange: () => drawAttendanceOverview(),
+            });
+            function drawAttendanceOverview() {
+                if (!attData) return;
+                const names = new Set(attOverviewLegend.selectedNames());
+                const data = { labels: attData.labels, dataSet: attData.dataSet.filter((d) => names.has(d.label)) };
+                const colors = ["#22c55e", "#f59e0b", "#ef4444"];
+                renderChart("att-overview", document.querySelector("#chart-att-overview"), {
+                    // x-axis = departments; the stack = on time / late arrival / early departure.
+                    series: data.labels.map((statusLabel, k) => ({ name: statusLabel, data: data.dataSet.map((d) => d.data[k]) })),
+                    chart: { type: "bar", stacked: true, stackType: "100%", height: 320, toolbar: { show: false }, background: "transparent", fontFamily: "inherit", animations: ANIM,
+                        events: { dataPointSelection: (e, ctx, config) => {
+                            // A series is a STATUS and a data point is a DEPARTMENT.
+                            const ATT_STATUS = ["on_time", "late_come", "early_out"];
+                            const deptId = data.dataSet[config.dataPointIndex]?.id;
+                            const status = ATT_STATUS[config.seriesIndex];
+                            if (!deptId || !status) return;
+                            const today = "{% now "Y-m-d" %}";
+                            const params = new URLSearchParams({
+                                present_from: today,
+                                present_to: today,
+                                attendance_status: status,
+                                employee_work_info__department_id: deptId,
+                                is_active: "True",
+                                filter_applied: "on",
+                            });
+                            window.location.href = "{% url 'employee-view' %}?" + params.toString();
+                        } },
+                    },
+                    colors,
+                    fill: { type: "gradient", gradient: { type: "vertical", shadeIntensity: 0.25, opacityFrom: 1, opacityTo: 0.85 } },
+                    plotOptions: { bar: { borderRadius: 6, borderRadiusApplication: "end", columnWidth: "58%" } },
+                    xaxis: { ...XAXIS_STYLE, categories: data.dataSet.map((d) => d.label.split(" ")),
+                        labels: { ...XAXIS_STYLE.labels, rotate: 0, rotateAlways: false, hideOverlappingLabels: false, trim: false, maxHeight: 48, style: { ...XAXIS_STYLE.labels.style, fontSize: "11px" } } },
+                    yaxis: { min: 0, max: 100, tickAmount: 4, labels: { style: { colors: textColor, fontSize: "11px" }, formatter: (v) => Math.round(v) + "%" } },
+                    grid: GRID,
+                    dataLabels: { enabled: false },
+                    legend: { show: false },
+                    tooltip: { ...TOOLTIP_STYLE, shared: true, intersect: false, custom: ({ dataPointIndex }) => {
+                        const d = data.dataSet[dataPointIndex];
+                        if (!d) return "";
+                        const total = d.data.reduce((a, b) => a + b, 0);
+                        return tipCard(d.label, [
+                            { total: true, label: '{% trans "Total"|escapejs %}', value: total },
+                            ...data.labels.map((lbl, k) => ({ color: colors[k], label: lbl, value: d.data[k], sub: total ? "(" + Math.round(d.data[k] / total * 100) + "%)" : "(0%)" })),
+                        ]);
+                    } },
+                    states: { hover: { filter: { type: "darken", value: 0.85 } } },
+                });
+            }
+            function loadAttendanceOverview() {
+                fetch("{% url 'dashboard-attendance-overview' %}")
+                    .then((r) => r.json())
+                    .then((data) => {
+                        if (!data.dataSet || !data.dataSet.length || !data.labels || !data.labels.length) {
+                            document.querySelector("#chart-att-overview").innerHTML = emptyHtml('{% trans "No attendance records available"|escapejs %}');
+                            attOverviewLegend.clear();
+                            return;
+                        }
+                        attData = data;
+                        attOverviewLegend.set(data.dataSet.map((d, i) => {
+                            const total = d.data.reduce((a, b) => a + b, 0);
+                            return { name: d.label, value: total, color: deptColor(i),
+                                detail: total + ' {% trans "total"|escapejs %} · ' + data.labels.map((l, k) => d.data[k] + " " + l).join(" · ") };
+                        }));
+                        drawAttendanceOverview();
+                    })
+                    .catch(() => {
+                        document.querySelector("#chart-att-overview").innerHTML = emptyHtml('{% trans "Unable to load"|escapejs %}');
+                    });
+            }
+            loadAttendanceOverview();
+
+            // ── Re-run every load/chart function above in place (used by the
+            // auto-refresh timer instead of location.reload()).
+            function refreshAllData() {
+                loadKpiCards();
+                loadLateEarly();
+                loadOvertimeDept();
+                loadHoursDistribution();
+                loadCalendarHeatmap();
+                loadAttendancePct();
+                loadAbsencePct();
+                loadAvgHours();
+                loadTopAbsentees();
+                loadAttendanceOverview();
+            }
+        })();
+    </script>
+{% endblock %}

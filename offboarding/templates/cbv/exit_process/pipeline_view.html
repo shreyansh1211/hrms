@@ -1,0 +1,46 @@
+{% extends "index.html" %}
+{% block content %}
+    {% load static i18n %}
+
+    {% for path in style_static_paths %}
+        <link rel="stylesheet" href="{{path}}">
+    {% endfor %}
+    {% for path in script_static_paths %}
+        <script src="{% static path %}"></script>
+    {% endfor %}
+
+    {% include "generic/components.html" %}
+
+    {% comment %}
+    No page-level Nav here, matching /recruitment/cbv-pipeline/: that page
+    renders its tab view alone and lets each tab's own Nav carry the title,
+    Create button and Search+Filter. OffboardingPipelineNav's title/Create/
+    view-type controls now live on OffboardingPipelineTabNav (the per-tab
+    Nav) instead.
+    {% endcomment %}
+    <div
+        class="oh-wrapper"
+        id="{{view_container_id}}"
+        hx-get="{{ view_url }}?{{request.GET.urlencode}}"
+        hx-trigger="load"
+    >
+    </div>
+
+    <div
+        class="oh-modal"
+        id="sendMailModal"
+        role="dialog"
+        aria-labelledby="sendMailModal"
+        aria-hidden="true"
+    >
+        <div class="oh-modal__dialog">
+            <div class="oh-modal__dialog-header">
+                <span class="oh-modal__dialog-title" id="sendMailModalLabel"><h5>{% trans 'Send Mail' %}</h5></span>
+                <button class="oh-modal__close" aria-label="{% trans 'Close' %}">
+                    <ion-icon name="close-outline"></ion-icon>
+                </button>
+            </div>
+            <div class="oh-modal__dialog-body" id="mail-content"></div>
+        </div>
+    </div>
+{% endblock content %}

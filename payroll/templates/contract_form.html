@@ -1,0 +1,170 @@
+{% load widget_tweaks %}
+{% load i18n %}
+
+<div class="oh-general__tab-target oh-profile-section" id="personal">
+  <div class="oh-payslip__header">
+    <div class="oh-payslip__header-left">
+      <div class="oh-payroll__component-title">
+          {{ form.verbose_name }}
+      </div>
+    </div>
+    <div class="oh-payslip__header-right">
+          {{ form.contract_status }}
+    </div>
+  </div>
+  <div class="oh-profile-section__card">
+    <div class="row">
+      <div class="col-12">
+        {{form.non_field_errors}}
+      </div>
+
+      {% for field in form.visible_fields %}
+
+        {% if field.name != 'contract_status' %}
+
+          {% if field.name == 'note' %}
+            <div class="col-12 col-md-12">
+              <div class="oh-label__info" for="id_{{ field.name }}">
+                <label class="oh-label {% if field.field.required %} required-star{% endif %}" for="id_{{ field.name }}">{% trans field.label %}</label>
+                {% if field.help_text != "" %}
+                <span class="oh-info mr-2" title = "{{ field.help_text }}">
+                </span>
+                {% endif %}
+              </div>
+              {% if field.field.widget.input_type == "checkbox" %} {{ field.errors }}
+              <div class="oh-switch" style="width: 30px">
+                {{ field|add_class:"oh-switch__checkbox" }}
+              </div>
+              {% else %} {{ field|add_class:"form-control" }} {% endif %}
+              {{field.errors}}
+            </div>
+          {% else %}
+            <div class="col-12 col-md-6">
+              <div class="oh-label__info" for="id_{{ field.name }}">
+                <label class="oh-label {% if field.field.required %} required-star{% endif %}" for="id_{{ field.name }}">{% trans field.label %}</label>
+                {% if field.help_text != "" %}
+                <span class="oh-info mr-2" title = "{{ field.help_text }}">
+                </span>
+                {% endif %}
+              </div>
+              {% if field.field.widget.input_type == "checkbox" %} {{ field.errors }}
+              <div class="oh-switch" style="width: 30px">
+                {{ field|add_class:"oh-switch__checkbox" }}
+              </div>
+              {% else %} {{ field|add_class:"form-control" }} {% endif %}
+              {{field.errors}}
+            </div>
+          {% endif %}
+
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="d-flex flex-row-reverse">
+      <button
+        type="submit"
+        class="oh-btn oh-btn--secondary mt-2 mr-0 pl-4 pr-5 oh-btn--w-100-resp"
+      >
+        {% trans "Save" %}
+      </button>
+    </div>
+  </div>
+</div>
+
+{% comment %}
+Keeps the wage label honest while the structure is being chosen.
+
+ContractForm sets it server-side from the saved structure, but on a new
+contract — and on any change before saving — the box would otherwise still
+read "Basic Salary" for a structure where the wage is the whole figure the
+components divide up.
+{% endcomment %}
+<script>
+(function () {
+  var wage = document.querySelector("[name=wage]");
+  var picker = document.querySelector("[name=salary_structure_id]");
+  if (!wage || !picker) { return; }
+
+  var label = document.querySelector("label[for=id_wage]");
+  var info = label && label.parentElement
+    ? label.parentElement.querySelector(".oh-info")
+    : null;
+
+  // A one-line note under the box, naming the structure responsible. The label
+  // swap alone is easy to miss on a form this long, and reading the wrong
+  // meaning into this number is how a payslip comes out wrong.
+  var note = document.querySelector("[data-wage-reading]");
+  if (!note) {
+    note = document.createElement("div");
+    note.setAttribute("data-wage-reading", "");
+    note.style.cssText =
+      "font-size:12px;color:#6b7280;margin-top:4px;display:flex;gap:6px;";
+    (wage.parentElement || wage).appendChild(note);
+  }
+
+  function apply() {
+    var option = picker.options[picker.selectedIndex];
+    var mode = (option && option.getAttribute("data-structure-mode")) || "gross_up";
+    var suffix = mode === "ctc_down" ? "ctc-down" : "gross-up";
+    var text = wage.getAttribute("data-wage-label-" + suffix);
+    var help = wage.getAttribute("data-wage-help-" + suffix);
+    var reading = wage.getAttribute("data-wage-reading-" + suffix);
+    if (label && text) { label.textContent = text; }
+    // Not read under CTC Down, so it is shown but not editable. A disabled box
+    // is not posted; the form keeps the saved wage and does not demand one.
+    wage.disabled = mode === "ctc_down";
+    if (mode === "ctc_down") { wage.removeAttribute("required"); }
+    if (info && help) { info.setAttribute("title", help); }
+    if (reading) {
+      var structure = option && option.value ? option.textContent.trim() : "";
+      note.textContent = structure ? reading + " (" + structure + ")" : reading;
+    }
+  }
+
+  picker.addEventListener("change", apply);
+  if (window.jQuery) { jQuery(picker).on("change select2:select", apply); }
+  apply();
+
+  // Show the box the wage type actually pays from, and hide the ones it does
+  // not. An hourly contract showing a required "Basic Salary" of 0 next to an
+  // empty "Hourly wage" is the screen that prompted this: two boxes for one
+  // number, and the wrong one demanded.
+  var wageType = document.querySelector("[name=wage_type]");
+  var hourly = document.querySelector("[name=hourly_wage]");
+  var ctc = document.querySelector("[name=monthly_ctc]");
+
+  function cell(field) {
+    return field ? field.closest(".col-12, .col-md-6, .col-md-12") : null;
+  }
+
+  function applyUnits() {
+    if (!wageType) { return; }
+    var isHourly = wageType.value === "hourly";
+    var hourlyCell = cell(hourly);
+    var wageCell = cell(wage);
+    if (hourlyCell) { hourlyCell.style.display = isHourly ? "" : "none"; }
+    // The monthly figure is still shown for an hourly contract, because it is
+    // the documented fallback when the hourly box is empty — but it is no
+    // longer the thing being asked for first.
+    if (wageCell && isHourly) { wageCell.style.order = "1"; }
+  }
+
+  function applyCtc() {
+    var option = picker.options[picker.selectedIndex];
+    var mode = (option && option.getAttribute("data-structure-mode")) || "gross_up";
+    var ctcCell = cell(ctc);
+    // Only a CTC Down structure divides it, so for anything else it is a box
+    // that would change nothing.
+    if (ctcCell) { ctcCell.style.display = mode === "ctc_down" ? "" : "none"; }
+  }
+
+  if (wageType) {
+    wageType.addEventListener("change", applyUnits);
+    if (window.jQuery) { jQuery(wageType).on("change select2:select", applyUnits); }
+  }
+  picker.addEventListener("change", applyCtc);
+  if (window.jQuery) { jQuery(picker).on("change select2:select", applyCtc); }
+  applyUnits();
+  applyCtc();
+})();
+</script>

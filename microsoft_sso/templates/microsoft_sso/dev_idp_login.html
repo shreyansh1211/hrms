@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in (development)</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#eef2f6; margin:0; display:flex; min-height:100vh; align-items:center; justify-content:center; }
+    .box { background:#fff; border:1px solid #dbe3ec; border-radius:8px; padding:28px 32px; width:420px; max-width:92vw; }
+    .tag { background:#fef3c7; color:#92400e; font-size:12px; font-weight:bold; padding:3px 10px; border-radius:999px; }
+    h1 { font-size:20px; color:#132238; margin:14px 0 4px; } p { color:#64748b; font-size:14px; line-height:1.5; }
+    input[type=email] { width:100%; box-sizing:border-box; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:15px; margin:8px 0; }
+    button { background:#017391; color:#fff; border:0; border-radius:6px; padding:10px 18px; font-size:14px; font-weight:bold; cursor:pointer; }
+    .list button { background:#f4fafc; color:#017391; border:1px solid #a5d5e3; margin:4px 4px 0 0; font-weight:normal; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <span class="tag">DEVELOPMENT STAND-IN FOR MICROSOFT</span>
+    <h1>Sign in</h1>
+    <p>Choose the employee e-mail you want to sign in as. In production this screen is Microsoft's own sign-in page.</p>
+    <form method="post" class="list">
+      {% csrf_token %}
+      {% for k, v in params.items %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+      <input type="email" name="email" placeholder="name@company.com" required>
+      <button type="submit">Continue</button>
+      <p style="margin-top:16px;">Existing employees:</p>
+      {% for e in emails %}<button type="submit" name="email" value="{{ e }}" formnovalidate>{{ e }}</button>{% endfor %}
+    </form>
+  </div>
+</body>
+</html>

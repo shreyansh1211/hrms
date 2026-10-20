@@ -1,0 +1,37 @@
+{% extends "index.html" %}
+{% load i18n static %}
+
+{% block content %}
+    <style>
+        /* The list table wraps every custom column's rendered HTML in a
+           single-line ".truncate" div (overflow:hidden; white-space:nowrap)
+           -- see generic/horilla_list_table.html. The Employees/Managers
+           columns' overlapping avatar stacks (employees.html/managers.html)
+           need to render without being clipped by that ancestor. */
+        .truncate:has(.oh-manager-cell) {
+            overflow: visible;
+            white-space: normal;
+            text-overflow: clip;
+        }
+    </style>
+
+    <div hx-get="{% url 'meetings-nav' %}?{{request.GET.urlencode}}" hx-trigger="load"></div>
+
+    {% include "generic/components.html" %}
+
+    <div
+        class="oh-checkpoint-badge mb-2"
+        id="selectedInstances"
+        data-ids="[]"
+        data-clicked=""
+        style="display: none"
+    >
+    </div>
+
+    <div class="oh-wrapper" id="listContainer">
+    </div>
+
+    <div class="oh-activity-sidebar" id="activitySidebar" style="z-index: 1000">
+        <div class="oh-activity-sidebar__body" id="answerContainer"></div>
+    </div>
+{% endblock content %}

@@ -1,0 +1,13 @@
+{% load basefilters %}
+<div class="descriptionContainer">
+    {{ instance.description|sanitize_html }}
+</div>
+
+<style>
+    .descriptionContainer {
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 10px;
+        border: none;
+    }
+</style>

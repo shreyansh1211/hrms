@@ -1,0 +1,799 @@
+{% extends "index.html" %}
+{% load static i18n %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@7.8.0/dist/apexcharts.min.js"></script>
+{% include "components/legend_prefs.html" %}
+<style>
+    :root { --hd-indigo: var(--primary-600, #017391); --hd-green: #22c55e; --hd-amber: #f59e0b; --hd-red: #ef4444; --hd-blue: #3b82f6; --hd-purple: #a855f7; }
+    .hd-dashboard { font-family: inherit; background: #ffffff; margin: -24px; padding: 24px; min-height: calc(100vh - 80px); }
+    .dark .hd-dashboard { background: #000000; }
+    .hd-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .hd-header h1 { font-size: 22px; font-weight: 700; }
+    .hd-header__date { font-size: 13px; opacity: 0.6; margin-top: 2px; }
+    .hd-btn-back { padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(128,128,128,0.2); font-size: 13px; cursor: pointer; text-decoration: none; color: inherit; transition: all 0.15s; background: none; }
+    .hd-btn-back:hover { border-color: var(--hd-indigo); color: var(--hd-indigo); text-decoration: none; }
+
+    .hd-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+    .hd-kpi-card { border-radius: 12px; padding: 18px; background: #ffffff; border: 1px solid rgba(128,128,128,0.12); transition: all 0.2s; text-decoration: none; color: inherit; display: block; }
+    .hd-kpi-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); text-decoration: none; color: inherit; }
+    .hd-kpi-card--static:hover { transform: none; box-shadow: none; cursor: default; }
+    .dark .hd-kpi-card { background: #242424; border-color: rgba(255,255,255,0.08); }
+    .hd-kpi-card__icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 10px; }
+    .hd-kpi-card__icon--blue { background: #dbeafe; color: var(--hd-blue); } .hd-kpi-card__icon--amber { background: #fef3c7; color: var(--hd-amber); }
+    .hd-kpi-card__icon--green { background: #dcfce7; color: var(--hd-green); } .hd-kpi-card__icon--red { background: #fee2e2; color: var(--hd-red); }
+    .dark .hd-kpi-card__icon--blue { background: #1e3a5f; } .dark .hd-kpi-card__icon--amber { background: #78350f; }
+    .dark .hd-kpi-card__icon--green { background: #14532d; } .dark .hd-kpi-card__icon--red { background: #7f1d1d; }
+    .hd-kpi-card__label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.5; margin-bottom: 6px; }    .hd-kpi-card__value { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+    .hd-kpi-card__sub { font-size: 12px; opacity: 0.6; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .hd-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+    .hd-badge--green { background: #dcfce7; color: #166534; } .hd-badge--amber { background: #fef3c7; color: #92400e; } .hd-badge--red { background: #fee2e2; color: #991b1b; }
+    .hd-badge--blue { background: #dbeafe; color: #1e40af; } .hd-badge--purple { background: #f3e8ff; color: #6b21a8; }
+    .dark .hd-badge--green { background: #166534; color: #bbf7d0; } .dark .hd-badge--amber { background: #92400e; color: #fde68a; } .dark .hd-badge--red { background: #7f1d1d; color: #fca5a5; }
+    .dark .hd-badge--blue { background: #1e3a8a; color: #bfdbfe; } .dark .hd-badge--purple { background: #581c87; color: #e9d5ff; }
+
+    .hd-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+    .hd-main { min-width: 0; } .hd-sidebar { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 90px; max-height: calc(100vh - 90px - 24px); overflow-y: auto; }
+    .hd-sidebar::-webkit-scrollbar { width: 3px; }
+    .hd-sidebar::-webkit-scrollbar-thumb { border-radius: 3px; background: rgba(128,128,128,0.2); }
+    .hd-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .hd-chart-card { border-radius: 12px; background: #ffffff; border: 1px solid rgba(128,128,128,0.12); overflow: visible; }
+    .dark .hd-chart-card { background: #242424; border-color: rgba(255,255,255,0.08); }
+    .hd-chart-card--wide { grid-column: span 2; }
+    .hd-chart-card__header { padding: 14px 18px 0; display: flex; justify-content: space-between; align-items: center; }
+    .hd-chart-card__title { font-size: 14px; font-weight: 600; }
+    .hd-chart-card__subtitle { font-size: 11px; opacity: 0.5; margin-top: 2px; }
+    .hd-chart-card__body { padding: 6px 10px 10px; }
+    .hd-empty { text-align: center; padding: 30px 0; opacity: 0.6; font-size: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+    .hd-empty img { width: 100px; opacity: 0.7; }
+    .hd-skeleton { background: linear-gradient(90deg, rgba(128,128,128,0.1) 25%, transparent 50%, rgba(128,128,128,0.1) 75%); background-size: 200% 100%; animation: hd-shimmer 1.5s infinite; border-radius: 12px; }
+    @keyframes hd-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .hd-skeleton--kpi { height: 110px; }
+    .hd-info-panel { border-radius: 12px; background: #ffffff; border: 1px solid rgba(128,128,128,0.12); overflow: hidden; display: flex; flex-direction: column; flex-shrink: 0; }
+    .dark .hd-info-panel { background: #242424; border-color: rgba(255,255,255,0.08); }
+    .hd-info-panel__header { padding: 14px 16px 10px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; border-bottom: 1px solid rgba(128,128,128,0.08); }
+    .hd-info-panel__title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    /* How many records the card holds, beside its title. Hidden at zero. */
+    .hd-count-badge[hidden] { display: none; }
+    .hd-count-badge { min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--hd-indigo); color: #fff; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+    /* "View all" in a card header: same look on every dashboard. */
+    .hd-panel__link {
+        flex-shrink: 0;
+        color: var(--primary-600, #017391);
+        font-weight: 700;
+        font-size: 11px;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .hd-panel__link:hover { text-decoration: underline; }
+    /* Title on top, the date period / basis the card lists on the line below. */
+    .hd-info-panel__heading { min-width: 0; }
+    .hd-info-panel__sub { font-size: 11px; opacity: 0.5; margin-top: 2px; }
+    .hd-info-panel__body { padding: 8px 16px 12px; overflow-y: auto; flex: 1; max-height: 350px; }
+    .hd-info-panel__empty { text-align: center; padding: 30px 0; opacity: 0.4; font-size: 12px; }
+    .hd-ticket-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(128,128,128,0.06); text-decoration: none; color: inherit; }
+    .hd-ticket-item:last-child { border-bottom: none; } .hd-ticket-item:hover { opacity: 0.8; }
+    .hd-ticket-item__id { font-size: 10px; font-weight: 700; color: var(--hd-indigo); min-width: 50px; flex-shrink: 0; }
+    .hd-ticket-item__info { flex: 1; min-width: 0; }
+    .hd-ticket-item__title { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hd-ticket-item__meta { font-size: 11px; opacity: 0.5; }
+    .hd-ticket-item__badge { flex-shrink: 0; }
+    .hd-priority-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .hd-priority-dot--high { background: #ef4444; } .hd-priority-dot--medium { background: #f59e0b; } .hd-priority-dot--low { background: #22c55e; }
+    /* Customize Panel */
+    .hd-btn-customize { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(128,128,128,0.2); font-size: 13px; cursor: pointer; color: inherit; transition: all 0.15s; background: none; display: flex; align-items: center; gap: 5px; }
+    .hd-btn-customize:hover { border-color: var(--hd-indigo); color: var(--hd-indigo); }
+    .hd-customize-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 1050; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .hd-customize-overlay--open { opacity: 1; pointer-events: auto; }
+    .hd-customize-panel { position: fixed; top: 0; right: -420px; width: 400px; height: 100vh; background: #ffffff; box-shadow: -4px 0 24px rgba(0,0,0,0.12); z-index: 1051; display: flex; flex-direction: column; transition: right 0.25s ease; }
+    .dark .hd-customize-panel { background: #242424; }
+    .hd-customize-panel--open { right: 0; }
+    .hd-customize-panel__header { padding: 18px 20px; border-bottom: 1px solid rgba(128,128,128,0.12); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .hd-customize-panel__header h3 { font-size: 16px; font-weight: 700; margin: 0; }
+    .hd-customize-panel__close { width: 32px; height: 32px; border-radius: 8px; border: none; background: rgba(128,128,128,0.08); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; color: inherit; }
+    .hd-customize-panel__close:hover { background: rgba(128,128,128,0.16); }
+    .hd-customize-panel__body { flex: 1; overflow-y: auto; padding: 12px 20px; }
+    .hd-customize-panel__footer { padding: 14px 20px; border-top: 1px solid rgba(128,128,128,0.12); display: flex; justify-content: space-between; flex-shrink: 0; }
+    .hd-cust-btn { padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+    .hd-cust-btn--primary { background: var(--hd-indigo); color: #fff; }
+    .hd-cust-btn--primary:hover { opacity: 0.9; }
+    .hd-cust-btn--ghost { background: none; color: inherit; opacity: 0.6; }
+    .hd-cust-btn--ghost:hover { opacity: 1; }
+    .hd-cust-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; border-radius: 8px; border: 1px solid rgba(128,128,128,0.1); background: rgba(128,128,128,0.02); cursor: grab; user-select: none; }
+    .hd-cust-item:active { cursor: grabbing; }
+    .hd-cust-item.hd-dragging { opacity: 0.85; box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-color: var(--hd-indigo); }
+    .hd-cust-item.hd-drag-over { border-top: 2px solid var(--hd-indigo); }
+    .hd-cust-item__handle { font-size: 16px; opacity: 0.3; cursor: grab; flex-shrink: 0; }
+    .hd-cust-item__label { flex: 1; font-size: 13px; font-weight: 500; }
+    .hd-cust-item__toggle { width: 36px; height: 20px; border-radius: 12px; background: #e2e8f0; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; border: none; }
+    .dark .hd-cust-item__toggle { background: #334155; }
+    .hd-cust-item__toggle::after { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; top: 2px; left: 2px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.2s; }
+    .hd-cust-item__toggle--on { background: var(--hd-indigo); }
+    .dark .hd-cust-item__toggle--on { background: var(--hd-indigo); }
+    .hd-cust-item__toggle--on::after { transform: translateX(16px); }
+    @media (max-width: 1024px) { .hd-customize-panel { width: 320px; right: -340px; } }
+    @media (max-width: 640px) { .hd-customize-panel { width: 100%; right: -100%; } }
+
+    /* Period Picker */
+    .hd-period-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; }
+    .hd-period-picker input[type="date"] { padding: 5px 8px; border-radius: 6px; border: 1px solid rgba(128,128,128,0.2); font-size: 12px; background: transparent; color: inherit; outline: none; transition: border-color 0.15s; }
+    .hd-period-picker input[type="date"]:focus { border-color: var(--hd-indigo); }
+    .hd-period-picker__sep { opacity: 0.4; font-size: 11px; }
+    .hd-period-preset { padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(128,128,128,0.15); font-size: 11px; cursor: pointer; background: none; color: inherit; transition: all 0.15s; }
+    .hd-period-preset:hover { border-color: var(--hd-indigo); color: var(--hd-indigo); }
+    .hd-period-preset--active { background: var(--hd-indigo); color: #fff; border-color: var(--hd-indigo); }
+    .hd-period-preset--active:hover { background: var(--hd-indigo); color: #fff; border-color: var(--hd-indigo); }
+    .dark .hd-period-picker input[type="date"] { color-scheme: dark; }
+
+    /* Auto-refresh */
+    .hd-refresh { display: flex; align-items: center; gap: 6px; font-size: 11px; opacity: 0.5; }
+    .hd-refresh__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--hd-green); flex-shrink: 0; }
+    .hd-refresh__dot--pulse { animation: hd-pulse 2s infinite; }
+    @keyframes hd-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .hd-refresh__toggle { cursor: pointer; opacity: 0.6; font-size: 13px; border: none; background: none; color: inherit; padding: 2px; }
+    .hd-refresh__toggle:hover { opacity: 1; }
+    #chart-hd-status .apexcharts-pie-slice-donut,
+    #chart-hd-trend .apexcharts-marker,
+    #chart-hd-priority .apexcharts-bar-area,
+    #chart-hd-dept .apexcharts-bar-area,
+    #chart-hd-status .apexcharts-pie-slice-donut,
+    #chart-hd-type .apexcharts-pie-slice-donut { cursor: pointer; }
+    /* Pie legend: chips that fit on one row, then a "+N" chip with a popover for the rest */
+    .hd-pie-legend { display: flex; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 6px; padding: 6px 12px 14px; }
+    .hd-pie-chips { display: contents; }
+    .hd-pie-chip__name { max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+    .hd-pie-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid rgba(128,128,128,0.2); border-radius: 999px; background: none; color: inherit; font-size: 11px; font-weight: 500; white-space: nowrap; flex-shrink: 0; cursor: pointer; transition: opacity 0.15s, border-color 0.15s; }
+    .hd-pie-chip:hover { border-color: var(--hd-indigo); }
+    .hd-pie-chip.is-off { opacity: 0.45; }
+    .hd-pie-chip.is-off .hd-pie-chip__dot { filter: grayscale(1); }
+    .hd-pie-chip__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .hd-pie-chip--more { text-transform: capitalize; color: var(--hd-indigo); font-weight: 600; border-style: dashed; }
+    .hd-pie-more { position: relative; display: inline-block; }
+    .hd-pie-pop { display: none; position: absolute; right: 0; bottom: 100%; padding-bottom: 8px; z-index: 40; }
+    .hd-pie-more:hover .hd-pie-pop, .hd-pie-more:focus-within .hd-pie-pop { display: block; }
+    .hd-pie-pop__box { width: max-content; min-width: 230px; max-width: 340px; border: 1px solid rgba(128,128,128,0.15); border-radius: 10px; background: #ffffff; box-shadow: 0 8px 28px rgba(0,0,0,0.15); padding: 8px 4px 6px; }
+    .dark .hd-pie-pop__box { background: #242424; }
+    .hd-pie-pop__list { max-height: 190px; overflow-y: auto; }
+    .hd-pie-pop__row { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .hd-pie-pop__row:hover { background: rgba(128,128,128,0.1); }
+    .hd-pie-pop__text { display: flex; flex: 1; flex-direction: column; min-width: 0; line-height: 1.25; }
+    .hd-pie-pop__text > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hd-pie-pop__row input { accent-color: var(--hd-indigo); margin: 0; }
+    .hd-pie-pop__count { flex-shrink: 0; white-space: nowrap; margin-left: auto; font-size: 11px; opacity: 0.55; }
+    .hd-chart-card:has(.hd-pie-more:hover), .hd-chart-card:has(.hd-pie-more:focus-within) { z-index: 30; position: relative; }
+
+
+    /* Responsive */
+    @media (max-width: 1280px) { .hd-layout { grid-template-columns: 1fr; } .hd-sidebar { position: static; display: grid; grid-template-columns: 1fr 1fr; max-height: none; overflow-y: visible; } }
+    @media (max-width: 1024px) { .hd-kpi-grid { grid-template-columns: repeat(2, 1fr); } .hd-chart-grid { grid-template-columns: minmax(0, 1fr); } .hd-chart-card--wide { grid-column: span 1; } .hd-sidebar { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) { .hd-kpi-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="hd-dashboard">
+    <div class="hd-header">
+        <div>
+            <h1>{% trans "Ticket Dashboard" %}</h1>
+            <div class="hd-header__date" id="hd-date"></div>
+            <div class="hd-refresh"><span class="hd-refresh__dot" id="hd-refresh-dot"></span><span id="hd-refresh-text">{% trans "Just now" %}</span><button class="hd-refresh__toggle" id="hd-refresh-toggle" title="{% trans 'Toggle auto-refresh' %}">⟳</button></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <div class="hd-period-picker">
+                <button class="hd-period-preset" data-preset="today">{% trans "Today" %}</button>
+                <button class="hd-period-preset" data-preset="this_week">{% trans "This Week" %}</button>
+                <button class="hd-period-preset" data-preset="this_month">{% trans "This Month" %}</button>
+                <button class="hd-period-preset" data-preset="this_year">{% trans "This Year" %}</button>
+                <input type="date" id="hd-from-date" title="{% trans 'From' %}">
+                <span class="hd-period-picker__sep">&rarr;</span>
+                <input type="date" id="hd-to-date" title="{% trans 'To' %}">
+            </div>
+            <button class="oh-btn oh-btn--secondary" id="hd-open-customize" style="display: flex; align-items: center; gap: 5px; font-size: 13px" title="{% trans 'Customize' %}">⚙ {% trans "Customize" %}</button>
+        </div>
+    </div>
+
+    <div class="hd-kpi-grid" id="hd-kpi-grid">
+        <div class="hd-skeleton hd-skeleton--kpi"></div>
+        <div class="hd-skeleton hd-skeleton--kpi"></div>
+        <div class="hd-skeleton hd-skeleton--kpi"></div>
+        <div class="hd-skeleton hd-skeleton--kpi"></div>
+    </div>
+
+    <div class="hd-layout">
+        <div class="hd-main">
+            <div class="hd-chart-grid">
+                <div class="hd-chart-card" data-chart-id="ticket_status" data-chart-label="{% trans 'Ticket Status' %}">
+                    <div class="hd-chart-card__header"><div><div class="hd-chart-card__title">{% trans "Ticket Status" %}</div><div class="hd-chart-card__subtitle">{% trans "All tickets" %}<span data-period-label></span></div></div></div>
+                    <div class="hd-chart-card__body"><div id="chart-hd-status"></div></div>
+                </div>
+                <div class="hd-chart-card" data-chart-id="priority_breakdown" data-chart-label="{% trans 'Priority Breakdown' %}">
+                    <div class="hd-chart-card__header"><div><div class="hd-chart-card__title">{% trans "Priority Breakdown" %}</div><div class="hd-chart-card__subtitle">{% trans "Open tickets by priority" %}<span data-period-label></span></div></div></div>
+                    <div class="hd-chart-card__body"><div id="chart-hd-priority"></div></div>
+                </div>
+                <div class="hd-chart-card" data-chart-id="tickets_by_type" data-chart-label="{% trans 'Tickets by Type' %}">
+                    <div class="hd-chart-card__header"><div><div class="hd-chart-card__title">{% trans "Tickets by Type" %}</div><div class="hd-chart-card__subtitle">{% trans "Suggestion, complaint, service, etc." %}<span data-period-label></span></div></div></div>
+                    <div class="hd-chart-card__body"><div id="chart-hd-type"></div><div class="hd-pie-legend" id="hd-pie-legend-type"></div></div>
+                </div>
+                <div class="hd-chart-card" data-chart-id="tickets_by_dept" data-chart-label="{% trans 'Tickets by Department' %}">
+                    <div class="hd-chart-card__header"><div><div class="hd-chart-card__title">{% trans "Tickets by Department" %}</div><div class="hd-chart-card__subtitle">{% trans "Open tickets raised by department" %}<span data-period-label></span></div></div></div>
+                    <div class="hd-chart-card__body"><div id="chart-hd-dept"></div></div>
+                </div>
+                <div class="hd-chart-card hd-chart-card--wide" data-chart-id="ticket_trend" data-chart-label="{% trans 'Ticket Trend' %}">
+                    <div class="hd-chart-card__header"><div><div class="hd-chart-card__title">{% trans "Ticket Trend" %}</div><div class="hd-chart-card__subtitle">{% trans "Created vs resolved — 6 months up to period end" %}</div></div></div>
+                    <div class="hd-chart-card__body"><div id="chart-hd-trend"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hd-sidebar">
+            <div class="hd-info-panel">
+                <div class="hd-info-panel__header">
+                    <div class="hd-info-panel__heading">
+                        <div class="hd-info-panel__title">{% trans "Recent Tickets" %}<span id="hd-recent-count" class="hd-count-badge" hidden title="{% trans 'Tickets in this period' %}">0</span></div>
+                        <div class="hd-info-panel__sub" data-period-label="bare"></div>
+                    </div>
+                    <a href="{% url 'ticket-view' %}" class="hd-panel__link">{% trans "View all" %}</a>
+                </div>
+                <div class="hd-info-panel__body" id="hd-recent">
+                    <div class="hd-info-panel__empty">{% trans "Loading..." %}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customize Panel -->
+<div class="hd-customize-overlay" id="hd-customize-overlay"></div>
+<div class="hd-customize-panel" id="hd-customize-panel">
+    <div class="hd-customize-panel__header">
+        <h3>{% trans "Customize Dashboard" %}</h3>
+        <button class="hd-customize-panel__close" id="hd-close-customize">&times;</button>
+    </div>
+    <div class="hd-customize-panel__body" id="hd-customize-list"></div>
+    <div class="hd-customize-panel__footer">
+        <button class="hd-cust-btn hd-cust-btn--ghost" id="hd-reset-customize">{% trans "Reset" %}</button>
+        <button class="hd-cust-btn hd-cust-btn--primary" id="hd-save-customize">{% trans "Save" %}</button>
+    </div>
+</div>
+
+<script>
+(function() {
+    const isDark = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+    const textColor = isDark ? '#e2e8f0' : '#334155';
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const cardBg = isDark ? '#242424' : '#ffffff';
+    const COLORS = ['#017391','#22c55e','#f59e0b','#ef4444','#3b82f6','#a855f7','#06b6d4','#ec4899','#14b8a6','#f97316'];
+    const statusColors = { new: '#3b82f6', in_progress: '#f59e0b', on_hold: '#ef4444', resolved: '#22c55e', canceled: '#94a3b8' };
+    const priorityColors = { low: '#22c55e', medium: '#f59e0b', high: '#ef4444' };
+    const emptyHtml = (msg) => `<div class="hd-empty"><img src="/static/images/ui/no_records.svg" alt="">${msg}</div>`;
+
+    function dateRangeParams(field, fromDate, toDate) {
+        if (!fromDate || !toDate) return '';
+        return '&custom_field=' + field + '&custom_lookup=gte&custom_value=' + encodeURIComponent(fromDate)
+             + '&custom_field=' + field + '&custom_lookup=lte&custom_value=' + encodeURIComponent(toDate);
+    }
+
+    // Dedicated Created Date range filter (TicketFilter.created_date_from/
+    // _till) -- unlike dateRangeParams above, these are plain declared
+    // filters, so the ticket list's filter-tag bar shows them as clean,
+    // correctly-labelled pills instead of the generic builder's garbled
+    // multi-row concatenation.
+    // Falls back to the picker's own dates: the chart endpoints don't send a
+    // period back, so without this the click-through carried no date range and
+    // the ticket list showed every ticket, not just the period's. Also marks the
+    // filter as freshly applied so the list doesn't reuse a remembered one.
+    function createdDateRangeParams(fromDate, toDate) {
+        fromDate = fromDate || fromInput.value;
+        toDate = toDate || toInput.value;
+        if (!fromDate || !toDate) return '';
+        return '&created_date_from=' + encodeURIComponent(fromDate) + '&created_date_till=' + encodeURIComponent(toDate) + '&filter_applied=1';
+    }
+
+    document.getElementById('hd-date').textContent = new Date().toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // ── Period Picker ──
+    const PERIOD_KEY = 'hd_period_v2';
+    const fromInput = document.getElementById('hd-from-date');
+    const toInput = document.getElementById('hd-to-date');
+    // Local-time YYYY-MM-DD (toISOString() shifts the day outside UTC).
+    function ymdLocal(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function presetRange(p) {
+        const t = new Date();
+        if (p === 'today') return [t, t];
+        if (p === 'this_week') {
+            const dow = (t.getDay() + 6) % 7; // 0 = Monday
+            const from = new Date(t.getFullYear(), t.getMonth(), t.getDate() - dow);
+            return [from, new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)];
+        }
+        if (p === 'this_month') return [new Date(t.getFullYear(), t.getMonth(), 1), new Date(t.getFullYear(), t.getMonth() + 1, 0)];
+        if (p === 'this_year') return [new Date(t.getFullYear(), 0, 1), new Date(t.getFullYear(), 11, 31)];
+        return null;
+    }
+    // ── Period label on the period-aware charts/panels ──
+    const PRESET_LABELS = {
+        today: '{% trans "Today"|escapejs %}',
+        this_week: '{% trans "This Week"|escapejs %}',
+        this_month: '{% trans "This Month"|escapejs %}',
+        this_year: '{% trans "This Year"|escapejs %}',
+    };
+    function shortDate(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+    function periodLabel() {
+        let preset = '';
+        for (const k of Object.keys(PRESET_LABELS)) {
+            const r = presetRange(k);
+            if (fromInput.value === ymdLocal(r[0]) && toInput.value === ymdLocal(r[1])) { preset = k; break; }
+        }
+        const from = new Date(fromInput.value + 'T00:00:00');
+        const to = new Date(toInput.value + 'T00:00:00');
+        let detail;
+        if (preset === 'this_month') detail = from.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        else if (preset === 'this_year') detail = String(from.getFullYear());
+        else if (preset === 'today') detail = shortDate(from);
+        else detail = shortDate(from) + ' – ' + shortDate(to);
+        return (PRESET_LABELS[preset] || '{% trans "Custom"|escapejs %}') + ' · ' + detail;
+    }
+    function applyPeriodLabels() {
+        if (!fromInput.value || !toInput.value) return;
+        const label = ' — ' + periodLabel();
+        document.querySelectorAll('[data-period-label]').forEach(el => { el.textContent = el.dataset.periodLabel === 'bare' ? periodLabel() : label; });
+    }
+    function syncPresetActive() {
+        document.querySelectorAll('.hd-period-preset').forEach(b => {
+            const r = presetRange(b.dataset.preset);
+            const on = r && fromInput.value === ymdLocal(r[0]) && toInput.value === ymdLocal(r[1]);
+            b.classList.toggle('hd-period-preset--active', !!on);
+        });
+    }
+    function initPeriod() {
+        const saved = sessionStorage.getItem(PERIOD_KEY);
+        if (saved) { try { const p = JSON.parse(saved); fromInput.value = p.from; toInput.value = p.to; return; } catch {} }
+        const [f, t] = presetRange('this_month');
+        fromInput.value = ymdLocal(f); toInput.value = ymdLocal(t);
+    }
+    function savePeriod() { sessionStorage.setItem(PERIOD_KEY, JSON.stringify({ from: fromInput.value, to: toInput.value })); }
+    function periodParams() { const f = fromInput.value, t = toInput.value; return (f && t) ? ("from_date=" + encodeURIComponent(f) + "&to_date=" + encodeURIComponent(t)) : ""; }
+    function urlWithPeriod(u) { return u + (u.includes('?') ? '&' : '?') + periodParams(); }
+    function fetchP(url) { return fetch(urlWithPeriod(url)); }
+    function setPreset(p) {
+        const r = presetRange(p);
+        if (!r) return;
+        fromInput.value = ymdLocal(r[0]); toInput.value = ymdLocal(r[1]);
+        savePeriod(); syncPresetActive(); applyPeriodLabels();
+        refreshAllData();
+    }
+    document.querySelectorAll('.hd-period-preset').forEach(b => b.addEventListener('click', () => setPreset(b.dataset.preset)));
+    [fromInput, toInput].forEach(i => i.addEventListener('change', () => {
+        if (!fromInput.value || !toInput.value) return;
+        savePeriod(); syncPresetActive(); applyPeriodLabels(); refreshAllData();
+    }));
+    initPeriod();
+    syncPresetActive();
+    applyPeriodLabels();
+
+    // ── Chart Customize ──
+    const CUST_KEY = 'hd_chart_prefs';
+    function getDefaultOrder() { return Array.from(document.querySelectorAll('[data-chart-id]')).map(c => ({ id: c.dataset.chartId, visible: true })); }
+    function loadCustPrefs() { try { const r = localStorage.getItem(CUST_KEY); return r ? JSON.parse(r) : null; } catch { return null; } }
+    function saveCustPrefs(p) { localStorage.setItem(CUST_KEY, JSON.stringify(p)); }
+    function applyCustPrefs(p) {
+        if (!p) return;
+        const container = document.querySelector('.hd-chart-grid');
+        const cards = {}; container.querySelectorAll('[data-chart-id]').forEach(c => { cards[c.dataset.chartId] = c; });
+        p.forEach(pr => { const card = cards[pr.id]; if (card) { container.appendChild(card); if (pr.visible === false) card.style.display = 'none'; else card.style.display = ''; } });
+        Object.keys(cards).forEach(id => { if (!p.find(pr => pr.id === id)) { container.appendChild(cards[id]); cards[id].style.display = ''; } });
+    }
+    applyCustPrefs(loadCustPrefs());
+
+    const custOverlay = document.getElementById('hd-customize-overlay');
+    const custPanel = document.getElementById('hd-customize-panel');
+    const custList = document.getElementById('hd-customize-list');
+
+    function openCust() {
+        const prefs = loadCustPrefs() || getDefaultOrder();
+        const allCards = {}; document.querySelectorAll('[data-chart-id]').forEach(c => { allCards[c.dataset.chartId] = { id: c.dataset.chartId, label: c.dataset.chartLabel }; });
+        const ordered = []; prefs.forEach(p => { if (allCards[p.id]) ordered.push({ ...allCards[p.id], visible: p.visible !== false }); });
+        Object.keys(allCards).forEach(id => { if (!ordered.find(o => o.id === id)) ordered.push({ ...allCards[id], visible: true }); });
+        let html = ''; ordered.forEach((item, idx) => {
+            html += `<div class="hd-cust-item" draggable="true" data-cust-id="${item.id}"><span class="hd-cust-item__handle">&#x2630;</span><div class="hd-cust-item__label">${item.label}</div><button class="hd-cust-item__toggle ${item.visible ? 'hd-cust-item__toggle--on' : ''}" data-cust-toggle="${item.id}"></button></div>`;
+        });
+        custList.innerHTML = html;
+        initCustDrag();
+        custOverlay.classList.add('hd-customize-overlay--open'); custPanel.classList.add('hd-customize-panel--open');
+    }
+    function closeCust() { custOverlay.classList.remove('hd-customize-overlay--open'); custPanel.classList.remove('hd-customize-panel--open'); }
+
+    function initCustDrag() {
+        let dragEl = null;
+        custList.querySelectorAll('.hd-cust-item').forEach(item => {
+            item.addEventListener('dragstart', e => { dragEl = item; item.classList.add('hd-dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ''); });
+            item.addEventListener('dragend', () => { if (dragEl) dragEl.classList.remove('hd-dragging'); custList.querySelectorAll('.hd-cust-item').forEach(i => i.classList.remove('hd-drag-over')); dragEl = null; });
+            item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (item !== dragEl) item.classList.add('hd-drag-over'); });
+            item.addEventListener('dragleave', () => item.classList.remove('hd-drag-over'));
+            item.addEventListener('drop', e => { e.preventDefault(); item.classList.remove('hd-drag-over'); if (dragEl && item !== dragEl) { const items = Array.from(custList.querySelectorAll('.hd-cust-item')); if (items.indexOf(dragEl) < items.indexOf(item)) item.parentNode.insertBefore(dragEl, item.nextSibling); else item.parentNode.insertBefore(dragEl, item); } });
+        });
+        custList.querySelectorAll('.hd-cust-item__toggle').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); btn.classList.toggle('hd-cust-item__toggle--on'); }));
+    }
+
+    function getCustState() { return Array.from(custList.querySelectorAll('.hd-cust-item')).map(item => ({ id: item.dataset.custId, visible: item.querySelector('.hd-cust-item__toggle').classList.contains('hd-cust-item__toggle--on') })); }
+
+    document.getElementById('hd-open-customize').addEventListener('click', openCust);
+    document.getElementById('hd-close-customize').addEventListener('click', closeCust);
+    custOverlay.addEventListener('click', closeCust);
+    document.getElementById('hd-save-customize').addEventListener('click', () => { const p = getCustState(); saveCustPrefs(p); applyCustPrefs(p); closeCust(); });
+    document.getElementById('hd-reset-customize').addEventListener('click', () => { localStorage.removeItem(CUST_KEY); location.reload(); });
+
+    // ── Chart instance registry ──
+    // ApexCharts.render() always appends a new SVG into the target
+    // element rather than replacing it, so calling the same chart
+    // block twice (e.g. on auto-refresh) would stack duplicate
+    // charts on top of each other. Every chart goes through here so
+    // a refresh destroys the previous instance first.
+    const chartInstances = {};
+    function renderChart(key, el, options) {
+        if (!el) return null;
+        if (chartInstances[key]) {
+            chartInstances[key].destroy();
+            chartInstances[key] = null;
+        }
+        const chart = new ApexCharts(el, options);
+        chartInstances[key] = chart;
+        chart.render();
+        return chart;
+    }
+
+    // ── Auto-refresh ──
+    const REFRESH_INTERVAL = 300000; // 5 minutes
+    const REFRESH_KEY = 'hd_auto_refresh';
+    let refreshTimer = null;
+    let lastRefresh = Date.now();
+    const refreshDot = document.getElementById('hd-refresh-dot');
+    const refreshText = document.getElementById('hd-refresh-text');
+    const refreshToggle = document.getElementById('hd-refresh-toggle');
+    let autoRefreshOn = localStorage.getItem(REFRESH_KEY) !== 'off';
+
+    function updateRefreshText() {
+        const mins = Math.floor((Date.now() - lastRefresh) / 60000);
+        refreshText.textContent = mins < 1 ? '{% trans "Just now"|escapejs %}' : mins + '{% trans "m ago"|escapejs %}';
+    }
+    registerAutoRefresh(setInterval(updateRefreshText, 30000));
+
+    // Re-runs every data/chart load in place instead of reloading the
+    // whole document -- refreshAllData() is defined further down, once
+    // every load function it calls exists, but function declarations
+    // are hoisted so referencing it here is safe.
+    function startAutoRefresh() {
+        autoRefreshOn = true;
+        localStorage.setItem(REFRESH_KEY, 'on');
+        refreshDot.classList.add('hd-refresh__dot--pulse');
+        refreshToggle.textContent = '⟳';
+        refreshToggle.title = '{% trans "Auto-refresh ON (5 min)"|escapejs %}';
+        // Wrapped so a hidden tab does not keep fetching; refreshes once on return.
+        const refreshTick = autoRefreshWhenVisible(() => {
+            lastRefresh = Date.now();
+            updateRefreshText();
+            refreshAllData();
+        });
+        refreshTimer = setInterval(refreshTick, REFRESH_INTERVAL);
+        registerAutoRefresh(refreshTimer);
+    }
+    function stopAutoRefresh() {
+        autoRefreshOn = false;
+        localStorage.setItem(REFRESH_KEY, 'off');
+        refreshDot.classList.remove('hd-refresh__dot--pulse');
+        refreshToggle.textContent = '⏸';
+        refreshToggle.title = '{% trans "Auto-refresh OFF"|escapejs %}';
+        if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    }
+    refreshToggle.addEventListener('click', () => { if (autoRefreshOn) stopAutoRefresh(); else startAutoRefresh(); });
+    if (autoRefreshOn) startAutoRefresh(); else stopAutoRefresh();
+
+    // ─── KPI CARDS ───
+    function loadKpiCards() {
+    fetchP("{% url 'helpdesk-dashboard-kpi' %}")
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('hd-kpi-grid').innerHTML = `
+                <a href="{% url 'ticket-view' %}?ticket_tab=all_tickets&open_tab=3&is_open=true&filter_applied=1${createdDateRangeParams(data.period_from_date, data.period_to_date)}" class="hd-kpi-card">
+                    <div class="hd-kpi-card__icon hd-kpi-card__icon--blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div>
+                    <div class="hd-kpi-card__label">{% trans "Open Tickets"|escapejs %}</div>
+                    <div class="hd-kpi-card__value">${data.open_tickets}</div>
+                    <div class="hd-kpi-card__sub"><span class="hd-badge hd-badge--amber">${data.new_tickets} {% trans "New"|escapejs %}</span><span class="hd-badge hd-badge--blue">${data.in_progress} {% trans "In Progress"|escapejs %}</span><span class="hd-badge hd-badge--red">${data.on_hold} {% trans "On Hold"|escapejs %}</span></div>
+                </a>
+                <div class="hd-kpi-card hd-kpi-card--static" title="${'Resolution Rate (selected period) = Resolved in period (' + data.month_resolved + ') / Created in period (' + data.month_created + ') × 100 = ' + data.resolution_rate + '%'}">
+                    <div class="hd-kpi-card__icon hd-kpi-card__icon--green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                    <div class="hd-kpi-card__label">{% trans "Resolution Rate"|escapejs %}</div>
+                    <div class="hd-kpi-card__value">${data.resolution_rate}%</div>
+                    <div class="hd-kpi-card__sub"><span class="hd-badge hd-badge--green">${data.month_resolved} {% trans "Resolved Of"|escapejs %} ${data.month_created} {% trans "Created"|escapejs %}</span></div>
+                </div>
+                <a href="{% url 'ticket-view' %}?ticket_tab=all_tickets&open_tab=3&is_overdue=true&filter_applied=1" class="hd-kpi-card">
+                    <div class="hd-kpi-card__icon hd-kpi-card__icon--red"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                    <div class="hd-kpi-card__label">{% trans "Overdue"|escapejs %}</div>
+                    <div class="hd-kpi-card__value">${data.overdue}</div>
+                    <div class="hd-kpi-card__sub"><span class="hd-badge hd-badge--amber">{% trans "Past Deadline"|escapejs %}</span></div>
+                </a>
+                <a href="{% url 'ticket-view' %}?ticket_tab=all_tickets&open_tab=3&is_unassigned=true&filter_applied=1" class="hd-kpi-card">
+                    <div class="hd-kpi-card__icon hd-kpi-card__icon--amber"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="11" x2="23" y2="11"/></svg></div>
+                    <div class="hd-kpi-card__label">{% trans "Unassigned"|escapejs %}</div>
+                    <div class="hd-kpi-card__value">${data.unassigned}</div>
+                    <div class="hd-kpi-card__sub"><span class="hd-badge hd-badge--amber">{% trans "Awaiting Assignment"|escapejs %}</span></div>
+                </a>`;
+        });
+    }
+    loadKpiCards();
+
+    // ─── TICKET STATUS ───
+    function loadTicketStatus() {
+    fetchP("{% url 'helpdesk-dashboard-status' %}")
+        .then(r => r.json())
+        .then(data => {
+            const total = data.statuses.reduce((a, s) => a + s.count, 0);
+            if (!total) { document.querySelector("#chart-hd-status").innerHTML = emptyHtml('{% trans "No tickets"|escapejs %}'); return; }
+            let initialising = false;
+            renderChart('hd-status', document.querySelector("#chart-hd-status"), {
+                series: data.statuses.map(s => s.count),
+                chart: { type: 'donut', height: 300, background: 'transparent', fontFamily: 'inherit',
+                    events: { mounted: ctx => {
+                        initialising = true;
+                        data.statuses.filter(s => s.status === 'resolved' || s.status === 'canceled').forEach(s => ctx.hideSeries(s.label));
+                        initialising = false;
+                    }, dataPointSelection: (e, ctx, config) => {
+                        if (initialising) return;
+                        const status = data.statuses[config.dataPointIndex].status;
+                        window.location.href = "{% url 'ticket-view' %}?ticket_tab=all_tickets&status=" + encodeURIComponent(status) + createdDateRangeParams(data.period_from_date, data.period_to_date);
+                    }}
+                },
+                labels: data.statuses.map(s => s.label),
+                colors: data.statuses.map(s => statusColors[s.status] || '#94a3b8'),
+                plotOptions: { pie: { donut: { size: '65%', labels: { show: true, total: { show: true, label: '{% trans "Total"|escapejs %}', color: textColor, fontSize: '13px', fontWeight: 600, formatter: w => w.globals.seriesTotals.reduce((a,b)=>a+b,0) } } } } },
+                stroke: { width: 2, colors: [cardBg] }, dataLabels: { enabled: false },
+                legend: { position: 'bottom', labels: { colors: textColor }, fontSize: '11px', markers: { width: 8, height: 8, radius: 2 } },
+                tooltip: { theme: isDark ? 'dark' : 'light' },
+            });
+        });
+    }
+    loadTicketStatus();
+
+    // ─── PRIORITY BREAKDOWN ───
+    function loadPriorityBreakdown() {
+    fetchP("{% url 'helpdesk-dashboard-priority' %}")
+        .then(r => r.json())
+        .then(data => {
+            const total = data.priorities.reduce((a, p) => a + p.count, 0);
+            if (!total) { document.querySelector("#chart-hd-priority").innerHTML = emptyHtml('{% trans "No tickets"|escapejs %}'); return; }
+            renderChart('hd-priority', document.querySelector("#chart-hd-priority"), {
+                series: [{ name: '{% trans "Tickets"|escapejs %}', data: data.priorities.map(p => p.count) }],
+                chart: { type: 'bar', height: 300, toolbar: { show: false }, background: 'transparent', fontFamily: 'inherit',
+                    events: { dataPointSelection: (e, ctx, config) => {
+                        const p = data.priorities[config.dataPointIndex];
+                        if (p && p.priority) window.location.href = "{% url 'ticket-view' %}?ticket_tab=all_tickets&is_open=true&priority=" + encodeURIComponent(p.priority) + createdDateRangeParams(data.period_from_date, data.period_to_date);
+                    }}
+                },
+                colors: data.priorities.map(p => priorityColors[p.priority] || '#94a3b8'),
+                plotOptions: { bar: { borderRadius: 8, columnWidth: '50%', distributed: true } },
+                xaxis: { categories: data.priorities.map(p => p.label), labels: { style: { colors: textColor, fontSize: '12px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+                yaxis: { labels: { style: { colors: textColor } } },
+                grid: { borderColor: gridColor, strokeDashArray: 4 },
+                dataLabels: { enabled: true, style: { fontSize: '14px', colors: ['#fff'] } },
+                legend: { show: false },
+                tooltip: { theme: isDark ? 'dark' : 'light' },
+            });
+        });
+    }
+    loadPriorityBreakdown();
+
+    // ─── Shared pie/donut legend ───
+    const escHtml = (v) => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    function createPieLegend({ el, chartKey, noun }) {
+        const prefId = el.id || chartKey;
+        let items = [];
+        let selected = new Set();
+        let visible = 0;
+        const dot = (c) => `<span class="hd-pie-chip__dot" style="background:${c}"></span>`;
+
+        function series() {
+            return items.map(it => selected.has(it.key) ? it.value : 0);
+        }
+        function chipsHtml(k) {
+            return items.slice(0, k).map(it => {
+                const on = selected.has(it.key);
+                return `<button type="button" class="hd-pie-chip${on ? '' : ' is-off'}" data-key="${escHtml(it.key)}" title="${escHtml(it.name)}: ${it.value}">${dot(it.color)}<span class="hd-pie-chip__name">${escHtml(it.name)}</span></button>`;
+            }).join('');
+        }
+        function refreshState() {
+            const chips = el.querySelector('.hd-pie-chips');
+            if (chips) chips.innerHTML = chipsHtml(visible);
+            el.querySelectorAll('input[data-key]').forEach(cb => { cb.checked = selected.has(cb.dataset.key); });
+        }
+        function toggle(key) {
+            if (selected.has(key)) {
+                if (selected.size > 1) selected.delete(key);
+            } else {
+                selected.add(key);
+            }
+            LegendPrefs.save(prefId, items.map(i => i.key), selected);
+            refreshState();
+            const chart = chartInstances[chartKey];
+            if (chart) chart.updateSeries(series());
+        }
+        function build(k) {
+            visible = k;
+            const rest = items.slice(k);
+            let html = `<span class="hd-pie-chips">${chipsHtml(k)}</span>`;
+            if (rest.length) {
+                html += `<span class="hd-pie-more"><button type="button" class="hd-pie-chip hd-pie-chip--more">+${rest.length} ${escHtml(noun)}</button>`
+                    + `<div class="hd-pie-pop"><div class="hd-pie-pop__box"><div class="hd-pie-pop__list">`
+                    + rest.map(it => `<label class="hd-pie-pop__row"><input type="checkbox" data-key="${escHtml(it.key)}"${selected.has(it.key) ? ' checked' : ''}>${dot(it.color)}<span class="hd-pie-pop__text"><span>${escHtml(it.name)}</span></span><span class="hd-pie-pop__count">${it.value}</span></label>`).join('')
+                    + `</div></div></div></span>`;
+            }
+            el.innerHTML = html;
+        }
+        function render() {
+            let k = items.length;
+            build(k);
+            while (k > 1 && el.scrollWidth > el.clientWidth + 1) {
+                k--;
+                build(k);
+            }
+        }
+        el.addEventListener('click', (e) => {
+            const chip = e.target.closest('.hd-pie-chip[data-key]');
+            if (chip) toggle(chip.dataset.key);
+        });
+        el.addEventListener('change', (e) => {
+            if (e.target.matches('input[data-key]')) toggle(e.target.dataset.key);
+        });
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => { if (items.length) render(); }, 150);
+        });
+        return {
+            set(newItems) {
+                items = newItems;
+                const keys = items.map(i => i.key);
+                selected = LegendPrefs.initial(prefId, keys);
+                render();
+            },
+            series,
+            clear() { items = []; selected = new Set(); el.innerHTML = ''; },
+        };
+    }
+    const typeLegend = createPieLegend({
+        el: document.getElementById('hd-pie-legend-type'),
+        chartKey: 'hd-type',
+        noun: '{% trans "types"|escapejs %}',
+    });
+
+    // ─── TICKETS BY TYPE ───
+    function loadTicketsByType() {
+    fetchP("{% url 'helpdesk-dashboard-type' %}")
+        .then(r => r.json())
+        .then(data => {
+            if (!data.types.length) { document.querySelector("#chart-hd-type").innerHTML = emptyHtml('{% trans "No tickets"|escapejs %}'); typeLegend.clear(); return; }
+            const typeColor = (i) => COLORS[i % COLORS.length];
+            typeLegend.set(data.types.map((t, i) => ({ key: String(t.id), name: t.type, value: t.count, color: typeColor(i) })));
+            renderChart('hd-type', document.querySelector("#chart-hd-type"), {
+                series: typeLegend.series(),
+                chart: { type: 'donut', height: 300, background: 'transparent', fontFamily: 'inherit',
+                    events: { dataPointSelection: (e, ctx, config) => {
+                        const t = data.types[config.dataPointIndex];
+                        const base = "{% url 'ticket-view' %}?ticket_tab=all_tickets";
+                        const range = createdDateRangeParams(data.period_from_date, data.period_to_date);
+                        window.location.href = (t && t.id ? base + "&ticket_type=" + t.id : base) + range;
+                    }}
+                },
+                labels: data.types.map(t => t.type),
+                colors: data.types.map((t, i) => typeColor(i)),
+                plotOptions: { pie: { donut: { size: '65%', labels: { show: true, total: { show: true, label: '{% trans "Total"|escapejs %}', color: textColor, fontSize: '13px', fontWeight: 600, formatter: w => w.globals.seriesTotals.reduce((a,b)=>a+b,0) } } } } },
+                stroke: { width: 2, colors: [cardBg] }, dataLabels: { enabled: false },
+                legend: { show: false },
+                tooltip: { theme: isDark ? 'dark' : 'light' },
+            });
+        });
+    }
+    loadTicketsByType();
+
+    // ─── TICKETS BY DEPARTMENT ───
+    function loadTicketsByDept() {
+    fetchP("{% url 'helpdesk-dashboard-dept' %}")
+        .then(r => r.json())
+        .then(data => {
+            if (!data.departments.length) { document.querySelector("#chart-hd-dept").innerHTML = emptyHtml('{% trans "No data"|escapejs %}'); return; }
+            renderChart('hd-dept', document.querySelector("#chart-hd-dept"), {
+                series: [{ name: '{% trans "Tickets"|escapejs %}', data: data.departments.map(d => d.count) }],
+                chart: { type: 'bar', height: 300, toolbar: { show: false }, background: 'transparent', fontFamily: 'inherit',
+                    events: { dataPointSelection: (e, ctx, config) => {
+                        const d = data.departments[config.dataPointIndex];
+                        const base = "{% url 'ticket-view' %}?ticket_tab=all_tickets";
+                        const range = createdDateRangeParams(data.period_from_date, data.period_to_date);
+                        window.location.href = (d && d.id ? base + "&department=" + d.id : base) + "&is_open=true" + range;
+                    }}
+                },
+                colors: COLORS,
+                plotOptions: { bar: { borderRadius: 6, horizontal: true, barHeight: '55%', distributed: true } },
+                xaxis: { categories: data.departments.map(d => d.department), labels: { style: { colors: textColor } } },
+                yaxis: { labels: { style: { colors: textColor, fontSize: '11px' } } },
+                grid: { borderColor: gridColor },
+                dataLabels: { enabled: true, style: { fontSize: '11px' } },
+                legend: { show: false },
+                tooltip: { theme: isDark ? 'dark' : 'light' },
+            });
+        });
+    }
+    loadTicketsByDept();
+
+    // ─── TICKET TREND ───
+    function loadTicketTrend() {
+    fetchP("{% url 'helpdesk-dashboard-trend' %}")
+        .then(r => r.json())
+        .then(data => {
+            if (!data.months.length) { document.querySelector("#chart-hd-trend").innerHTML = emptyHtml('{% trans "No data"|escapejs %}'); return; }
+            renderChart('hd-trend', document.querySelector("#chart-hd-trend"), {
+                series: data.series.map(s => ({ name: s.label, data: s.data })),
+                chart: { type: 'line', height: 280, toolbar: { show: false }, background: 'transparent', fontFamily: 'inherit',
+                    events: { markerClick: (e, ctx, config) => {
+                        const m = data.months[config.dataPointIndex];
+                        const s = data.series[config.seriesIndex];
+                        const base = "{% url 'ticket-view' %}?ticket_tab=all_tickets";
+                        if (!m || !s) { window.location.href = base; return; }
+                        if (s.key === 'resolved') {
+                            window.location.href = base + "&status=resolved" + dateRangeParams('resolved_date', m.from_date, m.to_date);
+                        } else {
+                            window.location.href = base + createdDateRangeParams(m.from_date, m.to_date);
+                        }
+                    }}
+                },
+                colors: ['#3b82f6', '#22c55e'],
+                stroke: { curve: 'smooth', width: 2.5 },
+                markers: { size: 4, strokeWidth: 0, hover: { size: 6 } },
+                xaxis: { categories: data.months.map(m => m.month), labels: { style: { colors: textColor, fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+                yaxis: { min: 0, forceNiceScale: true, decimalsInFloat: 0, labels: { style: { colors: textColor } } },
+                grid: { borderColor: gridColor, strokeDashArray: 4 },
+                dataLabels: { enabled: false },
+                legend: { position: 'top', horizontalAlign: 'right', labels: { colors: textColor }, fontSize: '11px', markers: { width: 8, height: 8, radius: 2 } },
+                tooltip: { theme: isDark ? 'dark' : 'light' },
+            });
+        });
+    }
+    loadTicketTrend();
+
+    // ─── RECENT TICKETS ───
+    function loadRecentTickets() {
+    fetchP("{% url 'helpdesk-dashboard-recent' %}")
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById('hd-recent');
+            const badge = document.getElementById('hd-recent-count');
+            badge.textContent = data.total || 0;
+            badge.hidden = !data.total;
+            if (!data.tickets.length) { el.innerHTML = '<div class="hd-info-panel__empty">{% trans "No tickets"|escapejs %}</div>'; return; }
+            const sc = { new: 'hd-badge--amber', in_progress: 'hd-badge--amber', on_hold: 'hd-badge--red', resolved: 'hd-badge--green', canceled: '' };
+            const sl = { new: '{% trans "New"|escapejs %}', in_progress: '{% trans "In Progress"|escapejs %}', on_hold: '{% trans "On Hold"|escapejs %}', resolved: '{% trans "Resolved"|escapejs %}', canceled: '{% trans "Canceled"|escapejs %}' };
+            el.innerHTML = data.tickets.map(t => `
+                <a href="/helpdesk/ticket-detail/${t.id}/" class="hd-ticket-item">
+                    <div class="hd-priority-dot hd-priority-dot--${t.priority}"></div>
+                    <div class="hd-ticket-item__info">
+                        <div class="hd-ticket-item__title">${t.title}</div>
+                        <div class="hd-ticket-item__meta">${t.ticket_id} · ${t.employee} · ${t.date}</div>
+                    </div>
+                    <span class="hd-badge ${sc[t.status] || ''}">${sl[t.status] || t.status}</span>
+                </a>`).join('');
+        }).catch(() => { document.getElementById('hd-recent').innerHTML = '<div class="hd-info-panel__empty">{% trans "No data"|escapejs %}</div>'; });
+    }
+    loadRecentTickets();
+
+    // ── Re-run every load/chart function above in place (used by the
+    // auto-refresh timer instead of location.reload()).
+    function refreshAllData() {
+        loadKpiCards();
+        loadTicketStatus();
+        loadPriorityBreakdown();
+        loadTicketsByType();
+        loadTicketsByDept();
+        loadTicketTrend();
+        loadRecentTickets();
+    }
+
+})();
+</script>
+{% endblock %}

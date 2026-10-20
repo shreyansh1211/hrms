@@ -1,0 +1,48 @@
+{% extends "index.html" %}
+{% load static i18n %}
+{% block content %}
+
+    <style>
+        .resolved--dot {
+            background-color: yellowgreen;
+        }
+
+        .on_hold--dot {
+            background-color: red;
+        }
+
+        .in_progress--dot {
+            background-color: orange;
+        }
+
+        .canceled--dot {
+            background-color: gray;
+        }
+
+        .new--dot {
+            background-color: dodgerblue;
+        }
+    </style>
+
+    {% include "generic/components.html" %}
+
+    <script src="{% static 'tickets/action.js' %}"></script>
+
+    <div
+        class="oh-checkpoint-badge mb-2"
+        id="selectedTickets"
+        data-ids="[]"
+        data-clicked=""
+        style="display: none"
+    ></div>
+
+    <div
+        class="oh-wrapper"
+        id="listContainer"
+        hx-get="{% url 'ticket-tab' %}?{{request.GET.urlencode}}"
+        hx-trigger="load"
+    >
+        <div class="mt-4 animated-background" style="height: 600px"></div>
+    </div>
+
+{% endblock content %}

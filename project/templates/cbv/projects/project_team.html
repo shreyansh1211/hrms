@@ -1,0 +1,36 @@
+{% load i18n %}
+<div id="project-team-{{ project.pk }}">
+    {% if team %}
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            {% for m in team %}
+                <span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #cfe9f1;background:#f4fafc;border-radius:999px;padding:4px 10px;font-size:13px;">
+                    <strong>{{ m.employee_id.get_full_name }}</strong>
+                    <span style="color:#017391;">{{ m.get_role_display }}</span>
+                    {% if can_manage %}
+                        <button type="button" title="{% trans 'Remove' %}"
+                            style="border:0;background:none;color:#64748b;cursor:pointer;"
+                            hx-post="{% url 'project-team-remove' m.pk %}"
+                            hx-target="#project-team-{{ project.pk }}" hx-swap="outerHTML"
+                            hx-confirm="{% trans 'Remove this person from the project?' %}">&times;</button>
+                    {% endif %}
+                </span>
+            {% endfor %}
+        </div>
+    {% else %}
+        <span style="color:#64748b;font-size:13px;">{% trans "No team members yet." %}</span>
+    {% endif %}
+    {% if can_manage %}
+        <form hx-post="{% url 'project-team' project.pk %}" hx-target="#project-team-{{ project.pk }}" hx-swap="outerHTML"
+            style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+            <select name="employee" required class="oh-select oh-select--sm" style="max-width:240px;">
+                <option value="">{% trans "Select employee" %}</option>
+                {% for e in candidates %}<option value="{{ e.pk }}">{{ e.get_full_name }}</option>{% endfor %}
+            </select>
+            <select name="role" required class="oh-select oh-select--sm" style="max-width:220px;">
+                {% for value, label in roles %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+            <button type="submit" class="oh-btn oh-btn--secondary oh-btn--small">{% trans "Add to team" %}</button>
+        </form>
+        {% if error %}<div style="color:#b91c1c;font-size:13px;margin-top:4px;">{{ error }}</div>{% endif %}
+    {% endif %}
+</div>

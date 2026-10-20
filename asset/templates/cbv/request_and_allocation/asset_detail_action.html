@@ -1,0 +1,41 @@
+{% load i18n %}
+<div class="oh-modal__button-container text-center w-100">
+    <div class="oh-btn-group">
+        {% if perms.asset.change_assetassignment %}
+            <button
+                href="#"
+                class="oh-btn oh-btn--secondary w-100 h-8"
+                role="button"
+                data-toggle="oh-modal-toggle"
+                data-target="#objectCreateModal"
+                hx-get="{%url 'asset-allocate-return'  assignment_id=instance.id %}"
+                hx-target="#objectCreateModalTarget"
+            >
+                <ion-icon name="return-down-back-sharp"></ion-icon>{% trans	"Return" %}
+            </button>
+        {% else %}
+            {% if instance.open_service_request %}
+                <button
+                    class="oh-btn oh-btn--secondary oh-btn--disabled w-100 h-8"
+                    role="button"
+                    disabled
+                >
+                    <span class="oh-dot oh-dot--small me-1 oh-dot--color oh-dot--info"></span>
+                    {% trans "Service Requested" %}
+                </button>
+            {% else %}
+                <button
+                    class="oh-btn oh-btn--secondary w-100 h-8"
+                    role="button"
+                    data-toggle="oh-modal-toggle"
+                    data-target="#genericModal"
+                    hx-get="{% url 'asset-service-request-creation' %}?assignment_id={{ instance.id }}"
+                    hx-target="#genericModalBody"
+                >
+                    <ion-icon name="build-outline"></ion-icon>
+                    {% trans "Request Service" %}
+                </button>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>

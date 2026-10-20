@@ -1,0 +1,11 @@
+{% load i18n %}
+{% if instance.return_date %}
+    <div class="dateformat_changer" data-cell-index="203">
+        {{ instance.return_date }}
+    </div>
+{% else %}
+    <div data-cell-index="203">
+        <span class="oh-dot oh-dot--small me-1 oh-dot--color oh-dot--warning"></span>
+        <span class="link-warning"> {% trans "Allocated" %} </span>
+    </div>
+{% endif %}

@@ -1,0 +1,412 @@
+{% load i18n static %}
+
+{% include 'filter_tags.html' %}
+
+{% if not rows %}
+    <div
+        class="oh-wrapper"
+        align="center"
+        style="margin-top: 7vh; margin-bottom: 7vh"
+    >
+        <div align="center">
+            <img
+                src="{% static 'images/ui/search.svg' %}"
+                class="oh-404__image"
+                alt="{% trans 'No records' %}"
+            >
+            <h1 class="oh-404__title">{% trans "No Records Found" %}</h1>
+            <p class="oh-404__subtitle">
+                {% trans "No employees or roster entries match the current filter." %}
+            </p>
+        </div>
+    </div>
+{% else %}
+    {% now "Y-m-d" as today_str %}
+
+    <div class="flex flex-wrap justify-between items-center gap-2 mb-2 ml-2 mr-2">
+        <div class="flex flex-nowrap gap-1 items-center flex-shrink-0">
+            <button
+                id="unselect_{{ view_id }}"
+                class="d-none quick-bulk-action px-4 py-2 bg-transparent border border-primary-600 text-primary-600 rounded-md text-xs hover:bg-primary-600 hover:text-white transition duration-300"
+                onclick="$('#{{ selected_instances_key_id }}').attr('data-ids', JSON.stringify([]));
+              selectSelected('#{{ view_id }}', '{{ selected_instances_key_id }}');
+              reloadSelectedCount($('#count_{{ view_id }}'), '{{ selected_instances_key_id }}');
+              reloadSelectedCount($('.count_{{ view_id }}'), '{{ selected_instances_key_id }}');
+              $('#{{ view_id }} .list-table-row').prop('checked', false);
+              $('#{{ view_id }} .highlight-selected').removeClass('highlight-selected');
+              $('#{{ view_id }} .bulk-list-table-row').prop('checked', false);
+              rosterUpdatePublishBtn();
+              rosterHideDateForm()"
+            >
+                <span class="label">{% trans "Unselect" %}</span>
+                (<span id="count_{{ view_id }}">0</span>)
+            </button>
+
+            <button
+                id="select_{{ view_id }}"
+                data-total-count="{{ queryset.paginator.count }}"
+                class="quick-bulk-action px-4 py-2 bg-transparent border border-primary-600 text-primary-600 rounded-md text-xs hover:bg-primary-600 hover:text-white transition duration-300"
+                onclick="addToSelectedId({{ select_all_ids|safe }}, '{{ selected_instances_key_id }}');
+              selectSelected('#{{ view_id }}', '{{ selected_instances_key_id }}');
+              reloadSelectedCount($('#count_{{ view_id }}'), '{{ selected_instances_key_id }}');
+              reloadSelectedCount($('.count_{{ view_id }}'), '{{ selected_instances_key_id }}');
+              rosterUpdatePublishBtn()"
+            >
+                <span class="label">{% trans "Select" %}</span>
+                ({{ queryset.paginator.count }})
+            </button>
+
+            <button
+                id="rosterPublishBtn"
+                class="d-none quick-bulk-action px-4 py-2 bg-transparent border border-success text-success rounded-md text-xs hover:bg-success hover:text-white transition duration-300"
+                onclick="rosterToggleDateForm()"
+            >
+                <div class="flex items-center gap-1">
+                    <ion-icon name="cloud-upload-outline" class="me-1"></ion-icon>
+                    <span class="label">{% trans "Publish" %}</span>
+                    (<span class="count_{{ view_id }}">0</span>)
+                </div>
+            </button>
+        </div>
+
+        <div class="flex flex-nowrap items-center gap-2 ml-auto flex-shrink-0 self-center">
+            {% if paginated_employees.has_previous or paginated_employees.has_next %}
+                <div class="hlv-pagination inline-flex items-center h-8 gap-0.5 bg-white border border-primary-500 rounded-md px-1 flex-shrink-0">
+                    <button
+                        type="button"
+                        class="w-7 h-7 flex items-center justify-center rounded text-xs leading-none transition duration-300 {% if paginated_employees.has_previous %}text-[#666] hover:bg-[#f5f5f5]{% else %}text-[#ccc] cursor-not-allowed{% endif %}"
+                        {% if paginated_employees.has_previous %}
+                        hx-target="#rosterGridContainer"
+                        hx-get="{% url 'roster-grid' %}?{{ roster_filter_params }}&page=1"
+                        {% endif %}
+                    >
+                        <i class="fa-solid fa-angles-left"></i>
+                    </button>
+                    <button
+                        type="button"
+                        class="w-7 h-7 flex items-center justify-center rounded text-xs leading-none transition duration-300 {% if paginated_employees.has_previous %}text-[#666] hover:bg-[#f5f5f5]{% else %}text-[#ccc] cursor-not-allowed{% endif %}"
+                        {% if paginated_employees.has_previous %}
+                        hx-target="#rosterGridContainer"
+                        hx-get="{% url 'roster-grid' %}?{{ roster_filter_params }}&page={{ paginated_employees.previous_page_number }}"
+                        {% endif %}
+                    >
+                        <i class="fa-solid fa-angle-left"></i>
+                    </button>
+                    <div class="flex items-center gap-1 px-1 h-7 text-xs text-[#666] leading-none">
+                        <input
+                            type="number"
+                            name="page"
+                            min="1"
+                            max="{{ paginated_employees.paginator.num_pages }}"
+                            value="{{ paginated_employees.number }}"
+                            title="{% trans 'Enter a page number and press Enter' %}"
+                            class="w-9 h-6 m-0 py-0 px-1 text-center text-xs leading-6 border border-[#e6e6e6] rounded outline-none focus:border-primary-600 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            hx-target="#rosterGridContainer"
+                            hx-get="{% url 'roster-grid' %}?{{ roster_filter_params }}"
+                            hx-trigger="keyup[keyCode==13] changed, blur changed"
+                            onclick="this.select()"
+                        >
+                        <span class="inline-flex items-center h-6 leading-none whitespace-nowrap">/ {{ paginated_employees.paginator.num_pages }}</span>
+                    </div>
+                    <button
+                        type="button"
+                        class="w-7 h-7 flex items-center justify-center rounded text-xs leading-none transition duration-300 {% if paginated_employees.has_next %}text-[#666] hover:bg-[#f5f5f5]{% else %}text-[#ccc] cursor-not-allowed{% endif %}"
+                        {% if paginated_employees.has_next %}
+                        hx-target="#rosterGridContainer"
+                        hx-get="{% url 'roster-grid' %}?{{ roster_filter_params }}&page={{ paginated_employees.next_page_number }}"
+                        {% endif %}
+                    >
+                        <i class="fa-solid fa-angle-right"></i>
+                    </button>
+                    <button
+                        type="button"
+                        class="w-7 h-7 flex items-center justify-center rounded text-xs leading-none transition duration-300 {% if paginated_employees.has_next %}text-[#666] hover:bg-[#f5f5f5]{% else %}text-[#ccc] cursor-not-allowed{% endif %}"
+                        {% if paginated_employees.has_next %}
+                        hx-target="#rosterGridContainer"
+                        hx-get="{% url 'roster-grid' %}?{{ roster_filter_params }}&page={{ paginated_employees.paginator.num_pages }}"
+                        {% endif %}
+                    >
+                        <i class="fa-solid fa-angles-right"></i>
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div
+        id="rosterPublishDateForm"
+        class="overflow-hidden transition-[max-height,margin] duration-300 ease-in-out max-h-0 rounded-md"
+        style="background: #e8f0fe; border: 1px solid #c5d4f8; border-width: 0"
+    >
+        <div class="relative p-3">
+            <button
+                type="button"
+                class="absolute top-2 right-2 text-[#555] hover:text-[#333] transition-colors duration-200"
+                onclick="rosterHideDateForm()"
+                title="{% trans 'Close' %}"
+            >
+                <ion-icon name="close-outline" style="font-size: 18px"></ion-icon>
+            </button>
+            <form
+                id="rosterBulkForm"
+                hx-post="{% url 'roster-employees-publish' %}"
+                hx-target="#rosterBulkResponse"
+                hx-swap="innerHTML"
+                hx-disabled-elt="find button[type='submit']"
+            >
+                {% csrf_token %}
+                <div id="rosterBulkEmpIds"></div>
+                {% if selected_dept_id %}
+                    <input
+                        type="hidden"
+                        name="department"
+                        value="{{ selected_dept_id }}"
+                    >
+                {% endif %}
+                <div class="flex flex-wrap gap-3 pr-6 items-center">
+                    <div>
+                        <label class="text-xs font-medium text-[#444] block mb-1">{% trans "From Date" %} *</label>
+                        <input
+                            type="date"
+                            name="from_date"
+                            class="oh-input w-auto"
+                            value="{{ from_date|date:'Y-m-d' }}"
+                            required
+                        >
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-[#444] block mb-1">{% trans "To Date" %}</label>
+                        <input
+                            type="date"
+                            name="to_date"
+                            class="oh-input w-auto"
+                            value="{{ to_date|date:'Y-m-d' }}"
+                        >
+                    </div>
+                    <button
+                        type="submit"
+                        class="px-4 py-2 bg-[#0f800f] text-white rounded-md text-xs hover:bg-primary-800 transition duration-300"
+                    >
+                        <ion-icon
+                            name="cloud-upload-outline"
+                            class="me-1"
+                        ></ion-icon>
+                        {% trans "Confirm Publish" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="rosterBulkResponse"></div>
+
+    <div id="{{ view_id }}" class="bg-white p-2 rounded-md shadow-card relative">
+        <div class="max-h-[calc(100vh_-_260px)] overflow-hidden overflow-y-auto overflow-x-auto">
+            <table class="fixed-table w-full border-separate">
+                <thead class="sticky top-0 bg-[white] z-[1]">
+                    <tr class="border-b border-[#ececec]">
+                        <th class="text-sm font-medium text-left p-1.5 w-[30px] stickyleft">
+                            <div class="flex items-center justify-center">
+                                <input
+                                    type="checkbox"
+                                    class="bulk-list-table-row custom-checkbox w-4 h-4 bg-[#E9EDF7] rounded-sm text-primary-600 cursor-pointer"
+                                    title="{% trans 'Select All' %}"
+                                    onchange="$(this)
+										.closest('table')
+										.find('.list-table-row')
+										.prop('checked', $(this).is(':checked'))
+										.change()"
+                                >
+                            </div>
+                        </th>
+                        <th class="text-sm font-medium text-left p-1.5 stickyleft-second" style="width: 200px; left: 34px">
+                            {% trans "Employee" %}
+                        </th>
+                        <th class="text-sm font-medium text-left p-1.5" style="width: 130px">
+                            {% trans "Department" %}
+                        </th>
+                        {% for d in date_range %}
+                            {% with d_str=d|date:"Y-m-d" %}
+                                <th class="text-sm font-medium text-center px-1 py-0.5 whitespace-nowrap" style="min-width: 80px">
+                                    {% if d_str == today_str %}
+                                        <div class="inline-flex flex-col items-center bg-primary-600 rounded-lg px-2 py-0.5">
+                                            <span class="text-xs font-medium text-white leading-tight">{{ d|date:"D" }}</span>
+                                            <span class="text-xs text-white/80 leading-tight">{{ d|date:"d M" }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="block text-xs font-medium leading-tight">{{ d|date:"D" }}</span>
+                                        <span class="block text-xs text-[#8b91b0] leading-tight">{{ d|date:"d M" }}</span>
+                                    {% endif %}
+                                </th>
+                            {% endwith %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td class="text-sm text-left px-1 py-1 text-[#666] rounded-lg h-[30px] stickyleft">
+                                <div class="flex items-center justify-center">
+                                    <input
+                                        type="checkbox"
+                                        class="list-table-row custom-checkbox w-4 h-4 bg-[#E9EDF7] rounded-sm text-primary-600 cursor-pointer"
+                                        data-view-id="{{ view_id }}"
+                                        title="{% trans 'Select Row' %}"
+                                        value="{{ row.employee.pk }}"
+                                        onclick="event.stopPropagation()"
+                                        onchange="element = $(this);
+									highlightRow(element);
+									$(document).ready(function () {
+										if (!element.is(':checked')) { removeId(element); }
+										reloadSelectedCount($('#count_{{ view_id }}'), '{{ selected_instances_key_id }}');
+										reloadSelectedCount($('.count_{{ view_id }}'), '{{ selected_instances_key_id }}');
+										rosterUpdatePublishBtn();
+									})"
+                                    >
+                                </div>
+                            </td>
+
+                            <td class="text-sm text-left px-1 py-1 text-[#666] h-[30px] max-w-0 stickyleft-second" style="left: 34px">
+                                <div class="oh-profile oh-profile--md w-full justify-normal">
+                                    <div class="oh-profile__avatar mr-1" style="width:22px;height:22px;">
+                                        <img
+                                            src="{{ row.employee.get_avatar }}"
+                                            alt=""
+                                            class="oh-profile__image oh-table-img avatar-thumb"
+                                            width="22"
+                                            height="22"
+                                        >
+                                    </div>
+                                    <span class="truncate flex-1 min-w-0" title="{{ row.employee.get_full_name }}">
+                                        {{ row.employee.get_full_name }}
+                                    </span>
+                                </div>
+                            </td>
+
+                            <td class="text-sm text-left px-1 py-1 text-[#666] h-[30px] max-w-0">
+                                <div class="truncate" title="{{ row.employee.employee_work_info.department_id.department|default:'—' }}">{{ row.employee.employee_work_info.department_id.department|default:"—" }}</div>
+                            </td>
+
+                            {% for d, entry in row.cells %}
+                                <td
+                                    class="text-center px-1 py-1 h-[30px] cursor-pointer transition-colors duration-100 hover:!bg-[#eef0fb] dark:hover:!bg-white/10 {% if d.weekday >= 5 %}bg-[#f4f5fb] dark:bg-white/[0.03]{% endif %}"
+                                    style="min-width: 80px"
+                                    hx-get="{% url 'roster-cell-form' %}?employee={{ row.employee.pk }}&date={{ d|date:'Y-m-d' }}&department={{ row.employee.employee_work_info.department_id.pk }}"
+                                    hx-target="#genericModalBody"
+                                    data-toggle="oh-modal-toggle"
+                                    data-target="#genericModal"
+                                >
+                                    {% if entry %}
+                                        {% if entry.is_off %}
+                                            <span
+                                                class="inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold max-w-[70px] truncate bg-[#fff3e0] text-[#e65100] border border-[#ffcc80]"
+                                            >
+                                                {% trans "OFF" %}
+                                            </span>
+                                        {% elif not entry.is_published %}
+                                            <span
+                                                class="inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold max-w-[70px] truncate bg-[#f3f0fb] text-[#7e57c2] border border-[#d1c4e9]"
+                                                title="{{ entry.notes }}"
+                                            >
+                                                {{ entry.shift.employee_shift }}
+                                            </span>
+                                        {% else %}
+                                            <span
+                                                class="inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold max-w-[70px] truncate bg-[#e8f0fe] text-[#3a5bbf] border border-[#c5d4f8]"
+                                                title="{{ entry.notes }}"
+                                            >
+                                                {{ entry.shift.employee_shift }}
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span
+                                            class="text-[#c8cce0] text-xl font-light leading-none hover:text-[#5c6bc0] transition-colors"
+                                        >+</span>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function rosterUpdatePublishBtn() {
+        	var ids = JSON.parse(
+        		$("#{{ selected_instances_key_id }}").attr("data-ids") || "[]",
+        	);
+        	var count = ids.length;
+        	var publishBtn = document.getElementById("rosterPublishBtn");
+        	var unselectBtn = document.getElementById("unselect_{{ view_id }}");
+        	if (publishBtn) publishBtn.classList.toggle("d-none", count === 0);
+        	if (unselectBtn) unselectBtn.classList.toggle("d-none", count === 0);
+        	if (count === 0) rosterHideDateForm();
+
+        	var container = document.getElementById("rosterBulkEmpIds");
+        	if (container) {
+        		container.innerHTML = ids
+        			.map(function (id) {
+        				return (
+        					'<input type="hidden" name="employee_ids" value="' +
+        					id +
+        					'">'
+        				);
+        			})
+        			.join("");
+        	}
+        }
+
+        function rosterToggleDateForm() {
+        	var el = document.getElementById("rosterPublishDateForm");
+        	if (!el) return;
+        	if (el.classList.contains("max-h-0")) {
+        		var ids = JSON.parse(
+        			$("#{{ selected_instances_key_id }}").attr("data-ids") || "[]",
+        		);
+        		var container = document.getElementById("rosterBulkEmpIds");
+        		if (container) {
+        			container.innerHTML = ids
+        				.map(function (id) {
+        					return (
+        						'<input type="hidden" name="employee_ids" value="' +
+        						id +
+        						'">'
+        					);
+        				})
+        				.join("");
+        		}
+        		el.style.borderWidth = "1px";
+        		el.style.marginBottom = "0.5rem";
+        		el.classList.remove("max-h-0");
+        		el.classList.add("max-h-[200px]");
+        	} else {
+        		rosterHideDateForm();
+        	}
+        }
+
+        function rosterHideDateForm() {
+        	var el = document.getElementById("rosterPublishDateForm");
+        	if (el) {
+        		el.classList.remove("max-h-[200px]");
+        		el.classList.add("max-h-0");
+        		el.style.borderWidth = "0";
+        		el.style.marginBottom = "0";
+        	}
+        }
+    </script>
+
+    <script>
+        selectSelected("#{{ view_id }}", "{{ selected_instances_key_id }}");
+        reloadSelectedCount(
+        	$("#count_{{ view_id }}"),
+        	"{{ selected_instances_key_id }}",
+        );
+        reloadSelectedCount(
+        	$(".count_{{ view_id }}"),
+        	"{{ selected_instances_key_id }}",
+        );
+        rosterUpdatePublishBtn();
+    </script>
+{% endif %}

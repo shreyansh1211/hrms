@@ -1,0 +1,14 @@
+{% load i18n %}{% autoescape off %}
+{% blocktranslate %}You've been invited to {{ site_name }}. Use the link below to set your password and get started.{% endblocktranslate %}
+
+{% block reset_link %}
+{{ protocol }}://{{ domain }}{% url 'password_reset_confirm' uidb64=uid token=token %}
+{% endblock %}
+
+{% translate "Your username is:" %} {{ user.get_username }}
+
+{% translate "If you weren't expecting this invitation, you can safely ignore this email." %}
+
+{% blocktranslate %}The {{ site_name }} team{% endblocktranslate %}
+
+{% endautoescape %}

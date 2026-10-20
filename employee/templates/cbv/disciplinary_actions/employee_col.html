@@ -1,0 +1,47 @@
+{% load i18n basefilters %}
+<input type="hidden" class="d-none">
+<div class="oh-avatar-stack" onclick="event.stopPropagation()">
+	<div class="oh-avatar-stack__images">
+		{% for emp in instance.employee_id.all|slice:":3" %}
+			<div class="oh-avatar-stack__img">
+				<img
+					src="https://ui-avatars.com/api/?name={{ emp.get_full_name }}&background=random"
+					alt="{{ emp.get_full_name }}"
+				>
+			</div>
+		{% endfor %}
+		{% with extra=instance.employee_id.all|length|add:"-3" %}
+			{% if extra > 0 %}
+				<div class="oh-avatar-stack__img oh-avatar-stack__more">+{{ extra }}</div>
+			{% endif %}
+		{% endwith %}
+		{% if not instance.employee_id.all %}
+			<span class="oh-avatar-stack__empty">{% trans "No assignees" %}</span>
+		{% endif %}
+	</div>
+	{% if instance.employee_id.all %}
+		<div class="oh-avatar-stack__popover-content">
+			<div class="oh-avatar-stack__popover-title">{% trans "Employees" %}</div>
+			{% for emp in instance.employee_id.all %}
+				<div class="oh-avatar-stack__popover-row">
+					<img
+						src="https://ui-avatars.com/api/?name={{ emp.get_full_name }}&background=random"
+						alt=""
+					>
+					<span>{{ emp.get_full_name }}</span>
+					{% if perms.employee.change_disciplinaryaction or perms.employee.delete_disciplinaryaction %}
+						<a
+							title="{% trans 'Remove' %}"
+							hx-post="{% url 'remove-employee-disciplinary-action' instance.id emp.id %}"
+							hx-target="#listContainer"
+							class="oh-user-panel__remove"
+							hx-confirm="{% trans 'Are you sure want to remove this employee from this action?' %}"
+						>
+							<ion-icon name="close-outline"></ion-icon>
+						</a>
+					{% endif %}
+				</div>
+			{% endfor %}
+		</div>
+	{% endif %}
+</div>

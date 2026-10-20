@@ -1,0 +1,930 @@
+{% extends "index.html" %}
+{% load static i18n %}
+
+{% block content %}
+<style>
+    :root {
+        --ld-indigo: var(--primary-600, #017391);
+        --ld-green: #22c55e;
+        --ld-amber: #f59e0b;
+        --ld-red: #ef4444;
+        --ld-blue: #3b82f6;
+        --ld-purple: #a855f7;
+        --ld-cyan: #06b6d4;
+    }
+
+    .ld-dashboard {
+        font-family: inherit; background: #ffffff;
+        margin: -24px; padding: 24px; min-height: calc(100vh - 80px);
+    }
+    .dark .ld-dashboard { background: #000000; }
+
+    .ld-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .ld-header h1 { font-size: 22px; font-weight: 700; }
+    .ld-header__date { font-size: 13px; opacity: 0.6; margin-top: 2px; }
+    .ld-btn-back {
+        padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(128,128,128,0.2);
+        font-size: 13px; cursor: pointer; text-decoration: none; color: inherit; transition: all 0.15s; background: none;
+    }
+    .ld-btn-back:hover { border-color: var(--ld-indigo); color: var(--ld-indigo); text-decoration: none; }
+
+    /* KPI Grid */
+    .ld-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+    .ld-kpi-card {
+        border-radius: 12px; padding: 18px; background: #ffffff;
+        border: 1px solid rgba(128,128,128,0.12); transition: all 0.2s;
+        text-decoration: none; color: inherit; display: block;
+    }
+    .ld-kpi-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); text-decoration: none; color: inherit; }
+    .dark .ld-kpi-card { background: #242424; border-color: rgba(255,255,255,0.08); }
+    .ld-kpi-card__icon {
+        width: 38px; height: 38px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 10px;
+    }
+    .ld-kpi-card__icon--amber { background: #fef3c7; color: var(--ld-amber); }
+    .ld-kpi-card__icon--green { background: #dcfce7; color: var(--ld-green); }
+    .ld-kpi-card__icon--red { background: #fee2e2; color: var(--ld-red); }
+    .ld-kpi-card__icon--blue { background: #dbeafe; color: var(--ld-blue); }
+    .dark .ld-kpi-card__icon--amber { background: #78350f; }
+    .dark .ld-kpi-card__icon--green { background: #14532d; }
+    .dark .ld-kpi-card__icon--red { background: #7f1d1d; }
+    .dark .ld-kpi-card__icon--blue { background: #1e3a5f; }
+    .ld-kpi-card__label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.5; margin-bottom: 6px; }
+    .ld-kpi-card__value { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+    .ld-kpi-card__sub { font-size: 12px; opacity: 0.6; }
+    .ld-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+    .ld-badge--green { background: #dcfce7; color: #166534; }
+    .ld-badge--amber { background: #fef3c7; color: #92400e; }
+    .ld-badge--red { background: #fee2e2; color: #991b1b; }
+    .ld-badge--blue { background: #dbeafe; color: #1e40af; }
+    .dark .ld-badge--green { background: #166534; color: #bbf7d0; }
+    .dark .ld-badge--amber { background: #92400e; color: #fde68a; }
+    .dark .ld-badge--red { background: #7f1d1d; color: #fca5a5; }
+    .dark .ld-badge--blue { background: #1e3a8a; color: #bfdbfe; }
+
+    /* Layout */
+    .ld-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+    .ld-main { min-width: 0; }
+    .ld-sidebar { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 90px; max-height: calc(100vh - 90px - 24px); overflow-y: auto; }
+    .ld-sidebar::-webkit-scrollbar { width: 3px; }
+    .ld-sidebar::-webkit-scrollbar-thumb { border-radius: 3px; background: rgba(128,128,128,0.2); }
+
+    /* Chart Grid */
+    .ld-chart-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
+    .ld-chart-card { border-radius: 12px; background: #ffffff; border: 1px solid rgba(128,128,128,0.12); overflow: visible; }
+    .dark .ld-chart-card { background: #242424; border-color: rgba(255,255,255,0.08); }
+    .ld-chart-card--wide { grid-column: span 2; }
+    .ld-chart-card__header { padding: 14px 18px 0; display: flex; justify-content: space-between; align-items: center; }
+    .ld-chart-card__title { font-size: 14px; font-weight: 600; }
+    .ld-chart-card__subtitle { font-size: 11px; opacity: 0.5; margin-top: 2px; }
+    .ld-chart-card__body { padding: 6px 10px 10px; }
+
+    .ld-empty { text-align: center; padding: 30px 0; opacity: 0.6; font-size: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+    .ld-empty img { width: 100px; opacity: 0.7; }
+
+    .ld-skeleton { background: linear-gradient(90deg, rgba(128,128,128,0.1) 25%, transparent 50%, rgba(128,128,128,0.1) 75%); background-size: 200% 100%; animation: ld-shimmer 1.5s infinite; border-radius: 12px; }
+    @keyframes ld-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .ld-skeleton--kpi { height: 110px; }
+
+    /* Sidebar panels */
+    .ld-info-panel { border-radius: 12px; background: #ffffff; border: 1px solid rgba(128,128,128,0.12); overflow: hidden; display: flex; flex-direction: column; flex-shrink: 0; }
+    .dark .ld-info-panel { background: #242424; border-color: rgba(255,255,255,0.08); }
+    .ld-info-panel__header { padding: 14px 16px 10px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; border-bottom: 1px solid rgba(128,128,128,0.08); }
+    .ld-info-panel__title { font-size: 13px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+    .ld-info-panel__header { gap: 8px; }
+    .ld-info-panel__header > span[data-period-label] { text-align: right; min-width: 0; }
+    .ld-count-badge[hidden] { display: none; }
+    .ld-count-badge { min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--ld-indigo); color: #fff; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+    /* "View all" in a card header: same look on every dashboard. */
+    .ld-panel__link {
+        flex-shrink: 0;
+        color: var(--primary-600, #017391);
+        font-weight: 700;
+        font-size: 11px;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .ld-panel__link:hover { text-decoration: underline; }
+    /* Title on top, the date period / basis the card lists on the line below. */
+    .ld-info-panel__heading { min-width: 0; }
+    .ld-info-panel__sub { font-size: 11px; opacity: 0.5; margin-top: 2px; }
+    .ld-info-panel__body { padding: 8px 16px 12px; overflow-y: auto; flex: 1; max-height: 350px; }
+    .ld-info-panel__empty { text-align: center; padding: 30px 0; opacity: 0.4; font-size: 12px; }
+
+    /* Leave item (on leave today) */
+    .ld-leave-item {
+        display: flex; align-items: center; gap: 10px; padding: 8px 0;
+        border-bottom: 1px solid rgba(128,128,128,0.06); text-decoration: none; color: inherit;
+    }
+    .ld-leave-item:last-child { border-bottom: none; }
+    .ld-leave-item:hover { opacity: 0.8; }
+    .ld-leave-item__avatar {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: #eef2ff; color: var(--ld-indigo);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; font-weight: 700; flex-shrink: 0; overflow: hidden;
+    }
+    .dark .ld-leave-item__avatar { background: #312e81; }
+    .ld-leave-item__avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .ld-leave-item__info { flex: 1; min-width: 0; }
+    .ld-leave-item__name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ld-leave-item__type { font-size: 11px; opacity: 0.5; }
+    .ld-leave-item__days { font-size: 11px; font-weight: 600; opacity: 0.6; flex-shrink: 0; }
+
+    /* Holiday item */
+    .ld-holiday-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(128,128,128,0.06); }
+    .ld-holiday-item:last-child { border-bottom: none; }
+    .ld-holiday-item__info { flex: 1; min-width: 0; }
+    .ld-holiday-item__name { font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ld-holiday-item__away { font-size: 11px; opacity: 0.5; }
+    .ld-holiday-item__date {
+        flex-shrink: 0; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+        background: #fef3c7; font-size: 10px; font-weight: 600; color: #92400e;
+    }
+    .ld-holiday-item__date--today { background: #dcfce7; color: #166534; }
+    .dark .ld-holiday-item__date { background: #92400e; color: #fde68a; }
+    .dark .ld-holiday-item__date--today { background: #166534; color: #bbf7d0; }
+
+
+    /* Customize Panel */
+    .ld-btn-customize { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(128,128,128,0.2); font-size: 13px; cursor: pointer; color: inherit; transition: all 0.15s; background: none; display: flex; align-items: center; gap: 5px; }
+    .ld-btn-customize:hover { border-color: var(--ld-indigo); color: var(--ld-indigo); }
+    .ld-customize-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 1050; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .ld-customize-overlay--open { opacity: 1; pointer-events: auto; }
+    .ld-customize-panel { position: fixed; top: 0; right: -420px; width: 400px; height: 100vh; background: #ffffff; box-shadow: -4px 0 24px rgba(0,0,0,0.12); z-index: 1051; display: flex; flex-direction: column; transition: right 0.25s ease; }
+    .dark .ld-customize-panel { background: #242424; }
+    .ld-customize-panel--open { right: 0; }
+    .ld-customize-panel__header { padding: 18px 20px; border-bottom: 1px solid rgba(128,128,128,0.12); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .ld-customize-panel__header h3 { font-size: 16px; font-weight: 700; margin: 0; }
+    .ld-customize-panel__close { width: 32px; height: 32px; border-radius: 8px; border: none; background: rgba(128,128,128,0.08); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; color: inherit; }
+    .ld-customize-panel__close:hover { background: rgba(128,128,128,0.16); }
+    .ld-customize-panel__body { flex: 1; overflow-y: auto; padding: 12px 20px; }
+    .ld-customize-panel__footer { padding: 14px 20px; border-top: 1px solid rgba(128,128,128,0.12); display: flex; justify-content: space-between; flex-shrink: 0; }
+    .ld-cust-btn { padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+    .ld-cust-btn--primary { background: var(--ld-indigo); color: #fff; }
+    .ld-cust-btn--primary:hover { opacity: 0.9; }
+    .ld-cust-btn--ghost { background: none; color: inherit; opacity: 0.6; }
+    .ld-cust-btn--ghost:hover { opacity: 1; }
+    .ld-cust-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; border-radius: 8px; border: 1px solid rgba(128,128,128,0.1); background: rgba(128,128,128,0.02); cursor: grab; user-select: none; }
+    .ld-cust-item:active { cursor: grabbing; }
+    .ld-cust-item.ld-dragging { opacity: 0.85; box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-color: var(--ld-indigo); }
+    .ld-cust-item.ld-drag-over { border-top: 2px solid var(--ld-indigo); }
+    .ld-cust-item__handle { font-size: 16px; opacity: 0.3; cursor: grab; flex-shrink: 0; }
+    .ld-cust-item__label { flex: 1; font-size: 13px; font-weight: 500; }
+    .ld-cust-item__toggle { width: 36px; height: 20px; border-radius: 12px; background: #e2e8f0; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; border: none; }
+    .dark .ld-cust-item__toggle { background: #334155; }
+    .ld-cust-item__toggle::after { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; top: 2px; left: 2px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.2s; }
+    .ld-cust-item__toggle--on { background: var(--ld-indigo); }
+    .dark .ld-cust-item__toggle--on { background: var(--ld-indigo); }
+    .ld-cust-item__toggle--on::after { transform: translateX(16px); }
+    @media (max-width: 1024px) { .ld-customize-panel { width: 320px; right: -340px; } }
+    @media (max-width: 640px) { .ld-customize-panel { width: 100%; right: -100%; } }
+
+    /* Period Picker */
+    .ld-period-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; }
+    .ld-period-picker input[type="date"] { padding: 5px 8px; border-radius: 6px; border: 1px solid rgba(128,128,128,0.2); font-size: 12px; background: transparent; color: inherit; outline: none; transition: border-color 0.15s; }
+    .ld-period-picker input[type="date"]:focus { border-color: var(--ld-indigo); }
+    .ld-period-picker__sep { opacity: 0.4; font-size: 11px; }
+    .ld-period-preset { padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(128,128,128,0.15); font-size: 11px; cursor: pointer; background: none; color: inherit; transition: all 0.15s; }
+    .ld-period-preset:hover { border-color: var(--ld-indigo); color: var(--ld-indigo); }
+    .ld-period-preset--active { background: var(--ld-indigo); color: #fff; border-color: var(--ld-indigo); }
+    .ld-period-preset--active:hover { background: var(--ld-indigo); color: #fff; border-color: var(--ld-indigo); }
+    .dark .ld-period-picker input[type="date"] { color-scheme: dark; }
+
+    /* Auto-refresh */
+    .ld-refresh { display: flex; align-items: center; gap: 6px; font-size: 11px; opacity: 0.5; }
+    .ld-refresh__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ld-green); flex-shrink: 0; }
+    .ld-refresh__dot--pulse { animation: ld-pulse 2s infinite; }
+    @keyframes ld-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .ld-refresh__toggle { cursor: pointer; opacity: 0.6; font-size: 13px; border: none; background: none; color: inherit; padding: 2px; }
+    .ld-refresh__toggle:hover { opacity: 1; }
+    #chart-leave-types .apexcharts-pie-area,
+    #chart-paid-unpaid .apexcharts-pie-area { cursor: pointer; }
+
+    /* Responsive */
+    @media (max-width: 1280px) {
+        .ld-layout { grid-template-columns: 1fr; }
+        .ld-sidebar { position: static; display: grid; grid-template-columns: 1fr 1fr 1fr; max-height: none; overflow-y: visible; }
+    }
+    @media (max-width: 1024px) {
+        .ld-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        .ld-chart-grid { grid-template-columns: 1fr; }
+        .ld-chart-card--wide { grid-column: span 1; }
+        .ld-sidebar { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) { .ld-kpi-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="ld-dashboard">
+
+    <!-- Header -->
+    <div class="ld-header">
+        <div>
+            <h1>{% trans "Leave Dashboard" %}</h1>
+            <div class="ld-header__date" id="ld-date"></div>
+            <div class="ld-refresh"><span class="ld-refresh__dot" id="ld-refresh-dot"></span><span id="ld-refresh-text">{% trans "Just now" %}</span><button class="ld-refresh__toggle" id="ld-refresh-toggle" title="{% trans 'Toggle auto-refresh' %}">⟳</button></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <div class="ld-period-picker">
+                <button class="ld-period-preset" data-preset="today">{% trans "Today" %}</button>
+                <button class="ld-period-preset" data-preset="this_week">{% trans "This Week" %}</button>
+                <button class="ld-period-preset" data-preset="this_month">{% trans "This Month" %}</button>
+                <button class="ld-period-preset" data-preset="this_year">{% trans "This Year" %}</button>
+                <input type="date" id="ld-from-date" title="{% trans 'Custom range start' %}">
+                <span class="ld-period-picker__sep">&rarr;</span>
+                <input type="date" id="ld-to-date" title="{% trans 'Custom range end' %}">
+            </div>
+            <button class="oh-btn oh-btn--secondary" id="ld-open-customize" style="display: flex; align-items: center; gap: 5px; font-size: 13px" title="{% trans 'Customize' %}">⚙ {% trans "Customize" %}</button>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="ld-kpi-grid" id="ld-kpi-grid">
+        <div class="ld-skeleton ld-skeleton--kpi"></div>
+        <div class="ld-skeleton ld-skeleton--kpi"></div>
+        <div class="ld-skeleton ld-skeleton--kpi"></div>
+        <div class="ld-skeleton ld-skeleton--kpi"></div>
+    </div>
+
+    <!-- Main layout with sidebar -->
+    <div class="ld-layout">
+
+        <!-- Left: Charts -->
+        <div class="ld-main">
+            <div class="ld-chart-grid">
+
+                <!-- Department Trend -->
+                <div class="ld-chart-card ld-chart-card--wide" data-chart-id="monthly_trend" data-chart-label="{% trans 'Leave Request Trends' %}">
+                    <div class="ld-chart-card__header"><div><div class="ld-chart-card__title">{% trans "Leave Request Trends" %}</div><div class="ld-chart-card__subtitle">{% trans "Click a status in the legend to show or hide it" %} — <span data-period-label></span></div></div></div>
+                    <div class="ld-chart-card__body"><div id="chart-monthly-trend"></div></div>
+                </div>
+
+                <!-- Leave Type Distribution -->
+                <div class="ld-chart-card" data-chart-id="type_distribution" data-chart-label="{% trans 'Leave Type vs Requested Days' %}">
+                    <div class="ld-chart-card__header"><div><div class="ld-chart-card__title">{% trans "Leave Type vs Requested Days" %}</div><div class="ld-chart-card__subtitle" id="lt-month" data-period-label>{% trans "This month" %}</div></div></div>
+                    <div class="ld-chart-card__body"><div id="chart-leave-types"></div></div>
+                </div>
+
+                <!-- Weekly Pattern -->
+                <div class="ld-chart-card" data-chart-id="weekly_pattern" data-chart-label="{% trans 'Leave Day Pattern' %}">
+                    <div class="ld-chart-card__header"><div><div class="ld-chart-card__title">{% trans "Leave Day Pattern" %}</div><div class="ld-chart-card__subtitle">{% trans "Most common leave days" %} — <span data-period-label></span></div></div></div>
+                    <div class="ld-chart-card__body"><div id="chart-weekly-pattern"></div></div>
+                </div>
+
+                <!-- Paid vs Unpaid -->
+                <div class="ld-chart-card" data-chart-id="paid_unpaid" data-chart-label="{% trans 'Paid vs Unpaid' %}">
+                    <div class="ld-chart-card__header"><div><div class="ld-chart-card__title">{% trans "Paid vs Unpaid" %}</div><div class="ld-chart-card__subtitle" id="pu-month" data-period-label>{% trans "This month" %}</div></div></div>
+                    <div class="ld-chart-card__body"><div id="chart-paid-unpaid"></div></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Right sidebar -->
+        <div class="ld-sidebar">
+            <div class="ld-info-panel">
+                <div class="ld-info-panel__header">
+                    <div class="ld-info-panel__heading">
+                        <div class="ld-info-panel__title" style="display:flex;align-items:center;gap:8px;">
+                            {% trans "On Leave Today" %}
+                            <span id="ld-on-leave-count" class="ld-count-badge" hidden title="{% trans 'On leave today' %}">0</span>
+                        </div>
+                        <div class="ld-info-panel__sub">{% trans "Today" %}</div>
+                    </div>
+                    <a href="{% url 'request-view' %}" class="ld-panel__link">{% trans "View all" %}</a>
+                </div>
+                <div class="ld-info-panel__body" id="ld-on-leave">
+                    <div class="ld-info-panel__empty">{% trans "Loading..." %}</div>
+                </div>
+            </div>
+            <div class="ld-info-panel">
+                <div class="ld-info-panel__header">
+                    <div class="ld-info-panel__heading">
+                        <div class="ld-info-panel__title" style="display:flex;align-items:center;gap:8px;">
+                            {% trans "Upcoming Leaves" %}
+                            <span id="ld-upcoming-count" class="ld-count-badge" hidden title="{% trans 'Upcoming leaves' %}">0</span>
+                        </div>
+                        <div class="ld-info-panel__sub">{% trans "Next 7 days" %}</div>
+                    </div>
+                </div>
+                <div class="ld-info-panel__body" id="ld-upcoming">
+                    <div class="ld-info-panel__empty">{% trans "Loading..." %}</div>
+                </div>
+            </div>
+            <div class="ld-info-panel">
+                <div class="ld-info-panel__header">
+                    <div class="ld-info-panel__heading">
+                        <div class="ld-info-panel__title" style="display:flex;align-items:center;gap:8px;">
+                            {% trans "Top Leave Takers" %}
+                            <span id="ld-top-takers-count" class="ld-count-badge" hidden title="{% trans 'Top leave takers' %}">0</span>
+                        </div>
+                        <div class="ld-info-panel__sub" id="takers-month" data-period-label>{% trans "This month" %}</div>
+                    </div>
+                </div>
+                <div class="ld-info-panel__body" id="ld-top-takers">
+                    <div class="ld-info-panel__empty">{% trans "Loading..." %}</div>
+                </div>
+            </div>
+            <div class="ld-info-panel">
+                <div class="ld-info-panel__header">
+                    <div class="ld-info-panel__heading">
+                        <div class="ld-info-panel__title" style="display:flex;align-items:center;gap:8px;">
+                            {% trans "Upcoming Holidays" %}
+                            <span id="ld-holidays-count" class="ld-count-badge" hidden title="{% trans 'Upcoming holidays' %}">0</span>
+                        </div>
+                        <div class="ld-info-panel__sub" data-period-label>{% trans "Next 30 days" %}</div>
+                    </div>
+                </div>
+                <div class="ld-info-panel__body" id="ld-holidays">
+                    <div class="ld-info-panel__empty">{% trans "Loading..." %}</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Customize Panel -->
+<div class="ld-customize-overlay" id="ld-customize-overlay"></div>
+<div class="ld-customize-panel" id="ld-customize-panel">
+    <div class="ld-customize-panel__header">
+        <h3>{% trans "Customize Dashboard" %}</h3>
+        <button class="ld-customize-panel__close" id="ld-close-customize">&times;</button>
+    </div>
+    <div class="ld-customize-panel__body" id="ld-customize-list"></div>
+    <div class="ld-customize-panel__footer">
+        <button class="ld-cust-btn ld-cust-btn--ghost" id="ld-reset-customize">{% trans "Reset" %}</button>
+        <button class="ld-cust-btn ld-cust-btn--primary" id="ld-save-customize">{% trans "Save" %}</button>
+    </div>
+</div>
+
+{% include "components/pie_legend.html" %}
+<script>
+(function() {
+    const isDark = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+    const textColor = isDark ? '#e2e8f0' : '#334155';
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const cardBg = isDark ? '#242424' : '#ffffff';
+    const COLORS = ['#017391','#22c55e','#f59e0b','#3b82f6','#a855f7','#06b6d4','#ec4899','#84cc16','#64748b','#8b5e3c'];
+    const emptyHtml = (msg) => `<div class="ld-empty"><img src="/static/images/ui/no_records.svg" alt="">${msg}</div>`;
+    const leaveRequestUrl = "{% url 'request-view' %}";
+    const leaveRequestUrlFor = id => id ? `${leaveRequestUrl}?employee_id=${id}` : '#';
+
+    document.getElementById('ld-date').textContent = new Date().toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // ── Period Picker ──
+    const PERIOD_KEY = 'ld_period_v2';
+    const fromInput = document.getElementById('ld-from-date');
+    const toInput = document.getElementById('ld-to-date');
+    function ymdLocal(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function getWeekBounds(today) {
+        const dow = (today.getDay() + 6) % 7; // 0 = Monday
+        const from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - dow);
+        return [from, new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)];
+    }
+    function presetRanges() {
+        const t = new Date();
+        const [wf, wt] = getWeekBounds(t);
+        return {
+            today: [t, t],
+            this_week: [wf, wt],
+            this_month: [new Date(t.getFullYear(), t.getMonth(), 1), new Date(t.getFullYear(), t.getMonth() + 1, 0)],
+            this_year: [new Date(t.getFullYear(), 0, 1), new Date(t.getFullYear(), 11, 31)],
+        };
+    }
+    function initPeriod() {
+        const saved = sessionStorage.getItem(PERIOD_KEY);
+        if (saved) { try { const p = JSON.parse(saved); fromInput.value = p.from; toInput.value = p.to; return; } catch {} }
+        // For leave, default to the full month so future approved leaves are visible
+        const [f, t] = presetRanges().this_month;
+        fromInput.value = ymdLocal(f); toInput.value = ymdLocal(t);
+    }
+    function savePeriod() { sessionStorage.setItem(PERIOD_KEY, JSON.stringify({ from: fromInput.value, to: toInput.value })); }
+    function periodParams() { const f = fromInput.value, t = toInput.value; return (f && t) ? ("from_date=" + encodeURIComponent(f) + "&to_date=" + encodeURIComponent(t)) : ""; }
+    function urlWithPeriod(u) { return u + (u.includes('?') ? '&' : '?') + periodParams(); }
+    function fetchP(url) { return fetch(urlWithPeriod(url)); }
+    function detectPreset() {
+        for (const [key, [f, t]] of Object.entries(presetRanges())) {
+            if (fromInput.value === ymdLocal(f) && toInput.value === ymdLocal(t)) return key;
+        }
+        return '';
+    }
+    function highlightPreset(active) {
+        document.querySelectorAll('.ld-period-preset').forEach(b => b.classList.toggle('ld-period-preset--active', b.dataset.preset === active));
+    }
+    const PRESET_LABELS = {
+        today: '{% trans "Today"|escapejs %}',
+        this_week: '{% trans "This Week"|escapejs %}',
+        this_month: '{% trans "This Month"|escapejs %}',
+        this_year: '{% trans "This Year"|escapejs %}',
+    };
+    function shortDate(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+    function periodLabel() {
+        const preset = detectPreset();
+        const from = new Date(fromInput.value + 'T00:00:00');
+        const to = new Date(toInput.value + 'T00:00:00');
+        let detail;
+        if (preset === 'this_month') detail = from.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        else if (preset === 'this_year') detail = String(from.getFullYear());
+        else if (preset === 'today') detail = shortDate(from);
+        else detail = shortDate(from) + ' – ' + shortDate(to);
+        return (PRESET_LABELS[preset] || '{% trans "Custom"|escapejs %}') + ' · ' + detail;
+    }
+    function applyPeriodLabels() {
+        document.querySelectorAll('[data-period-label]').forEach(el => { el.textContent = periodLabel(); });
+    }
+    function onPeriodChange(active) {
+        savePeriod();
+        highlightPreset(active);
+        applyPeriodLabels();
+        refreshAllData();
+    }
+    function setPreset(p) {
+        const [f, t] = presetRanges()[p];
+        fromInput.value = ymdLocal(f); toInput.value = ymdLocal(t);
+        onPeriodChange(p);
+    }
+    document.querySelectorAll('.ld-period-preset').forEach(b => b.addEventListener('click', () => setPreset(b.dataset.preset)));
+    [fromInput, toInput].forEach(i => i.addEventListener('change', () => {
+        if (!fromInput.value || !toInput.value) return;
+        onPeriodChange(detectPreset());
+    }));
+    initPeriod();
+    highlightPreset(detectPreset());
+    applyPeriodLabels();
+
+    // ── Chart Customize ──
+    const CUST_KEY = 'ld_chart_prefs';
+    function getDefaultOrder() { return Array.from(document.querySelectorAll('[data-chart-id]')).map(c => ({ id: c.dataset.chartId, visible: true })); }
+    function loadCustPrefs() { try { const r = localStorage.getItem(CUST_KEY); return r ? JSON.parse(r) : null; } catch { return null; } }
+    function saveCustPrefs(p) { localStorage.setItem(CUST_KEY, JSON.stringify(p)); }
+    function applyCustPrefs(p) {
+        if (!p) return;
+        const container = document.querySelector('.ld-chart-grid');
+        const cards = {}; container.querySelectorAll('[data-chart-id]').forEach(c => { cards[c.dataset.chartId] = c; });
+        p.forEach(pr => { const card = cards[pr.id]; if (card) { container.appendChild(card); if (pr.visible === false) card.style.display = 'none'; else card.style.display = ''; } });
+        Object.keys(cards).forEach(id => { if (!p.find(pr => pr.id === id)) { container.appendChild(cards[id]); cards[id].style.display = ''; } });
+    }
+    applyCustPrefs(loadCustPrefs());
+
+    const custOverlay = document.getElementById('ld-customize-overlay');
+    const custPanel = document.getElementById('ld-customize-panel');
+    const custList = document.getElementById('ld-customize-list');
+
+    function openCust() {
+        const prefs = loadCustPrefs() || getDefaultOrder();
+        const allCards = {}; document.querySelectorAll('[data-chart-id]').forEach(c => { allCards[c.dataset.chartId] = { id: c.dataset.chartId, label: c.dataset.chartLabel }; });
+        const ordered = []; prefs.forEach(p => { if (allCards[p.id]) ordered.push({ ...allCards[p.id], visible: p.visible !== false }); });
+        Object.keys(allCards).forEach(id => { if (!ordered.find(o => o.id === id)) ordered.push({ ...allCards[id], visible: true }); });
+        let html = ''; ordered.forEach((item, idx) => {
+            html += `<div class="ld-cust-item" draggable="true" data-cust-id="${item.id}"><span class="ld-cust-item__handle">&#x2630;</span><div class="ld-cust-item__label">${item.label}</div><button class="ld-cust-item__toggle ${item.visible ? 'ld-cust-item__toggle--on' : ''}" data-cust-toggle="${item.id}"></button></div>`;
+        });
+        custList.innerHTML = html;
+        initCustDrag();
+        custOverlay.classList.add('ld-customize-overlay--open'); custPanel.classList.add('ld-customize-panel--open');
+    }
+    function closeCust() { custOverlay.classList.remove('ld-customize-overlay--open'); custPanel.classList.remove('ld-customize-panel--open'); }
+
+    function initCustDrag() {
+        let dragEl = null;
+        custList.querySelectorAll('.ld-cust-item').forEach(item => {
+            item.addEventListener('dragstart', e => { dragEl = item; item.classList.add('ld-dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', ''); });
+            item.addEventListener('dragend', () => { if (dragEl) dragEl.classList.remove('ld-dragging'); custList.querySelectorAll('.ld-cust-item').forEach(i => i.classList.remove('ld-drag-over')); dragEl = null; });
+            item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (item !== dragEl) item.classList.add('ld-drag-over'); });
+            item.addEventListener('dragleave', () => item.classList.remove('ld-drag-over'));
+            item.addEventListener('drop', e => { e.preventDefault(); item.classList.remove('ld-drag-over'); if (dragEl && item !== dragEl) { const items = Array.from(custList.querySelectorAll('.ld-cust-item')); if (items.indexOf(dragEl) < items.indexOf(item)) item.parentNode.insertBefore(dragEl, item.nextSibling); else item.parentNode.insertBefore(dragEl, item); } });
+        });
+        custList.querySelectorAll('.ld-cust-item__toggle').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); btn.classList.toggle('ld-cust-item__toggle--on'); }));
+    }
+
+    function getCustState() { return Array.from(custList.querySelectorAll('.ld-cust-item')).map(item => ({ id: item.dataset.custId, visible: item.querySelector('.ld-cust-item__toggle').classList.contains('ld-cust-item__toggle--on') })); }
+
+    document.getElementById('ld-open-customize').addEventListener('click', openCust);
+    document.getElementById('ld-close-customize').addEventListener('click', closeCust);
+    custOverlay.addEventListener('click', closeCust);
+    document.getElementById('ld-save-customize').addEventListener('click', () => { const p = getCustState(); saveCustPrefs(p); applyCustPrefs(p); closeCust(); });
+    document.getElementById('ld-reset-customize').addEventListener('click', () => { localStorage.removeItem(CUST_KEY); location.reload(); });
+
+    // ── Chart instance registry ──
+    // ApexCharts.render() always appends a new SVG into the target
+    // element rather than replacing it, so calling the same chart
+    // block twice (e.g. on auto-refresh) would stack duplicate
+    // charts on top of each other. Every chart goes through here so
+    // a refresh destroys the previous instance first.
+    const chartInstances = {};
+    // ApexCharts is loaded here rather than with a <script src> in the markup.
+    // The sidebar swaps pages in with htmx, which re-inserts a <script src> and
+    // re-runs the whole library even when it is already loaded, breaking charts
+    // that are mid-render (they come up blank until a reload). Loading it only
+    // when missing avoids that, and a second CDN covers a failed/slow first one.
+    const APEX_CDNS = [
+        'https://cdn.jsdelivr.net/npm/apexcharts@7.8.0/dist/apexcharts.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.54.1/apexcharts.min.js',
+    ];
+    let apexPromise = null;
+    function ensureApex() {
+        if (typeof ApexCharts !== 'undefined') return Promise.resolve();
+        if (apexPromise) return apexPromise;
+        apexPromise = new Promise((resolve, reject) => {
+            let next = 0;
+            const addScript = () => {
+                if (next >= APEX_CDNS.length) return;
+                const sc = document.createElement('script');
+                sc.src = APEX_CDNS[next++];
+                sc.onerror = addScript;
+                document.head.appendChild(sc);
+            };
+            addScript();
+            const started = Date.now();
+            const timer = setInterval(() => {
+                if (typeof ApexCharts !== 'undefined') { clearInterval(timer); resolve(); return; }
+                if (Date.now() - started > 20000) { clearInterval(timer); apexPromise = null; reject(new Error('ApexCharts failed to load')); }
+            }, 50);
+        });
+        return apexPromise;
+    }
+    ensureApex().catch(() => {});
+    const chartFailHtml = () => emptyHtml('{% trans "Unable to load chart. Please refresh the page."|escapejs %}');
+    // When the page is opened from the sidebar it is swapped into the layout via
+    // htmx, so the data can arrive before the card has any width. Rendering then
+    // gives ApexCharts a NaN width and the chart never draws (a reload fixes it),
+    // so hold each chart until its container is actually laid out.
+    function renderChart(key, el, options, laidOut) {
+        if (!el) return null;
+        if (typeof ApexCharts === 'undefined') {
+            ensureApex().then(() => renderChart(key, el, options, laidOut)).catch(() => { el.innerHTML = chartFailHtml(); });
+            return null;
+        }
+        if (!laidOut && !el.clientWidth) {
+            const started = Date.now();
+            const waitForLayout = () => {
+                if (!el.isConnected) return;
+                if (el.clientWidth || Date.now() - started > 5000) renderChart(key, el, options, true);
+                else requestAnimationFrame(waitForLayout);
+            };
+            requestAnimationFrame(waitForLayout);
+            return null;
+        }
+        if (chartInstances[key]) {
+            chartInstances[key].destroy();
+            chartInstances[key] = null;
+        }
+        const chart = new ApexCharts(el, options);
+        chartInstances[key] = chart;
+        chart.render();
+        return chart;
+    }
+
+
+    // ── Auto-refresh ──
+    const REFRESH_INTERVAL = 300000; // 5 minutes
+    const REFRESH_KEY = 'ld_auto_refresh';
+    let refreshTimer = null;
+    let lastRefresh = Date.now();
+    const refreshDot = document.getElementById('ld-refresh-dot');
+    const refreshText = document.getElementById('ld-refresh-text');
+    const refreshToggle = document.getElementById('ld-refresh-toggle');
+    let autoRefreshOn = localStorage.getItem(REFRESH_KEY) !== 'off';
+
+    function updateRefreshText() {
+        const mins = Math.floor((Date.now() - lastRefresh) / 60000);
+        refreshText.textContent = mins < 1 ? '{% trans "Just now"|escapejs %}' : mins + '{% trans "m ago"|escapejs %}';
+    }
+    registerAutoRefresh(setInterval(updateRefreshText, 30000));
+
+    function startAutoRefresh() {
+        autoRefreshOn = true;
+        localStorage.setItem(REFRESH_KEY, 'on');
+        refreshDot.classList.add('ld-refresh__dot--pulse');
+        refreshToggle.textContent = '⟳';
+        refreshToggle.title = '{% trans "Auto-refresh ON (5 min)"|escapejs %}';
+        // Wrapped so a hidden tab does not keep fetching; refreshes once on return.
+        const refreshTick = autoRefreshWhenVisible(() => {
+            lastRefresh = Date.now();
+            updateRefreshText();
+            refreshAllData();
+        });
+        refreshTimer = setInterval(refreshTick, REFRESH_INTERVAL);
+        registerAutoRefresh(refreshTimer);
+    }
+    function stopAutoRefresh() {
+        autoRefreshOn = false;
+        localStorage.setItem(REFRESH_KEY, 'off');
+        refreshDot.classList.remove('ld-refresh__dot--pulse');
+        refreshToggle.textContent = '⏸';
+        refreshToggle.title = '{% trans "Auto-refresh OFF"|escapejs %}';
+        if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    }
+    refreshToggle.addEventListener('click', () => { if (autoRefreshOn) stopAutoRefresh(); else startAutoRefresh(); });
+    if (autoRefreshOn) startAutoRefresh(); else stopAutoRefresh();
+
+    // Shared period dates — set from KPI response, used by all chart click handlers
+    let _periodFrom = '';
+    let _periodTo = '';
+
+    // ─── KPI CARDS ───
+    function loadKpiCards() {
+        fetchP("{% url 'leave-dashboard-kpi' %}")
+        .then(r => r.json())
+        .then(data => {
+            _periodFrom = data.from_date;
+            _periodTo   = data.to_date;
+            const baseUrl = "{% url 'request-view' %}";
+            const pendingUrl = `${baseUrl}?status=requested&filter_applied=on`;
+            const allocationUrl = "{% url 'leave-allocation-request-view' %}?status=requested&filter_applied=on&open_tab=2";
+            const compUrl = "{% url 'view-compensatory-leave' %}?status=requested&filter_applied=on&open_tab=2";
+            const onLeaveTodayUrl = `${baseUrl}?status=approved&from_date=${data.today}&to_date=${data.today}&filter_applied=on`;
+            document.getElementById('ld-kpi-grid').innerHTML = `
+                <a href="${pendingUrl}" class="ld-kpi-card">
+                    <div class="ld-kpi-card__icon ld-kpi-card__icon--amber"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg></div>
+                    <div class="ld-kpi-card__label">{% trans "Pending Leave Requests"|escapejs %}</div>
+                    <div class="ld-kpi-card__value">${data.pending_approval}</div>
+                </a>
+                <a href="${allocationUrl}" class="ld-kpi-card">
+                    <div class="ld-kpi-card__icon ld-kpi-card__icon--green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></div>
+                    <div class="ld-kpi-card__label">{% trans "Pending Allocation Requests"|escapejs %}</div>
+                    <div class="ld-kpi-card__value">${data.pending_allocations}</div>
+                </a>
+                <a href="${compUrl}" class="ld-kpi-card">
+                    <div class="ld-kpi-card__icon ld-kpi-card__icon--blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                    <div class="ld-kpi-card__label">{% trans "Pending Compensatory Requests"|escapejs %}</div>
+                    <div class="ld-kpi-card__value">${data.pending_comp}</div>
+                </a>
+                <a href="${onLeaveTodayUrl}" class="ld-kpi-card">
+                    <div class="ld-kpi-card__icon ld-kpi-card__icon--blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                    <div class="ld-kpi-card__label">{% trans "On Leave Today"|escapejs %}</div>
+                    <div class="ld-kpi-card__value">${data.on_leave_today}</div>
+                </a>`;
+        });
+    }
+    loadKpiCards();
+
+    // ─── DEPARTMENT TREND ───
+    // Department chips under the chart, like the main dashboard's: one row, a "+N"
+    // chip for the rest, and a ticked department is a column on the chart.
+    let trendData = null;
+    const TREND_STATUS_NAMES = ['{% trans "Approved"|escapejs %}', '{% trans "Rejected"|escapejs %}', '{% trans "Requested"|escapejs %}'];
+    // Approved is shown by default; Rejected / Requested can be toggled on from the status
+    // legend. Kept here so a redraw (ticking a department) doesn't reset what was toggled.
+    const trendHiddenSeries = new Set([1, 2]);
+    const trendEl = document.querySelector("#chart-monthly-trend");
+    const trendLegend = PieLegend.forChart(trendEl, () => chartInstances['monthly-trend'], '{% trans "departments"|escapejs %}',
+        { topN: 20, onChange: () => drawDepartmentTrend() });
+    function drawDepartmentTrend() {
+        const names = new Set(trendLegend.selectedNames());
+        const departments = trendData.departments.filter(d => names.has(d.department));
+        const statusForSeries = ['approved', 'rejected', 'requested'];
+        renderChart('monthly-trend', trendEl, {
+            series: [
+                { name: TREND_STATUS_NAMES[0], data: departments.map(d => d.approved) },
+                { name: TREND_STATUS_NAMES[1], data: departments.map(d => d.rejected) },
+                { name: TREND_STATUS_NAMES[2], data: departments.map(d => d.pending) },
+            ],
+            chart: { type: 'bar', height: 280, toolbar: { show: false }, background: 'transparent', fontFamily: 'inherit', stacked: true,
+                events: {
+                mounted: ctx => trendHiddenSeries.forEach(i => ctx.hideSeries(TREND_STATUS_NAMES[i])),
+                // Fires before Apex flips the series, so the set follows the user's click.
+                legendClick: (ctx, seriesIndex) => { if (trendHiddenSeries.has(seriesIndex)) trendHiddenSeries.delete(seriesIndex); else trendHiddenSeries.add(seriesIndex); },
+                dataPointSelection: (e, ctx, config) => {
+                    const d = departments[config.dataPointIndex];
+                    const status = statusForSeries[config.seriesIndex] || 'approved';
+                    if (d) {
+                        window.location.href = "{% url 'request-view' %}?department_name=" + encodeURIComponent(d.department) +
+                            "&status=" + status + "&start_date_gte=" + trendData.from_date + "&to_date=" + trendData.to_date + "&filter_applied=on";
+                    }
+                }}
+            },
+            colors: ['#22c55e', '#ef4444', '#f59e0b'],
+            plotOptions: { bar: { borderRadius: 4, columnWidth: '55%', borderRadiusApplication: 'end' } },
+            xaxis: { categories: departments.map(d => d.department), labels: { style: { colors: textColor, fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+            yaxis: { labels: { style: { colors: textColor } } },
+            grid: { borderColor: gridColor, strokeDashArray: 4 },
+            dataLabels: { enabled: false },
+            legend: { position: 'top', horizontalAlign: 'right', labels: { colors: textColor }, fontSize: '11px', markers: { width: 8, height: 8, radius: 2 } },
+            tooltip: { theme: isDark ? 'dark' : 'light' },
+        });
+    }
+    function loadDepartmentTrend() {
+        fetchP("{% url 'leave-dashboard-department-trend' %}")
+        .then(r => r.json())
+        .then(data => {
+            if (!data.departments.length) { trendLegend.clear(); trendEl.innerHTML = emptyHtml('{% trans "No data"|escapejs %}'); return; }
+            trendData = data;
+            trendLegend.set(data.departments.map((d, i) => ({
+                name: d.department, value: d.approved + d.rejected + d.pending, color: PieLegend.color(i, COLORS),
+            })));
+            drawDepartmentTrend();
+        }).catch(() => { trendEl.innerHTML = chartFailHtml(); });
+    }
+    loadDepartmentTrend();
+
+    // ─── LEAVE TYPE DISTRIBUTION ───
+    function loadLeaveTypeDistribution() {
+        fetchP("{% url 'leave-dashboard-type-dist' %}")
+        .then(r => r.json())
+        .then(data => {
+            const typesEl = document.querySelector("#chart-leave-types");
+            const typesLegend = PieLegend.forChart(typesEl, () => chartInstances['leave-types'], '{% trans "types"|escapejs %}');
+            if (!data.types.length) { typesLegend.clear(); typesEl.innerHTML = emptyHtml('{% trans "No leave data"|escapejs %}'); return; }
+            const colors = data.types.map((t, i) => PieLegend.color(i, COLORS));
+            typesLegend.set(data.types.map((t, i) => ({ name: t.type, value: t.days, color: colors[i] })));
+            renderChart('leave-types', typesEl, {
+                series: typesLegend.series(),
+                chart: { type: 'donut', height: 300, background: 'transparent', fontFamily: 'inherit',
+                    events: { dataPointSelection: (e, ctx, config) => {
+                        const t = data.types[config.dataPointIndex];
+                        if (t && t.id) window.location.href = "{% url 'request-view' %}?leave_type_id=" + t.id + "&status=approved&start_date_gte=" + _periodFrom + "&to_date=" + _periodTo + "&filter_applied=on";
+                        else window.location.href = "{% url 'request-view' %}";
+                    }}
+                },
+                labels: data.types.map(t => t.type),
+                colors: colors,
+                plotOptions: { pie: { donut: { size: '65%', labels: { show: true, total: { show: true, label: '{% trans "Total Days"|escapejs %}', color: textColor, fontSize: '12px', fontWeight: 600, formatter: w => w.globals.seriesTotals.reduce((a,b)=>a+b,0).toFixed(1) } } } } },
+                stroke: { width: 2, colors: [cardBg] },
+                dataLabels: { enabled: false },
+                legend: { show: false },
+                tooltip: { theme: isDark ? 'dark' : 'light', y: { formatter: (v, { seriesIndex: i }) => `${v} days (${data.types[i].count} requests)` } },
+            });
+        }).catch(() => { const el = document.querySelector("#chart-leave-types"); if (el) el.innerHTML = chartFailHtml(); });
+    }
+    loadLeaveTypeDistribution();
+
+    // ─── PAID VS UNPAID ───
+    function loadPaidVsUnpaid() {
+        fetchP("{% url 'leave-dashboard-paid-unpaid' %}")
+        .then(r => r.json())
+        .then(data => {
+            const paidEl = document.querySelector("#chart-paid-unpaid");
+            const paidLegend = PieLegend.forChart(paidEl, () => chartInstances['paid-unpaid'], '{% trans "more"|escapejs %}');
+            if (data.paid === 0 && data.unpaid === 0) { paidLegend.clear(); paidEl.innerHTML = emptyHtml('{% trans "No leave data"|escapejs %}'); return; }
+            paidLegend.set([
+                { name: '{% trans "Paid"|escapejs %}', value: data.paid, color: '#22c55e' },
+                { name: '{% trans "Unpaid"|escapejs %}', value: data.unpaid, color: '#ef4444' },
+            ]);
+            renderChart('paid-unpaid', paidEl, {
+                series: paidLegend.series(),
+                chart: { type: 'donut', height: 300, background: 'transparent', fontFamily: 'inherit',
+                    events: { dataPointSelection: (e, ctx, config) => {
+                        const payment = ['paid', 'unpaid'][config.dataPointIndex];
+                        window.location.href = "{% url 'request-view' %}?payment=" + payment + "&status=approved&start_date_gte=" + _periodFrom + "&to_date=" + _periodTo + "&filter_applied=on";
+                    }}
+                },
+                labels: ['{% trans "Paid"|escapejs %}', '{% trans "Unpaid"|escapejs %}'],
+                colors: ['#22c55e', '#ef4444'],
+                plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: '{% trans "Total"|escapejs %}', color: textColor, fontSize: '13px', fontWeight: 600, formatter: w => w.globals.seriesTotals.reduce((a,b)=>a+b,0).toFixed(1) } } } } },
+                stroke: { width: 2, colors: [cardBg] },
+                dataLabels: { enabled: false },
+                legend: { show: false },
+                tooltip: { theme: isDark ? 'dark' : 'light', y: { formatter: (v, { seriesIndex: i }) => `${v} days (${[data.paid_requests, data.unpaid_requests][i] || 0} requests)` } },
+            });
+        }).catch(() => { const el = document.querySelector("#chart-paid-unpaid"); if (el) el.innerHTML = chartFailHtml(); });
+    }
+    loadPaidVsUnpaid();
+
+    // ─── WEEKLY PATTERN ───
+    function loadWeeklyPattern() {
+        fetchP("{% url 'leave-dashboard-weekly-pattern' %}")
+        .then(r => r.json())
+        .then(data => {
+            if (!data.counts.some(c => c > 0)) { document.querySelector("#chart-weekly-pattern").innerHTML = emptyHtml('{% trans "No data"|escapejs %}'); return; }
+            const maxCount = Math.max(...data.counts);
+            renderChart('weekly-pattern', document.querySelector("#chart-weekly-pattern"), {
+                series: [{ name: '{% trans "Leave Days"|escapejs %}', data: data.counts }],
+                chart: { type: 'radar', height: 300, toolbar: { show: false }, background: 'transparent', fontFamily: 'inherit' },
+                colors: ['#017391'],
+                fill: { opacity: 0.25 },
+                stroke: { width: 2 },
+                xaxis: { categories: data.days },
+                yaxis: { show: false, max: maxCount > 0 ? maxCount * 1.2 : 10 },
+                markers: { size: 4 },
+                tooltip: { theme: isDark ? 'dark' : 'light', y: { formatter: v => v + ' leave day(s)' } },
+            });
+        }).catch(() => { const el = document.querySelector("#chart-weekly-pattern"); if (el) el.innerHTML = chartFailHtml(); });
+    }
+    loadWeeklyPattern();
+
+    function setCountBadge(id, n) {
+        const b = document.getElementById(id);
+        b.textContent = n;
+        b.hidden = !n;
+    }
+
+    // ─── ON LEAVE TODAY ───
+    function loadOnLeaveToday() {
+        fetchP("{% url 'leave-dashboard-on-leave' %}")
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById('ld-on-leave');
+            setCountBadge('ld-on-leave-count', data.employees.length);
+            if (!data.employees.length) { el.innerHTML = '<div class="ld-info-panel__empty">{% trans "No one on leave today"|escapejs %}</div>'; return; }
+            el.innerHTML = data.employees.map(e => {
+                const initials = e.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                const avatarInner = e.avatar ? `<img src="${e.avatar}" alt="">` : initials;
+                return `<a href="${leaveRequestUrlFor(e.id)}" class="ld-leave-item">
+                    <div class="ld-leave-item__avatar">${avatarInner}</div>
+                    <div class="ld-leave-item__info">
+                        <div class="ld-leave-item__name">${e.name}</div>
+                        <div class="ld-leave-item__type">${e.leave_type}</div>
+                    </div>
+                    <div class="ld-leave-item__days">${e.start}${e.start !== e.end ? ' – ' + e.end : ''}</div>
+                </a>`;
+            }).join('');
+        }).catch(() => { document.getElementById('ld-on-leave').innerHTML = '<div class="ld-info-panel__empty">{% trans "No one on leave today"|escapejs %}</div>'; });
+    }
+    loadOnLeaveToday();
+
+    // ─── UPCOMING LEAVES ───
+    function loadUpcomingLeaves() {
+        fetchP("{% url 'leave-dashboard-upcoming' %}")
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById('ld-upcoming');
+            const n = data.upcoming.length;
+            setCountBadge('ld-upcoming-count', n);
+            if (!data.upcoming.length) { el.innerHTML = '<div class="ld-info-panel__empty">{% trans "No upcoming leaves"|escapejs %}</div>'; return; }
+            el.innerHTML = data.upcoming.map(u => {
+                const initials = u.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                const avatarInner = u.avatar ? `<img src="${u.avatar}" alt="">` : initials;
+                const badge = u.days_away === 1
+                    ? '<span class="ld-badge ld-badge--amber">{% trans "Tomorrow"|escapejs %}</span>'
+                    : `<span class="ld-badge ld-badge--green">${u.days_away}d</span>`;
+                return `<a href="${leaveRequestUrlFor(u.id)}" class="ld-leave-item">
+                    <div class="ld-leave-item__avatar">${avatarInner}</div>
+                    <div class="ld-leave-item__info">
+                        <div class="ld-leave-item__name">${u.name}</div>
+                        <div class="ld-leave-item__type">${u.leave_type} · ${u.start}${u.start !== u.end ? ' – ' + u.end : ''} · ${u.days} ${u.days === 1 ? '{% trans "day"|escapejs %}' : '{% trans "days"|escapejs %}'}</div>
+                    </div>
+                    ${badge}
+                </a>`;
+            }).join('');
+        }).catch(() => { document.getElementById('ld-upcoming').innerHTML = '<div class="ld-info-panel__empty">{% trans "No upcoming leaves"|escapejs %}</div>'; });
+    }
+    loadUpcomingLeaves();
+
+    // ─── TOP LEAVE TAKERS ───
+    function loadTopLeaveTakers() {
+        fetchP("{% url 'leave-dashboard-top-takers' %}")
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById('ld-top-takers');
+            setCountBadge('ld-top-takers-count', data.takers.length);
+            if (!data.takers.length) { el.innerHTML = '<div class="ld-info-panel__empty">{% trans "No leaves in this period"|escapejs %}</div>'; return; }
+            el.innerHTML = data.takers.map(t => {
+                const initials = t.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                const avatarInner = t.avatar ? `<img src="${t.avatar}" alt="">` : initials;
+                return `<a href="${leaveRequestUrlFor(t.id)}" class="ld-leave-item">
+                    <div class="ld-leave-item__avatar">${avatarInner}</div>
+                    <div class="ld-leave-item__info">
+                        <div class="ld-leave-item__name">${t.name}</div>
+                        <div class="ld-leave-item__type">${t.requests} {% trans "request(s)"|escapejs %}</div>
+                    </div>
+                    <div class="ld-leave-item__days" style="font-weight:700;color:var(--ld-amber);">${t.days}d</div>
+                </a>`;
+            }).join('');
+        }).catch(() => { document.getElementById('ld-top-takers').innerHTML = '<div class="ld-info-panel__empty">{% trans "No leaves in this period"|escapejs %}</div>'; });
+    }
+    loadTopLeaveTakers();
+
+    // ─── UPCOMING HOLIDAYS ───
+    function loadUpcomingHolidays() {
+        fetchP("{% url 'leave-dashboard-holidays' %}")
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById('ld-holidays');
+            setCountBadge('ld-holidays-count', data.holidays.length);
+            if (!data.holidays.length) { el.innerHTML = '<div class="ld-info-panel__empty">{% trans "No upcoming holidays"|escapejs %}</div>'; return; }
+            el.innerHTML = data.holidays.map(h => {
+                const badge = h.days_away === 0 ? '{% trans "Today"|escapejs %}' : h.days_away === 1 ? '{% trans "Tomorrow"|escapejs %}' : h.days_away + 'd';
+                return `<div class="ld-holiday-item">
+                    <div class="ld-holiday-item__info">
+                        <div class="ld-holiday-item__name">${h.name}</div>
+                        <div class="ld-holiday-item__away">${badge}</div>
+                    </div>
+                    <div class="ld-holiday-item__date${h.days_away === 0 ? ' ld-holiday-item__date--today' : ''}">${h.start}</div>
+                </div>`;
+            }).join('');
+        }).catch(() => { document.getElementById('ld-holidays').innerHTML = '<div class="ld-info-panel__empty">{% trans "No upcoming holidays"|escapejs %}</div>'; });
+    }
+    loadUpcomingHolidays();
+
+    // ── Re-run every load/chart function above in place (used by the
+    // auto-refresh timer instead of location.reload()).
+    function refreshAllData() {
+        loadKpiCards();
+        loadDepartmentTrend();
+        loadLeaveTypeDistribution();
+        loadPaidVsUnpaid();
+        loadWeeklyPattern();
+        loadOnLeaveToday();
+        loadUpcomingLeaves();
+        loadTopLeaveTakers();
+        loadUpcomingHolidays();
+    }
+
+})();
+</script>
+{% endblock %}

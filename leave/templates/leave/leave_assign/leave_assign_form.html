@@ -1,0 +1,75 @@
+{% load i18n widget_tweaks %}
+{% if messages %}
+    <div class="oh-wrapper">
+        {% for message in messages %}
+            <div class="oh-alert-container">
+                <div class="oh-alert oh-alert--animated {{message.tags}}">
+                    {{ message }}
+                </div>
+            </div>
+        {% endfor %}
+        <script>
+            setTimeout(function () {
+              $(".oh-modal__close, .oh-modal__close--custom").click();
+            }, 2000);
+            $(document).ready(function(){
+              $('.reload-record').click();
+            })
+        </script>
+    </div>
+{% endif %}
+{% if form.errors %}
+    <!-- form errors  -->
+    <div class="oh-wrapper">
+        <div class="oh-alert-container">
+            {% for error in form.non_field_errors %}
+                <div class="oh-alert oh-alert--animated oh-alert--danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+<div class="oh-modal__dialog-header">
+    <h2 class="text-md font-semibold" id="assignLeaveModalLabel">
+        {% trans "Assign Leaves" %}
+    </h2>
+    <button
+        type="button"
+        class="oh-modal__close--custom"
+        aria-label="{% trans 'Close' %}"
+        onclick="$(this).closest('.oh-modal--show').removeClass('oh-modal--show')"
+        {% if messages %}
+            hx-get="{% url 'assign-filter' %}?field=leave_type_id"
+            hx-target="#assignedLeaves"
+        {% endif %}
+    >
+        <ion-icon name="close-outline"></ion-icon>
+    </button>
+</div>
+<div class="oh-modal__dialog-body oh-modal__dialog-relative">
+    <form
+        hx-post="{% url 'assign' %}"
+        hx-target="#objectCreateModalTarget"
+        class="oh-profile-section"
+    >
+        <div class="oh-general__tab-target bg-[white] rounded-md border border-dark-50 p-[20px] w-full">
+            <div class="col-12">{{ assign_form.non_field_errors }}</div>
+            {% for field in assign_form %}
+                <div class="col-12" id="id_{{ field.name }}_parent_div">
+                    <div class="oh-label__info" for="id_{{ field.name }}">
+                        <label
+                            class="oh-label{% if field.field.required %} required-star{% endif %}"
+                            for="id_{{ field.name }}"
+                        >{% trans field.label %}</label>
+                    </div>
+                    {{ field|add_class:'form-control' }}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+            <div class="d-flex flex gap-1 justify-end pt-3 mt-3">
+                <button type="submit" class="oh-btn oh-btn--secondary mt-2 mr-0 pl-4 pr-5 oh-btn--w-100-resp">
+                    {% trans "Save" %}
+                </button>
+            </div>
+        </div>
+    </form>
+</div>

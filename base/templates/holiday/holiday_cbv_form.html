@@ -1,0 +1,47 @@
+{% load generic_template_filters %}
+
+<div id="{{ view_id }}"></div>
+<form id="{{ view_id }}Form"
+      hx-post="{{ request.path }}?{{ request.GET.urlencode }}"
+      {% if request.META.HTTP_HX_TARGET %}hx-target="#{{ request.META.HTTP_HX_TARGET }}"{% endif %}
+      hx-swap="{% if hx_target == 'this' %}outerHTML{% else %}innerHTML{% endif %}"
+      hx-encoding="multipart/form-data"
+      novalidate>
+    {{ form.structured }}
+</form>
+
+<script>
+    (function () {
+        var form = document.getElementById("{{ view_id }}Form");
+        if (!form) return;
+        var toggle = form.querySelector("#id_available_for_all");
+        if (!toggle) return;
+        var restricted = ["department", "job_position", "employees"];
+
+        function sync(clearValues) {
+            restricted.forEach(function (name) {
+                var wrapper = form.querySelector("#id_" + name + "_parent_div");
+                if (!wrapper) return;
+                wrapper.style.display = toggle.checked ? "none" : "";
+                // Only clear on a user toggle: a change event on load would also
+                // wipe the form's validation errors (theme clears them on change).
+                if (clearValues && toggle.checked) {
+                    var select = wrapper.querySelector("select");
+                    if (select && $(select).val() && $(select).val().length) {
+                        $(select).val(null).trigger("change");
+                    }
+                }
+            });
+        }
+
+        toggle.addEventListener("change", function () {
+            sync(true);
+        });
+        form.addEventListener("reset", function () {
+            setTimeout(function () {
+                sync(true);
+            }, 0);
+        });
+        sync();
+    })();
+</script>

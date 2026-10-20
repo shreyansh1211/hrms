@@ -1,0 +1,28 @@
+{% load i18n %}
+<div id="task-comments-{{ task.pk }}" style="margin-top:12px;">
+    <div class="oh-timeoff-modal__stat-title" style="margin-bottom:8px;">
+        {% trans "Comments" %} ({{ comments|length }})
+    </div>
+    {% for c in comments %}
+        <div style="border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;">
+                <span><strong>{{ c.employee_id.get_full_name }}</strong> &middot; {{ c.created_at|date:"d M Y H:i" }}</span>
+                {% if is_admin or c.employee_id_id == current_employee.pk %}
+                    <button type="button" style="color:#c2410c;background:none;border:0;cursor:pointer;"
+                        hx-post="{% url 'task-comment-delete' c.pk %}"
+                        hx-target="#task-comments-{{ task.pk }}" hx-swap="outerHTML"
+                        hx-confirm="{% trans 'Delete this comment?' %}">{% trans "Delete" %}</button>
+                {% endif %}
+            </div>
+            <div style="white-space:pre-wrap;margin-top:4px;">{{ c.comment }}</div>
+        </div>
+    {% empty %}
+        <div style="color:#64748b;font-size:13px;margin-bottom:8px;">{% trans "No comments yet." %}</div>
+    {% endfor %}
+    <form hx-post="{% url 'task-comments' task.pk %}" hx-target="#task-comments-{{ task.pk }}" hx-swap="outerHTML">
+        <textarea name="comment" rows="2" required maxlength="5000"
+            placeholder="{% trans 'Write a comment...' %}"
+            style="width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:8px;"></textarea>
+        <button type="submit" class="oh-btn oh-btn--secondary mt-2">{% trans "Add comment" %}</button>
+    </form>
+</div>

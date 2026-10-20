@@ -1,0 +1,78 @@
+{% load i18n %}
+{% load basefilters %}
+<style>
+    #enlargeImageContainer {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        top: 20%;
+        right: 7%;
+        width:400px;
+        height:500px;
+    }
+</style>
+<div class="oh-modal__dialog-header">
+    <h2 class="oh-modal__dialog-title">{{ policy.title }}</h2>
+    <button class="oh-modal__close" aria-label="{% trans 'Close' %}">
+        <ion-icon name="close-outline"></ion-icon>
+    </button>
+</div>
+
+<div class="oh-modal__dialog-body border rounded-md shadow-card m-[20px]">
+    <p class="oh-card__footer--border-top"></p>
+    {{ policy.body|sanitize_html }}
+    {# Inline the attached documents: a policy that is just an uploaded PDF used to show an empty modal with a 40px icon. #}
+    {% for attachment in policy.attachments.all %}
+        {% if attachment.is_pdf %}
+            <iframe
+                src="{{ attachment.attachment.url }}"
+                title="{{ policy.title }}"
+                loading="lazy"
+                class="border rounded-md mt-3"
+                style="width:100%;height:65vh"
+            ></iframe>
+        {% elif attachment.is_image %}
+            <img
+                src="{{ attachment.attachment.url }}"
+                alt="{{ policy.title }}"
+                loading="lazy"
+                class="border rounded-md mt-3"
+                style="max-width:100%"
+            />
+        {% endif %}
+    {% endfor %}
+    {% include "policies/attachments.html" %}
+
+</div>
+<div class="h-1"></div>
+
+<div id="enlargeImageContainer" ></div>
+
+
+<script>
+    function enlargeImage(src, element) {
+           var enlargeImageContainer = $("#enlargeImageContainer");
+           enlargeImageContainer.empty(); // Clear any previous content
+
+           var enlargedImage = $("<iframe>").attr({
+               src: src,
+               style: "width:100%; height:100%; border: none; background:white;",
+           });
+
+           enlargeImageContainer.append(enlargedImage);
+           enlargeImageContainer.css("display", "block");
+       }
+
+       function hideEnlargeImage() {
+           // Hide the enlarge image container when mouse leaves
+           var enlargeImageContainer = $("#enlargeImageContainer");
+           enlargeImageContainer.empty();
+           enlargeImageContainer.hide();
+       }
+
+    $(document).on("click", function (event) {
+    	if (!$(event.target).closest("#enlargeImageContainer").length) {
+    		hideEnlargeImage();
+    	}
+    });
+</script>

@@ -1,0 +1,4083 @@
+{% extends "index.html" %}
+{% load static i18n %}
+
+{% block content %}
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@7.8.0/dist/apexcharts.min.js"></script>
+    {% include "components/legend_prefs.html" %}
+    <style>
+        :root {
+            --md-indigo: var(--primary-600, #017391);
+            --md-green: #22c55e;
+            --md-amber: #f59e0b;
+            --md-red: #ef4444;
+            --md-blue: #3b82f6;
+            --md-purple: #a855f7;
+            --md-cyan: #06b6d4;
+            --md-pink: #ec4899;
+            --md-sidebar-w: 320px;
+        }
+
+        .md-dashboard {
+            min-height: calc(100vh - 80px);
+            margin: -24px;
+            padding: 24px;
+            background: #ffffff;
+            font-family: inherit;
+        }
+
+        .dark .md-dashboard {
+            background: #000000;
+        }
+
+        .md-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            row-gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .md-header h1 {
+            font-weight: 700;
+            font-size: 22px;
+        }
+
+        .md-header__date {
+            margin-top: 2px;
+            font-size: 13px;
+            opacity: 0.6;
+        }
+
+        .md-header__actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .md-btn-back {
+            padding: 6px 14px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            border-radius: 8px;
+            background: none;
+            color: inherit;
+            font-size: 13px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .md-btn-back:hover {
+            border-color: var(--md-indigo);
+            color: var(--md-indigo);
+            text-decoration: none;
+        }
+
+        .md-btn-customize {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            gap: 5px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            border-radius: 8px;
+            background: none;
+            color: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .md-btn-customize:hover {
+            border-color: var(--md-indigo);
+            color: var(--md-indigo);
+        }
+
+        /* Main layout: content + sidebar */
+        .md-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) var(--md-sidebar-w);
+            align-items: start;
+            gap: 20px;
+        }
+
+        .md-main {
+            min-width: 0;
+        }
+
+        .md-sidebar {
+            display: flex;
+            position: sticky;
+            top: 90px;
+            flex-direction: column;
+            gap: 16px;
+            max-height: calc(100vh - 90px - 24px);
+            overflow-y: auto;
+        }
+
+        .md-sidebar::-webkit-scrollbar {
+            width: 3px;
+        }
+        .md-sidebar::-webkit-scrollbar-thumb {
+            border-radius: 3px;
+            background: rgba(128, 128, 128, 0.2);
+        }
+
+        /* KPI Grid */
+        .md-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            margin-bottom: 20px;
+            gap: 14px;
+        }
+
+        .md-kpi-card {
+            display: block;
+            position: relative;
+            padding: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(128, 128, 128, 0.09);
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 4px 14px rgba(0, 0, 0, 0.05);
+            color: inherit;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .md-kpi-card::after {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 80px;
+            height: 80px;
+            transform: translate(20px, 20px);
+            border-radius: 50%;
+            background: currentColor;
+            content: '';
+            opacity: 0.06;
+            pointer-events: none;
+        }
+
+        .md-kpi-card:active {
+            transform: scale(0.97);
+        }
+
+        .dark .md-kpi-card {
+            border-color: rgba(255, 255, 255, 0.07);
+            background: #242424;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .md-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+            text-decoration: none;
+        }
+        .md-kpi-card__hit {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+        }
+        .md-kpi-card__hit:hover {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .md-kpi-card__icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            font-size: 18px;
+        }
+
+        .md-kpi-card__icon--indigo {
+            background: #eef2ff;
+            color: var(--md-indigo);
+        }
+        .md-kpi-card__icon--green {
+            background: #dcfce7;
+            color: var(--md-green);
+        }
+        .md-kpi-card__icon--amber {
+            background: #fef3c7;
+            color: var(--md-amber);
+        }
+        .md-kpi-card__icon--purple {
+            background: #f3e8ff;
+            color: var(--md-purple);
+        }
+        .md-kpi-card__icon--red {
+            background: #fee2e2;
+            color: var(--md-red, #ef4444);
+        }
+        .md-kpi-card__icon--blue {
+            background: #dbeafe;
+            color: var(--md-blue);
+        }
+
+        .dark .md-kpi-card__icon--indigo {
+            background: #312e81;
+        }
+        .dark .md-kpi-card__icon--green {
+            background: #14532d;
+        }
+        .dark .md-kpi-card__icon--amber {
+            background: #78350f;
+        }
+        .dark .md-kpi-card__icon--purple {
+            background: #3b0764;
+        }
+        .dark .md-kpi-card__icon--red {
+            background: #7f1d1d;
+        }
+        .dark .md-kpi-card__icon--blue {
+            background: #1e3a8a;
+        }
+
+        .md-kpi-card__label {
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            opacity: 0.5;
+        }
+
+        .md-kpi-card__value {
+            margin-bottom: 6px;
+            font-weight: 800;
+            font-size: 30px;
+            line-height: 1;
+        }
+
+        .md-kpi-card__sub {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .md-kpi-card__breakdown {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 10px;
+            margin-top: 6px;
+        }
+
+        .md-kpi-card__breakdown-item {
+            font-size: 11px;
+            opacity: 0.6;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .md-kpi-card__breakdown-item b {
+            font-weight: 700;
+            opacity: 1;
+        }
+
+        .md-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            gap: 3px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .md-badge--green {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .md-badge--amber {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .md-badge--red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .md-badge--blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .md-badge--purple {
+            background: #f3e8ff;
+            color: #6b21a8;
+        }
+        .dark .md-badge--green {
+            background: #166534;
+            color: #bbf7d0;
+        }
+        .dark .md-badge--amber {
+            background: #92400e;
+            color: #fde68a;
+        }
+        .dark .md-badge--red {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+        .dark .md-badge--blue {
+            background: #1e3a8a;
+            color: #bfdbfe;
+        }
+        .dark .md-badge--purple {
+            background: #581c87;
+            color: #e9d5ff;
+        }
+
+        /* Chart Grid — flat sortable container */
+        .md-chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin-bottom: 20px;
+            gap: 18px;
+        }
+
+        .md-chart-card {
+            min-width: 0;
+            position: relative;
+            /* visible so ApexCharts axis/legend labels are not clipped */
+            overflow: visible;
+            border: 1px solid rgba(128, 128, 128, 0.09);
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.25s ease, transform 0.25s ease;
+        }
+        .md-chart-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+            /* The hover transform makes the card its own stacking layer, which a later card
+               paints over: a tall tooltip (Recruitment Pipeline Trend) was cut off by the card
+               below. Lift the hovered card above its neighbours. */
+            z-index: 20;
+        }
+        .dark .md-chart-card {
+            border-color: rgba(255, 255, 255, 0.07);
+            background: #242424;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+        .dark .md-chart-card:hover {
+            box-shadow: 0 6px 28px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Section accent top-border strip */
+        .md-chart-card::before {
+            z-index: 1;
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 3px;
+            border-radius: 16px 16px 0 0;
+            content: '';
+            pointer-events: none;
+        }
+        .md-chart-card[data-chart-section='overview']::before {
+            background: linear-gradient(90deg, #017391, #a855f7);
+        }
+        .md-chart-card[data-chart-section='attendance']::before {
+            background: linear-gradient(90deg, #22c55e, #06b6d4);
+        }
+        .md-chart-card[data-chart-section='recruitment']::before {
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+        .md-chart-card[data-chart-section='leave']::before {
+            background: linear-gradient(90deg, #3b82f6, #017391);
+        }
+
+        .md-chart-card--wide {
+            grid-column: span 2;
+        }
+        .md-chart-card--hidden {
+            display: none !important;
+        }
+
+        .md-chart-card__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px 4px;
+        }
+
+        .md-chart-card__title {
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: -0.01em;
+        }
+
+        .md-chart-card__subtitle {
+            margin-top: 2px;
+            font-weight: 500;
+            font-size: 11px;
+            opacity: 0.45;
+        }
+
+        /* Small segmented switch in a chart card header (Overall / By Department). */
+        .md-chart-card__controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .md-seg {
+            display: inline-flex;
+            border: 1px solid rgba(128, 128, 128, 0.25);
+            border-radius: 999px;
+            padding: 2px;
+        }
+        .md-seg__btn {
+            border: 0;
+            background: none;
+            color: inherit;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 12px;
+            border-radius: 999px;
+            opacity: 0.6;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .md-seg[hidden], .md-pie-legend[hidden] { display: none; }
+        .md-seg__btn:hover { opacity: 1; }
+        .md-seg__btn.is-active {
+            background: var(--md-indigo);
+            color: #fff;
+            opacity: 1;
+        }
+
+        .md-chart-card__body {
+            padding: 4px 12px 16px;
+            overflow: visible;
+        }
+
+        /* Force readable ApexCharts axis/legend labels on light & dark cards */
+        .md-dashboard .apexcharts-xaxis text,
+        .md-dashboard .apexcharts-yaxis text,
+        .md-dashboard .apexcharts-legend-text {
+            fill: #334155 !important;
+        }
+        .dark .md-dashboard .apexcharts-xaxis text,
+        .dark .md-dashboard .apexcharts-yaxis text,
+        .dark .md-dashboard .apexcharts-legend-text {
+            fill: #cbd5e1 !important;
+        }
+
+        /* Section labels inside the grid */
+        .md-section-divider {
+            grid-column: span 2;
+            padding: 8px 2px 0;
+            font-weight: 700;
+            font-size: 15px;
+            opacity: 0.7;
+        }
+
+        /* Skeleton */
+        .md-skeleton {
+            border-radius: 12px;
+            background: linear-gradient(90deg, rgba(128, 128, 128, 0.1) 25%, transparent 50%, rgba(128, 128, 128, 0.1) 75%);
+            background-size: 200% 100%;
+            animation: md-shimmer 1.5s infinite;
+        }
+
+        @keyframes md-shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .md-skeleton--kpi {
+            height: 110px;
+        }
+
+        /* KPI skeleton that mirrors the real card's icon/label/value/sub
+           layout (instead of one flat rectangle), so each part shimmers
+           as its own block. */
+        .md-kpi-card--skeleton {
+            display: block;
+            cursor: default;
+        }
+        .md-kpi-card--skeleton .md-skeleton--icon {
+            width: 38px;
+            height: 38px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+        }
+        .md-kpi-card--skeleton .md-skeleton--label {
+            width: 55%;
+            height: 11px;
+            margin-bottom: 8px;
+        }
+        .md-kpi-card--skeleton .md-skeleton--value {
+            width: 40%;
+            height: 26px;
+            margin-bottom: 8px;
+        }
+        .md-kpi-card--skeleton .md-skeleton--sub {
+            width: 65%;
+            height: 12px;
+        }
+        /* Stagger each card's shimmer slightly so they animate block by
+           block left-to-right rather than all in perfect unison. */
+        .md-kpi-card--skeleton:nth-child(2) .md-skeleton {
+            animation-delay: 0.12s;
+        }
+        .md-kpi-card--skeleton:nth-child(3) .md-skeleton {
+            animation-delay: 0.24s;
+        }
+        .md-kpi-card--skeleton:nth-child(4) .md-skeleton {
+            animation-delay: 0.36s;
+        }
+        .md-kpi-card--skeleton:nth-child(5) .md-skeleton {
+            animation-delay: 0.48s;
+        }
+
+        .md-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 0;
+            gap: 8px;
+            font-size: 13px;
+            text-align: center;
+            opacity: 0.6;
+        }
+        .md-empty img {
+            width: 100px;
+            opacity: 0.7;
+        }
+
+        /* Sidebar panels */
+        .md-info-panel {
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow: hidden;
+            border: 1px solid rgba(128, 128, 128, 0.12);
+            border-radius: 12px;
+            background: #ffffff;
+        }
+
+        .dark .md-info-panel {
+            border-color: rgba(255, 255, 255, 0.08);
+            background: #242424;
+        }
+
+        .md-info-panel__header {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+        }
+
+        .md-info-panel__title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        /* Right of a side panel's title: which records it lists (same as the Leave dashboard). */
+        .md-info-panel__header { gap: 8px; }
+    /* Title on top, the date period / basis the card lists on the line below. */
+    .md-info-panel__heading { min-width: 0; }
+    .md-info-panel__sub { font-size: 11px; opacity: 0.5; margin-top: 2px; }
+        .md-info-panel__basis {
+            min-width: 0;
+            text-align: right;
+            font-size: 11px;
+            opacity: 0.5;
+        }
+
+        /* How many items the panel holds, beside its title. Hidden at zero. */
+        /* A light symbol before the line: a gift for a birthday, a ribbon for a work anniversary. */
+        .md-bday-item__kind { font-size: 13px; vertical-align: -2px; margin-right: 4px; opacity: .75; }
+        .md-bday-item__kind--birthday { color: #ec4899; }
+        .md-bday-item__kind--anniversary { color: #6366f1; }
+
+        .md-count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: var(--md-indigo);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1;
+        }
+        .md-count-badge[hidden] { display: none; }
+
+        .md-info-panel__body {
+            flex: 1;
+            max-height: calc(50vh - 80px);
+            padding: 0 16px 12px;
+            overflow-y: auto;
+        }
+
+        .md-info-panel__body::-webkit-scrollbar {
+            width: 3px;
+        }
+        .md-info-panel__body::-webkit-scrollbar-thumb {
+            border-radius: 3px;
+            background: rgba(128, 128, 128, 0.2);
+        }
+
+        .md-ann-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.06);
+        }
+        .md-ann-item:last-child {
+            border-bottom: none;
+        }
+        .md-ann-item__title {
+            margin-bottom: 2px;
+            font-weight: 600;
+            font-size: 12px;
+            line-height: 1.3;
+        }
+        .md-ann-item__desc {
+            display: -webkit-box;
+            font-size: 11px;
+            line-height: 1.4;
+            opacity: 0.55;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .md-ann-item__meta {
+            margin-top: 3px;
+            font-size: 10px;
+            opacity: 0.4;
+        }
+        .md-ann-item__expire {
+            margin-left: 4px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            background: #fef3c7;
+            color: #92400e;
+            font-weight: 600;
+            font-size: 9px;
+        }
+        .dark .md-ann-item__expire {
+            background: #78350f;
+            color: #fde68a;
+        }
+
+        .md-leave-item {
+            display: flex;
+            align-items: center;
+            padding: 7px 0;
+            gap: 8px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.06);
+        }
+        .md-leave-item:last-child {
+            border-bottom: none;
+        }
+        .md-leave-item__avatar {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            overflow: hidden;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #64748b;
+            font-weight: 700;
+            font-size: 10px;
+        }
+        .dark .md-leave-item__avatar {
+            background: #334155;
+            color: #94a3b8;
+        }
+        .md-leave-item__avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .md-leave-item__info {
+            flex: 1;
+            min-width: 0;
+        }
+        .md-leave-item__name {
+            overflow: hidden;
+            font-weight: 600;
+            font-size: 12px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .md-leave-item__type {
+            font-size: 10px;
+            opacity: 0.5;
+        }
+        .md-leave-item__dates {
+            flex-shrink: 0;
+            font-size: 10px;
+            text-align: right;
+            opacity: 0.6;
+        }
+        .md-leave-item__days {
+            padding: 1px 5px;
+            border-radius: 4px;
+            background: #dcfce7;
+            color: #166534;
+            font-weight: 600;
+            font-size: 9px;
+        }
+        .dark .md-leave-item__days {
+            background: #14532d;
+            color: #bbf7d0;
+        }
+        .md-info-panel__empty {
+            padding: 40px 0;
+            font-size: 12px;
+            text-align: center;
+            opacity: 0.4;
+        }
+        .md-link-subtle {
+            color: var(--md-indigo);
+            font-weight: 600;
+            font-size: 10px;
+            text-decoration: none;
+        }
+        .md-link-subtle:hover {
+            text-decoration: underline;
+        }
+
+        /* Department Headcount legend: top departments as chips + "+N" popover */
+        .md-pie-legend {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px 12px 14px;
+        }
+        .md-pie-chips {
+            display: contents;
+        }
+        .md-pie-chip__name {
+            max-width: 130px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .md-pie-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            border-radius: 999px;
+            background: none;
+            color: inherit;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: opacity 0.15s, border-color 0.15s;
+        }
+        .md-pie-chip:hover {
+            border-color: var(--md-indigo);
+        }
+        /* Light card tooltip for legend chips (replaces the browser's dark native title box) */
+        .md-pie-chip[data-tip] { position: relative; }
+        .md-pie-chip[data-tip]::after {
+            content: attr(data-tip);
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 8px);
+            transform: translateX(-50%);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            background: #ffffff;
+            color: #334155;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.12s;
+            z-index: 50;
+        }
+        .md-pie-chip[data-tip]:hover::after { opacity: 1; visibility: visible; }
+        .dark .md-pie-chip[data-tip]::after { background: #242424; color: #e2e8f0; border-color: rgba(255, 255, 255, 0.12); }
+        .md-pie-chip.is-off {
+            opacity: 0.45;
+        }
+        .md-pie-chip.is-off .md-pie-chip__dot {
+            filter: grayscale(1);
+        }
+        .md-pie-chip__dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .md-pie-chip--more {
+            text-transform: capitalize;
+            color: var(--md-indigo);
+            font-weight: 600;
+            border-style: dashed;
+        }
+        .md-pie-more {
+            position: relative;
+            display: inline-block;
+        }
+        .md-pie-pop {
+            display: none;
+            position: absolute;
+            right: 0;
+            bottom: 100%;
+            padding-bottom: 8px;
+            z-index: 40;
+        }
+        .md-pie-more:hover .md-pie-pop,
+        .md-pie-more:focus-within .md-pie-pop {
+            display: block;
+        }
+        .md-pie-pop__box {
+            width: max-content;
+            min-width: 230px;
+            max-width: 340px;
+            border: 1px solid rgba(128, 128, 128, 0.15);
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+            padding: 8px 4px 6px;
+        }
+        .dark .md-pie-pop__box {
+            background: #242424;
+        }
+        .md-pie-pop__title {
+            padding: 0 10px 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            opacity: 0.55;
+        }
+        .md-pie-pop__list {
+            max-height: 190px;
+            overflow-y: auto;
+        }
+        .md-pie-pop__row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .md-pie-pop__row:hover {
+            background: rgba(128, 128, 128, 0.1);
+        }
+        .md-pie-pop__text {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            min-width: 0;
+            line-height: 1.25;
+        }
+        .md-pie-pop__text > span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .md-pie-pop__text > small {
+            white-space: nowrap;
+            font-size: 10px;
+            opacity: 0.6;
+        }
+        .md-pie-pop__row input {
+            accent-color: var(--md-indigo);
+            margin: 0;
+        }
+        .md-pie-pop__count {
+            flex-shrink: 0;
+            white-space: nowrap;
+            margin-left: auto;
+            font-size: 11px;
+            opacity: 0.55;
+        }
+        .md-chart-card:has(.md-pie-more:hover),
+        .md-chart-card:has(.md-pie-more:focus-within) {
+            z-index: 30;
+        }
+
+        /* Overdue tickets list */
+        .md-tkt-body {
+            padding: 0 6px 10px;
+            max-height: 372px;
+            overflow-y: auto;
+        }
+        .md-tkt-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: inherit;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .md-tkt-row:hover {
+            background: rgba(128, 128, 128, 0.08);
+            color: inherit;
+        }
+        .md-tkt-row + .md-tkt-row {
+            border-top: 1px solid rgba(128, 128, 128, 0.1);
+        }
+        .md-tkt-row__avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .md-tkt-row__main {
+            flex: 1;
+            min-width: 0;
+        }
+        .md-tkt-row__title {
+            overflow: hidden;
+            font-size: 13px;
+            font-weight: 600;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .md-tkt-row__id {
+            margin-right: 6px;
+            color: var(--md-indigo);
+            font-weight: 700;
+        }
+        .md-tkt-row__meta {
+            overflow: hidden;
+            font-size: 11px;
+            opacity: 0.6;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .md-tkt-row__side {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .md-tkt-late {
+            color: #dc2626;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .md-tkt-prio {
+            padding: 1px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .md-tkt-prio--high { background: rgba(239, 68, 68, 0.14); color: #dc2626; }
+        .md-tkt-prio--medium { background: rgba(245, 158, 11, 0.16); color: #b45309; }
+        .md-tkt-prio--low { background: rgba(34, 197, 94, 0.14); color: #15803d; }
+
+        /* Standard chart tooltip card */
+        /* Stage names under the pipeline chart open that stage's candidates. */
+        #chart-pipeline .apexcharts-xaxis-label,
+        #chart-pipeline .apexcharts-grid,
+        #chart-pipeline .apexcharts-line-series,
+        #chart-leave-trend .apexcharts-xaxis-label,
+        #chart-leave-trend .apexcharts-grid,
+        #chart-leave-trend .apexcharts-line-series { cursor: pointer; }
+        #chart-turnover .apexcharts-bar-area { cursor: pointer; }
+        /* The tooltip sits over the bar being hovered; it must not swallow the click. */
+        #chart-turnover .apexcharts-tooltip { pointer-events: none; }
+        /* A long title wraps inside a bounded card instead of stretching the tooltip until it
+       flips off the chart and is clipped by the page edge; and it stacks above neighbours. */
+    .apexcharts-tooltip { z-index: 60 !important; }
+    .md-tip { max-width: 260px; white-space: normal; overflow-wrap: anywhere; }
+        .md-tip {
+            min-width: 150px;
+            padding: 10px 12px;
+            font-size: 12px;
+        }
+        .md-tip__title {
+            margin-bottom: 4px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .md-tip__row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-top: 4px;
+        }
+        .md-tip__label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .md-tip__dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .md-tip__sub {
+            font-weight: 400;
+            opacity: 0.65;
+        }
+        .md-tip__note {
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(128, 128, 128, 0.2);
+            font-size: 10px;
+            opacity: 0.6;
+        }
+
+        /* Icon-only button in a chart card header that opens the module's own dashboard */
+        .md-card-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: 1px solid color-mix(in srgb, var(--md-indigo) 25%, transparent);
+            background: color-mix(in srgb, var(--md-indigo) 8%, transparent);
+            color: var(--md-indigo);
+            text-decoration: none;
+            transition: background 0.15s, color 0.15s, transform 0.15s;
+        }
+        .md-card-link:hover {
+            background: var(--md-indigo);
+            color: #fff;
+            transform: translate(1px, -1px);
+        }
+
+        /* Dimension picker in a chart card header (e.g. Gender Distribution's Overall/Department-wise) */
+        .md-dimension-select {
+            appearance: none;
+            -webkit-appearance: none;
+            padding: 6px 28px 6px 10px;
+            border: 1px solid hsl(213, 22%, 84%);
+            border-radius: 6px;
+            background-color: #fff;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            color: inherit;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.3;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .md-dimension-select:hover {
+            border-color: var(--md-indigo);
+        }
+        .md-dimension-select:focus {
+            outline: none;
+            border-color: var(--md-indigo);
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-indigo) 15%, transparent);
+        }
+        .dark .md-dimension-select {
+            background-color: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .md-btn-add {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            margin-right: 6px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            border-radius: 6px;
+            background: none;
+            color: var(--md-indigo);
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .md-btn-add:hover {
+            border-color: var(--md-indigo);
+            background: var(--md-indigo);
+            color: #fff;
+        }
+
+        .md-ann-item {
+            margin: 0 -6px;
+            padding: 10px 6px !important;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .md-ann-item:hover {
+            background: rgba(99, 102, 241, 0.04);
+        }
+        .dark .md-ann-item:hover {
+            background: rgba(99, 102, 241, 0.08);
+        }
+
+        /* Announcement modal */
+        .md-modal-overlay {
+            display: flex;
+            z-index: 1060;
+            position: fixed;
+            align-items: center;
+            justify-content: center;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .md-modal-overlay--open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .md-modal {
+            display: flex;
+            flex-direction: column;
+            width: 580px;
+            max-width: 92vw;
+            max-height: 85vh;
+            transform: translateY(12px);
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+        .md-modal-overlay--open .md-modal {
+            transform: translateY(0);
+        }
+        .dark .md-modal {
+            background: #242424;
+        }
+
+        .md-modal__header {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+        }
+        .md-modal__header h3 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .md-modal__close {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(128, 128, 128, 0.08);
+            color: inherit;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .md-modal__close:hover {
+            background: rgba(128, 128, 128, 0.16);
+        }
+
+        .md-modal__body {
+            flex: 1;
+            padding: 20px 22px;
+            overflow-y: auto;
+        }
+        .md-modal__body::-webkit-scrollbar {
+            width: 4px;
+        }
+        .md-modal__body::-webkit-scrollbar-thumb {
+            border-radius: 4px;
+            background: rgba(128, 128, 128, 0.2);
+        }
+
+        /* Announcement create now uses standard #objectCreateModal */
+        .md-create-modal .md-modal {
+            width: 640px;
+        }
+        .md-create-modal .md-modal__body .oh-profile-section {
+            margin: 0;
+        }
+        .md-create-modal .md-modal__body .oh-modal__dialog-header {
+            display: none;
+        }
+        .md-create-modal .md-modal__body label {
+            margin-bottom: 4px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .md-create-modal .md-modal__body input,
+        .md-create-modal .md-modal__body select,
+        .md-create-modal .md-modal__body textarea {
+            font-size: 13px;
+        }
+
+        /* ── Customize Panel (slide-out) ── */
+        .md-customize-overlay {
+            z-index: 1050;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .md-customize-overlay--open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .md-customize-panel {
+            display: flex;
+            z-index: 1051;
+            position: fixed;
+            top: 0;
+            right: -420px;
+            flex-direction: column;
+            width: 400px;
+            height: 100vh;
+            background: #ffffff;
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+            transition: right 0.25s ease;
+        }
+        .dark .md-customize-panel {
+            background: #242424;
+        }
+        .md-customize-panel--open {
+            right: 0;
+        }
+
+        .md-customize-panel__header {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.12);
+        }
+        .md-customize-panel__header h3 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .md-customize-panel__close {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(128, 128, 128, 0.08);
+            color: inherit;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .md-customize-panel__close:hover {
+            background: rgba(128, 128, 128, 0.16);
+        }
+
+        .md-customize-panel__body {
+            flex: 1;
+            padding: 12px 20px;
+            overflow-y: auto;
+        }
+        .md-customize-panel__body::-webkit-scrollbar {
+            width: 4px;
+        }
+        .md-customize-panel__body::-webkit-scrollbar-thumb {
+            border-radius: 4px;
+            background: rgba(128, 128, 128, 0.2);
+        }
+
+        .md-customize-panel__footer {
+            display: flex;
+            flex-shrink: 0;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-top: 1px solid rgba(128, 128, 128, 0.12);
+        }
+
+        .md-cust-btn {
+            padding: 7px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .md-cust-btn--primary {
+            background: var(--md-indigo);
+            color: #fff;
+        }
+        .md-cust-btn--primary:hover {
+            background: #4f46e5;
+        }
+        .md-cust-btn--ghost {
+            background: none;
+            color: inherit;
+            opacity: 0.6;
+        }
+        .md-cust-btn--ghost:hover {
+            opacity: 1;
+        }
+
+        /* Draggable chart list items */
+        .md-cust-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            padding: 10px 12px;
+            gap: 10px;
+            border: 1px solid rgba(128, 128, 128, 0.1);
+            border-radius: 8px;
+            background: rgba(128, 128, 128, 0.02);
+            cursor: grab;
+            transition: box-shadow 0.15s, border-color 0.15s;
+            user-select: none;
+        }
+        .md-cust-item:active {
+            cursor: grabbing;
+        }
+        .md-cust-item.md-dragging {
+            z-index: 10;
+            border-color: var(--md-indigo);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            opacity: 0.85;
+        }
+        .md-cust-item.md-drag-over {
+            border-top: 2px solid var(--md-indigo);
+        }
+
+        .md-cust-item__handle {
+            flex-shrink: 0;
+            font-size: 16px;
+            cursor: grab;
+            opacity: 0.3;
+        }
+        .md-cust-item__label {
+            flex: 1;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        .md-cust-item__section {
+            margin-top: 1px;
+            font-size: 10px;
+            opacity: 0.4;
+        }
+        .md-cust-item__toggle {
+            position: relative;
+            flex-shrink: 0;
+            width: 36px;
+            height: 20px;
+            border: none;
+            border-radius: 12px;
+            background: #e2e8f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .dark .md-cust-item__toggle {
+            background: #334155;
+        }
+        .md-cust-item__toggle::after {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            content: '';
+            transition: transform 0.2s;
+        }
+        .md-cust-item__toggle--on {
+            background: var(--md-indigo);
+        }
+        .md-cust-item__toggle--on::after {
+            transform: translateX(16px);
+        }
+
+        .md-cust-section-title {
+            padding: 12px 0 4px;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            opacity: 0.4;
+        }
+        .md-cust-section-title:first-child {
+            padding-top: 0;
+        }
+
+        /* Birthday / Anniversary items */
+        .md-bday-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            gap: 10px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.06);
+        }
+        .md-bday-item:last-child {
+            border-bottom: none;
+        }
+        .md-bday-item__avatar {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            overflow: hidden;
+            border-radius: 50%;
+            background: #eef2ff;
+            color: var(--md-indigo);
+            font-weight: 700;
+            font-size: 11px;
+        }
+        .dark .md-bday-item__avatar {
+            background: #312e81;
+        }
+        .md-bday-item__avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .md-bday-item__info {
+            flex: 1;
+            min-width: 0;
+        }
+        .md-bday-item__name {
+            overflow: hidden;
+            font-weight: 600;
+            font-size: 12px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .md-bday-item__detail {
+            font-size: 11px;
+            opacity: 0.5;
+        }
+        .md-bday-item__badge {
+            flex-shrink: 0;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+        .md-bday-item__badge--today {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .md-bday-item__badge--soon {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .dark .md-bday-item__badge--today {
+            background: #166534;
+            color: #bbf7d0;
+        }
+        .dark .md-bday-item__badge--soon {
+            background: #92400e;
+            color: #fde68a;
+        }
+
+        /* Pending approvals (sidebar) */
+
+        .md-pending-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding-top: 8px;
+            gap: 8px;
+        }
+        .md-pending-card {
+            display: block;
+            padding: 12px;
+            border: 1px solid rgba(128, 128, 128, 0.08);
+            border-radius: 8px;
+            color: inherit;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .md-pending-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            color: inherit;
+            text-decoration: none;
+        }
+        .md-pending-card__count {
+            margin-bottom: 4px;
+            font-weight: 800;
+            font-size: 22px;
+            line-height: 1;
+        }
+        .md-pending-card__label {
+            font-weight: 600;
+            font-size: 10px;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            opacity: 0.5;
+        }
+        .md-pending-card--amber {
+            background: #fffbeb;
+        }
+        .md-pending-card--blue {
+            background: #eff6ff;
+        }
+        .md-pending-card--green {
+            background: #f0fdf4;
+        }
+        .md-pending-card--purple {
+            background: #faf5ff;
+        }
+        .dark .md-pending-card--amber {
+            background: rgba(245, 158, 11, 0.1);
+        }
+        .dark .md-pending-card--blue {
+            background: rgba(59, 130, 246, 0.1);
+        }
+        .dark .md-pending-card--green {
+            background: rgba(34, 197, 94, 0.1);
+        }
+        .dark .md-pending-card--purple {
+            background: rgba(168, 85, 247, 0.1);
+        }
+
+        /* Payroll summary card */
+        .md-payroll-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 0;
+            gap: 8px;
+        }
+        .md-payroll-stat {
+            text-align: center;
+            transition: transform 0.15s;
+        }
+        .md-payroll-stat:hover {
+            transform: translateY(-1px);
+        }
+        .md-payroll-stat__value {
+            font-weight: 800;
+            font-size: 17px;
+            line-height: 1.2;
+        }
+        .md-payroll-stat__label {
+            margin-top: 2px;
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            opacity: 0.55;
+        }
+
+        /* Period Picker */
+        .md-period-picker {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+        .md-period-picker input[type='date'] {
+            padding: 5px 8px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            border-radius: 6px;
+            outline: none;
+            background: transparent;
+            color: inherit;
+            font-size: 12px;
+            transition: border-color 0.15s;
+        }
+        .md-period-picker input[type='date']:focus {
+            border-color: var(--md-indigo);
+        }
+        .md-period-picker__sep {
+            font-size: 11px;
+            opacity: 0.4;
+        }
+        .md-period-preset {
+            padding: 4px 10px;
+            border: 1px solid rgba(128, 128, 128, 0.15);
+            border-radius: 6px;
+            background: none;
+            color: inherit;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .md-period-preset:hover {
+            border-color: var(--md-indigo);
+            color: var(--md-indigo);
+        }
+        .md-period-preset--active {
+            border-color: var(--md-indigo);
+            background: var(--md-indigo);
+            color: #fff;
+        }
+        .md-period-preset--active:hover {
+            border-color: var(--md-indigo);
+            background: var(--md-indigo);
+            color: #fff;
+        }
+        .dark .md-period-picker input[type='date'] {
+            color-scheme: dark;
+        }
+
+        /* Auto-refresh */
+        .md-refresh {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            opacity: 0.5;
+        }
+        .md-refresh__dot {
+            flex-shrink: 0;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--md-green);
+        }
+        .md-refresh__dot--pulse {
+            animation: md-pulse 2s infinite;
+        }
+        @keyframes md-pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+        .md-refresh__toggle {
+            padding: 2px;
+            border: none;
+            background: none;
+            color: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        .md-refresh__toggle:hover {
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 1440px) {
+            .md-kpi-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (max-width: 1280px) {
+            .md-layout {
+                grid-template-columns: 1fr;
+            }
+            .md-sidebar {
+                display: grid;
+                position: static;
+                grid-template-columns: 1fr 1fr;
+                max-height: none;
+                overflow-y: visible;
+            }
+            .md-info-panel__body {
+                max-height: 300px;
+            }
+        }
+        @media (max-width: 1024px) {
+            .md-kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .md-chart-grid {
+                grid-template-columns: 1fr;
+            }
+            .md-chart-card--wide {
+                grid-column: span 1;
+            }
+            .md-section-divider {
+                grid-column: span 1;
+            }
+            .md-sidebar {
+                grid-template-columns: 1fr;
+            }
+            .md-customize-panel {
+                right: -340px;
+                width: 320px;
+            }
+        }
+        @media (max-width: 640px) {
+            .md-kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            .md-customize-panel {
+                right: -100%;
+                width: 100%;
+            }
+        }
+
+        .md-company-chip {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 6px;
+            padding: 3px 10px;
+            gap: 6px;
+            border: 1px solid hsl(0, 0%, 90%);
+            border-radius: 999px;
+            background: hsl(0, 0%, 96%);
+            color: hsl(0, 0%, 40%);
+            font-weight: 500;
+            font-size: 12px;
+        }
+        .dark .md-company-chip {
+            border-color: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.06);
+            color: #cbd5e1;
+        }
+
+        /* Recruitment stage funnel (HTML, not Apex) */
+        .md-funnel {
+            display: flex;
+            flex-direction: column;
+            padding: 8px 0 4px;
+            gap: 0;
+        }
+        .md-funnel-step {
+            display: flex;
+            align-items: center;
+            padding: 3px 4px;
+            gap: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .md-funnel-step:hover {
+            background: rgba(1, 115, 145, 0.06);
+        }
+        .md-funnel-step__label {
+            min-width: 88px;
+            color: inherit;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .md-funnel-step__bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            min-width: 48px;
+            height: 28px;
+            padding: 0 10px;
+            border-radius: 6px;
+            color: #fff;
+            font-weight: 700;
+            font-size: 12px;
+            transition: opacity 0.15s;
+        }
+        .md-funnel-step:hover .md-funnel-step__bar {
+            opacity: 0.88;
+        }
+        .md-funnel-step__share {
+            min-width: 44px;
+            font-weight: 700;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+        .md-funnel-meta {
+            margin-top: 10px;
+            font-size: 11px;
+            text-align: right;
+            opacity: 0.55;
+        }
+    </style>
+
+    <div class="md-dashboard">
+        <!-- Header -->
+        <div class="md-header">
+            <div>
+                <h1>{% trans "Dashboard" %}</h1>
+                <div class="md-header__date" id="md-date"></div>
+                {% if dashboard_company_label %}
+                    <div
+                        class="md-company-chip"
+                        id="md-company-chip"
+                        title="{% if dashboard_company_is_all %}{% trans 'KPIs span all companies you can access' %}{% else %}{% trans 'Active company scope' %}{% endif %}"
+                    >
+                        <span
+                        >{% if dashboard_company_is_all %}{% trans "Scope" %}{% else %}{% trans "Company" %}{% endif %}:</span>
+                        <strong>{{ dashboard_company_label }}</strong>
+                    </div>
+                {% endif %}
+                <div class="md-refresh">
+                    <span class="md-refresh__dot" id="md-refresh-dot"></span><span
+                        id="md-refresh-text"
+                    >{% trans "Just now" %}</span><button
+                        class="md-refresh__toggle"
+                        id="md-refresh-toggle"
+                        title="{% trans 'Toggle auto-refresh' %}"
+                    >
+                        ⟳
+                    </button>
+                </div>
+            </div>
+            <div class="md-header__actions">
+                <div class="md-period-picker">
+                    <button class="md-period-preset" data-preset="today">{% trans "Today" %}</button>
+                    <button class="md-period-preset" data-preset="this_week">{% trans "This Week" %}</button>
+                    <button class="md-period-preset" data-preset="this_month">{% trans "This Month" %}</button>
+                    <button class="md-period-preset" data-preset="this_year">{% trans "This Year" %}</button>
+                    <input type="date" id="md-from-date" title="{% trans 'Custom range start' %}">
+                    <span class="md-period-picker__sep">→</span>
+                    <input type="date" id="md-to-date" title="{% trans 'Custom range end' %}">
+                </div>
+                {% if request.user.employee_get %}
+                    <a
+                        href="{% url 'ess-dashboard' %}"
+                        class="oh-btn oh-btn--secondary"
+                        title="{% trans 'Switch to My Dashboard' %}"
+                        style="display: flex; align-items: center; gap: 5px; font-size: 13px"
+                    >
+                        <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        {% trans "My Dashboard" %}
+                    </a>
+                {% endif %}
+                <button
+                    class="oh-btn oh-btn--secondary"
+                    id="md-open-customize"
+                    title="{% trans 'Customize dashboard' %}"
+                    style="display: flex; align-items: center; gap: 5px; font-size: 13px"
+                >
+                    <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                    {% trans "Customize" %}
+                </button>
+            </div>
+        </div>
+
+        <!-- Setup checklist banner (shown to new accounts until all steps complete or dismissed) -->
+        {% if show_setup_checklist %}
+            {% include "base/setup_checklist_banner.html" %}
+        {% endif %}
+
+        <div class="md-kpi-grid" id="md-kpi-grid">
+            <div class="md-kpi-card md-kpi-card--skeleton">
+                <div class="md-skeleton md-skeleton--icon"></div>
+                <div class="md-skeleton md-skeleton--label"></div>
+                <div class="md-skeleton md-skeleton--value"></div>
+                <div class="md-skeleton md-skeleton--sub"></div>
+            </div>
+            <div class="md-kpi-card md-kpi-card--skeleton">
+                <div class="md-skeleton md-skeleton--icon"></div>
+                <div class="md-skeleton md-skeleton--label"></div>
+                <div class="md-skeleton md-skeleton--value"></div>
+                <div class="md-skeleton md-skeleton--sub"></div>
+            </div>
+            <div class="md-kpi-card md-kpi-card--skeleton">
+                <div class="md-skeleton md-skeleton--icon"></div>
+                <div class="md-skeleton md-skeleton--label"></div>
+                <div class="md-skeleton md-skeleton--value"></div>
+                <div class="md-skeleton md-skeleton--sub"></div>
+            </div>
+            <div class="md-kpi-card md-kpi-card--skeleton">
+                <div class="md-skeleton md-skeleton--icon"></div>
+                <div class="md-skeleton md-skeleton--label"></div>
+                <div class="md-skeleton md-skeleton--value"></div>
+                <div class="md-skeleton md-skeleton--sub"></div>
+            </div>
+        </div>
+
+        <!-- Main layout -->
+        <div class="md-layout">
+            <!-- Left: Charts (single flat grid for reordering) -->
+            <div class="md-main">
+                <div class="md-chart-grid" id="md-charts-container">
+                    <!-- Department Headcount -->
+                    <div
+                        class="md-chart-card"
+                        data-chart-id="department_headcount"
+                        data-chart-section="overview"
+                        data-chart-label="{% trans 'Department Headcount' %}"
+                    >
+                        <div class="md-chart-card__header">
+                            <div>
+                                <div class="md-chart-card__title">{% trans "Department Headcount" %}</div>
+                                <div class="md-chart-card__subtitle">{% trans "All departments" %}</div>
+                            </div>
+                        </div>
+                        <div class="md-chart-card__body">
+                            <div id="chart-departments"></div>
+                            <div class="md-pie-legend" id="md-pie-legend-departments"></div>
+                        </div>
+                    </div>
+
+                    {% if perms.leave.view_leaverequest or request.user.is_superuser %}
+                        <!-- Leave Trends -->
+                        <div
+                            class="md-chart-card"
+                            data-chart-id="leave_trends"
+                            data-chart-section="overview"
+                            data-chart-label="{% trans 'Leave Trends' %}"
+                        >
+                            <div class="md-chart-card__header">
+                                <div>
+                                    <div class="md-chart-card__title">{% trans "Leave Trends" %}</div>
+                                    <div class="md-chart-card__subtitle">{% trans "Unique approved leave requests by department" %}<span data-period-label></span></div>
+                                </div>
+                                <a
+                                    class="md-card-link"
+                                    href="{% url 'leave-dashboard' %}"
+                                    title="{% trans 'Open Leave dashboard' %}"
+                                    aria-label="{% trans 'Open Leave dashboard' %}"
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7" /><path d="M8 7h9v9" /></svg>
+                                </a>
+                            </div>
+                            <div class="md-chart-card__body">
+                                <div id="chart-leave-trend"></div>
+                                <div class="md-pie-legend" id="md-pie-legend-leave-trend"></div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+
+                    <!-- Gender Distribution -->
+                    <div
+                        class="md-chart-card"
+                        data-chart-id="gender_distribution"
+                        data-chart-section="overview"
+                        data-chart-label="{% trans 'Gender Distribution' %}"
+                    >
+                        <div class="md-chart-card__header">
+                            <div>
+                                <div class="md-chart-card__title">{% trans "Gender Distribution" %}</div>
+                                <div class="md-chart-card__subtitle" id="gender-subtitle">{% trans "Active employees" %}</div>
+                            </div>
+                            <select id="gender-dimension" class="md-dimension-select" aria-label="{% trans 'Group gender by' %}">
+                                <option value="overall">{% trans "Overall" %}</option>
+                                <option value="department">{% trans "Department-wise" %}</option>
+                            </select>
+                        </div>
+                        <div class="md-chart-card__body">
+                            <div id="chart-gender"></div>
+                            <div class="md-pie-legend" id="md-pie-legend-gender"></div>
+                        </div>
+                    </div>
+
+                    {% if perms.leave.view_leaverequest or request.user.is_superuser %}
+                        <!-- Leave Type Breakdown -->
+                        <div
+                            class="md-chart-card"
+                            data-chart-id="leave_breakdown"
+                            data-chart-section="overview"
+                            data-chart-label="{% trans 'Leave Type Breakdown' %}"
+                        >
+                            <div class="md-chart-card__header">
+                                <div>
+                                    <div class="md-chart-card__title">{% trans "Leave Type Breakdown" %}</div>
+                                    <div class="md-chart-card__subtitle">{% trans "Approved vs pending by leave type" %}<span data-period-label></span></div>
+                                </div>
+                            </div>
+                            <div class="md-chart-card__body">
+                                <div id="chart-leave"></div>
+                                <div class="md-pie-legend" id="md-pie-legend-leave"></div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if perms.attendance.view_attendance or request.user.is_superuser or home_role == "manager" %}
+                        <!-- Attendance Overview -->
+                        <div
+                            class="md-chart-card md-chart-card--wide"
+                            data-chart-id="attendance_overview"
+                            data-chart-section="attendance"
+                            data-chart-label="{% trans 'Attendance Daily Overview' %}"
+                            data-chart-wide="1"
+                        >
+                            <div class="md-chart-card__header">
+                                <div>
+                                    <div class="md-chart-card__title">{% trans "Attendance Daily Overview" %}</div>
+                                    <div class="md-chart-card__subtitle">
+                                        {% trans "On-time, late arrivals & early departures by department" %} — {% trans "Today" %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="md-chart-card__body">
+                                <div id="chart-attendance-overview"></div>
+                                <div class="md-pie-legend" id="md-pie-legend-attendance"></div>
+                            </div>
+                        </div>
+
+
+                    {% endif %}
+
+
+                    {% if perms.recruitment.view_recruitment or request.user.is_superuser %}
+                        <!-- Recruitment Pipeline -->
+                        <div
+                            class="md-chart-card md-chart-card--wide"
+                            data-chart-id="recruitment_pipeline"
+                            data-chart-section="recruitment"
+                            data-chart-label="{% trans 'Recruitment Pipeline Trend' %}"
+                            data-chart-wide="1"
+                        >
+                            <div class="md-chart-card__header">
+                                <div>
+                                    <div class="md-chart-card__title">{% trans "Recruitment Pipeline Trend" %}</div>
+                                    <div class="md-chart-card__subtitle" id="pipeline-subtitle">{% trans "All open recruitments — active candidates at each stage" %}</div>
+                                </div>
+                            </div>
+                            <div class="md-chart-card__body">
+                                <div id="chart-pipeline"></div>
+                                <div class="md-pie-legend" id="md-pie-legend-pipeline"></div>
+                            </div>
+                        </div>
+
+                        <!-- Hiring Timeline -->
+                        <div
+                            class="md-chart-card md-chart-card--wide"
+                            data-chart-id="hiring_timeline"
+                            data-chart-section="recruitment"
+                            data-chart-label="{% trans 'Shortlisting Timeline' %}"
+                            data-chart-wide="1"
+                            data-chart-default="hidden"
+                        >
+                            <div class="md-chart-card__header">
+                                <div>
+                                    <div class="md-chart-card__title">{% trans "Shortlisting Timeline" %}</div>
+                                    <div class="md-chart-card__subtitle">{% trans "Shortlisted candidates by month, by job position" %}<span data-period-year-label></span></div>
+                                </div>
+                            </div>
+                            <div class="md-chart-card__body">
+                                <div id="chart-hiring"></div>
+                                <div class="md-pie-legend" id="md-pie-legend-hiring"></div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+
+
+
+                    {% if perms.employee.view_employee or request.user.is_superuser %}
+                        <!-- Employee Turnover -->
+                        <div
+                            class="md-chart-card md-chart-card--wide"
+                            data-chart-id="employee_turnover"
+                            data-chart-section="overview"
+                            data-chart-label="{% trans 'Hire vs Turnover' %}"
+                            data-chart-wide="1"
+                        >
+                            <div class="md-chart-card__header">
+                                <div>
+                                    <div class="md-chart-card__title">{% trans "Hire vs Turnover" %}</div>
+                                    <div class="md-chart-card__subtitle" id="turnover-rate">
+                                        {% trans "New hires vs exits — last 6 months" %}
+                                    </div>
+                                </div>
+                                <div class="md-chart-card__controls">
+                                    <div class="md-seg" id="turnover-measure" hidden>
+                                        <button type="button" class="md-seg__btn is-active" data-measure="hires">{% trans "New Hires" %}</button>
+                                        <button type="button" class="md-seg__btn" data-measure="exits">{% trans "Exits" %}</button>
+                                    </div>
+                                    <div class="md-seg" id="turnover-view">
+                                        <button type="button" class="md-seg__btn is-active" data-view="overall">{% trans "Overall" %}</button>
+                                        <button type="button" class="md-seg__btn" data-view="department">{% trans "By Department" %}</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="md-chart-card__body">
+                                <div id="chart-turnover"></div>
+                                <div class="md-pie-legend" id="md-pie-legend-turnover" hidden></div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if perms.helpdesk.view_ticket or request.user.is_superuser %}
+                        <!-- Ticket Priority (open tickets) -->
+                        <div
+                            class="md-chart-card"
+                            data-chart-id="ticket_priority"
+                            data-chart-section="helpdesk"
+                            data-chart-label="{% trans 'Open Tickets by Priority' %}"
+                        >
+                            <div class="md-chart-card__header">
+                                <div>
+                                    <div class="md-chart-card__title">{% trans "Open Tickets by Priority" %}</div>
+                                    <div class="md-chart-card__subtitle">
+                                        {% trans "Closed tickets excluded" %}<span data-period-label></span>
+                                    </div>
+                                </div>
+                                <a
+                                    class="md-card-link"
+                                    id="ticket-priority-link"
+                                    href="{% url 'ticket-view' %}"
+                                    title="{% trans 'Open tickets' %}"
+                                    aria-label="{% trans 'Open tickets' %}"
+                                ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7" /><path d="M8 7h9v9" /></svg></a>
+                            </div>
+                            <div class="md-chart-card__body"><div id="chart-ticket-priority"></div></div>
+                        </div>
+
+                        <!-- Overdue tickets list -->
+                        <div
+                            class="md-chart-card"
+                            data-chart-id="overdue_tickets"
+                            data-chart-section="helpdesk"
+                            data-chart-label="{% trans 'Overdue Tickets' %}"
+                        >
+                            <div class="md-chart-card__header">
+                                <div>
+                                    <div class="md-chart-card__title">
+                                        {% trans "Overdue Tickets" %}
+                                        <span class="md-badge md-badge--red" id="overdue-tickets-count" style="margin-left: 6px; display: none"></span>
+                                    </div>
+                                    <div class="md-chart-card__subtitle">
+                                        {% trans "Open and past deadline, most overdue first" %}<span data-period-label></span>
+                                    </div>
+                                </div>
+                                <a
+                                    class="md-card-link"
+                                    id="overdue-tickets-link"
+                                    href="{% url 'ticket-view' %}"
+                                    title="{% trans 'Open overdue tickets' %}"
+                                    aria-label="{% trans 'Open overdue tickets' %}"
+                                ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7" /><path d="M8 7h9v9" /></svg></a>
+                            </div>
+                            <div class="md-chart-card__body md-tkt-body" id="overdue-tickets-list">
+                                <div class="md-info-panel__empty">{% trans "Loading..." %}</div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                </div>
+            </div>
+
+            <!-- Right sidebar -->
+            <div class="md-sidebar">
+                <div class="md-info-panel">
+                    <div class="md-info-panel__header">
+                        <div class="md-info-panel__heading">
+                            <div class="md-info-panel__title">{% trans "Announcements" %}<span id="md-announcements-count" class="md-count-badge" hidden title="{% trans 'Announcements' %}">0</span></div>
+                            <div class="md-info-panel__sub" title="{% trans "Announcements still active, newest first" %}">{% trans "Not Expired" %}</div>
+                        </div>
+                        {% if perms.base.add_announcement %}
+                            <button
+                                class="md-btn-add"
+                                id="md-add-announcement"
+                                title="{% trans 'New Announcement' %}"
+                                hx-get="{% url 'create-announcement' %}"
+                                hx-target="#objectCreateModalTarget"
+                                hx-swap="innerHTML"
+                                data-toggle="oh-modal-toggle"
+                                data-target="#objectCreateModal"
+                            >
+                                +
+                            </button>
+                        {% endif %}
+                    </div>
+                    <div class="md-info-panel__body" id="md-announcements">
+                        <div class="md-info-panel__empty">{% trans "Loading..." %}</div>
+                    </div>
+                </div>
+                <div class="md-info-panel">
+                    <div class="md-info-panel__header">
+                        <div class="md-info-panel__heading">
+                            <div class="md-info-panel__title">{% trans "Birthdays & Anniversaries" %}<span id="md-birthdays-count" class="md-count-badge" hidden title="{% trans 'This month' %}">0</span></div>
+                            <div class="md-info-panel__sub" title="{% trans "Birthdays and work anniversaries this month, closest to today first" %}">{% trans "This Month" %}</div>
+                        </div>
+                    </div>
+                    <div class="md-info-panel__body" id="md-birthdays">
+                        <div class="md-info-panel__empty">{% trans "Loading..." %}</div>
+                    </div>
+                </div>
+                <div class="md-info-panel">
+                    <div class="md-info-panel__header">
+                        <div class="md-info-panel__heading">
+                            <div class="md-info-panel__title">{% trans "Pending Approvals" %}<span id="md-pending-count" class="md-count-badge" hidden title="{% trans 'Waiting for approval' %}">0</span></div>
+                            <div class="md-info-panel__sub" title="{% trans "Everything awaiting your approval, whatever dates the period filter covers" %}">{% trans "All Dates" %}</div>
+                        </div>
+                    </div>
+                    <div class="md-info-panel__body" id="md-pending-approvals">
+                        <div class="md-info-panel__empty">{% trans "Loading..." %}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customize Panel (slide-out) -->
+    <div class="md-customize-overlay" id="md-customize-overlay"></div>
+    <div class="md-customize-panel" id="md-customize-panel">
+        <div class="md-customize-panel__header">
+            <h3>{% trans "Customize Dashboard" %}</h3>
+            <button class="md-customize-panel__close" id="md-close-customize">&times;</button>
+        </div>
+        <div class="md-customize-panel__body" id="md-customize-list"></div>
+        <div class="md-customize-panel__footer">
+            <button class="oh-btn oh-btn--light-bkg" id="md-reset-customize">{% trans "Reset to default" %}</button>
+            <button class="oh-btn oh-btn--secondary" id="md-save-customize">{% trans "Save" %}</button>
+        </div>
+    </div>
+
+    <!-- Create Announcement Modal -->
+    <!-- Announcement create uses standard #objectCreateModal via HTMX on the + button -->
+
+    <script>
+        (function() {
+            const isDark = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+            const textColor = isDark ? '#cbd5e1' : '#334155';
+            const subTextColor = isDark ? '#64748b' : '#94a3b8';
+            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+            const cardBg = isDark ? '#242424' : '#ffffff';
+            const COLORS = ['#017391','#22c55e','#f59e0b','#ef4444','#3b82f6','#a855f7','#06b6d4','#ec4899','#14b8a6','#f97316'];
+            const ANIM = { enabled: true, easing: 'easeinout', speed: 700, animateGradually: { enabled: true, delay: 80 }, dynamicAnimation: { enabled: true, speed: 500 } };
+            const GRID = { borderColor: gridColor, strokeDashArray: 5, padding: { left: 4, right: 4 } };
+            const TOOLTIP_STYLE = { theme: isDark ? 'dark' : 'light', style: { fontSize: '12px' } };
+            // One tooltip card for every chart: bold title, then a coloured-dot row per value.
+            const tipCard = (title, rows) => `<div class="md-tip"><div class="md-tip__title">${escHtml(title)}</div>`
+                + rows.map(r => r.note
+                    ? `<div class="md-tip__note">${escHtml(r.note)}</div>`
+                    : `<div class="md-tip__row"${r.indent ? ' style="padding-left:14px;font-size:11px;opacity:.8"' : ''}><span class="md-tip__label">${r.color ? `<i class="md-tip__dot" style="background:${r.color}"></i>` : ''}${escHtml(r.label)}</span><span style="white-space:nowrap;flex-shrink:0${r.total ? ';font-weight:700' : ''}">${escHtml(String(r.value))}${r.sub ? ` <span class="md-tip__sub">${escHtml(r.sub)}</span>` : ''}</span></div>`).join('')
+                + '</div>';
+            const stdTooltip = ({ unit = '', decimals = 0, rowLabel = '' } = {}) => ({
+                // fillSeriesColor off: a pie/donut tooltip is otherwise painted in the
+                // slice's colour with white text, which the light card below then
+                // leaves unreadable (white on white / dark on dark).
+                ...TOOLTIP_STYLE, shared: true, intersect: false, fillSeriesColor: false,
+                custom: ({ series, seriesIndex, dataPointIndex, w }) => {
+                    const g = w.globals;
+                    const fmt = (v) => (decimals ? (parseFloat(v) || 0).toFixed(decimals) : v) + unit;
+                    const type = w.config.chart.type;
+                    if (type === 'pie' || type === 'donut') {
+                        const total = g.seriesTotals.reduce((a, b) => a + b, 0);
+                        const v = series[seriesIndex];
+                        return tipCard(g.labels[seriesIndex], [{ color: g.colors[seriesIndex], label: rowLabel, value: fmt(v), sub: total ? Math.round(v / total * 100) + '%' : '' }]);
+                    }
+                    const raw = (g.categoryLabels && g.categoryLabels[dataPointIndex]) || g.labels[dataPointIndex] || '';
+                    const title = Array.isArray(raw) ? raw.join(' ') : raw;
+                    const distributed = w.config.plotOptions.bar && w.config.plotOptions.bar.distributed;
+                    return tipCard(title, series.map((s, i) => ({
+                        color: distributed ? g.colors[dataPointIndex] : g.colors[i],
+                        label: g.seriesNames[i] || rowLabel,
+                        value: fmt(s[dataPointIndex]),
+                    })));
+                },
+            });
+            const LEGEND_STYLE = { position: 'bottom', labels: { colors: textColor }, fontSize: '11px', fontWeight: 500, markers: { width: 8, height: 8, radius: 3 }, itemMargin: { horizontal: 8 } };
+            const XAXIS_STYLE = { labels: { style: { colors: textColor, fontSize: '11px', fontWeight: 500 } }, axisBorder: { show: false }, axisTicks: { show: false } };
+            // Category axis for charts whose columns follow a legend. Names wrap onto
+            // lines while every column's slot is wide enough for the longest word. Once
+            // it isn't (many columns, or a narrow card / zoomed page) they would have to
+            // be tilted and cut short, which reads as clutter, so they are left off the
+            // axis: the legend chips name each column (same colours) and the tooltip
+            // carries the full name.
+            function categoryAxis(names, fontSize, chartEl) {
+                const px = parseInt(fontSize, 10) || 11;
+                const longestWord = Math.max(1, ...names.map(n => Math.max(...n.split(' ').map(w => w.length))));
+                const slot = ((chartEl && chartEl.clientWidth) || 600) - 50;   // minus the y-axis gutter
+                const many = names.length * (longestWord * px * 0.62 + 10) > slot;
+                return { ...XAXIS_STYLE, categories: many ? names : names.map(n => n.split(' ')), tooltip: { enabled: false },
+                    labels: { ...XAXIS_STYLE.labels, show: !many, rotate: many ? -50 : 0, rotateAlways: many, hideOverlappingLabels: false, trim: many, maxHeight: many ? 110 : 48,
+                        style: { ...XAXIS_STYLE.labels.style, fontSize: many ? '10px' : fontSize } } };
+            }
+            const YAXIS_STYLE = { labels: { style: { colors: textColor, fontSize: '11px' } } };
+            const STORAGE_KEY = 'md_dashboard_prefs_v3';
+
+            const SECTION_LABELS = {
+                overview: "{% trans 'Overview'|escapejs %}",
+                attendance: "{% trans 'Attendance & Overtime'|escapejs %}",
+                recruitment: "{% trans 'Recruitment'|escapejs %}",
+                leave: "{% trans 'Leave Analytics'|escapejs %}",
+                payroll: "{% trans 'Payroll'|escapejs %}"
+            };
+
+            // Permission flags — server-rendered; control chart click/drill-down behaviour
+            const PERM = {
+                employee:    {% if perms.employee.view_employee    or request.user.is_superuser %}true{% else %}false{% endif %},
+                attendance:  {% if perms.attendance.view_attendance or request.user.is_superuser %}true{% else %}false{% endif %},
+                leave:       {% if perms.leave.view_leaverequest   or request.user.is_superuser %}true{% else %}false{% endif %},
+                candidate:   {% if perms.recruitment.view_candidate or request.user.is_superuser %}true{% else %}false{% endif %},
+            };
+
+            const emptyHtml = (msg) => `<div class="md-empty"><img src="/static/images/ui/no_records.svg" alt="">${msg}</div>`;
+            const hideCard  = id => document.querySelector(`[data-chart-id="${id}"]`)?.classList.add('md-chart-card--hidden');
+            const kpiCard   = (href, perm, colorClass, svg, label, value, sub, extra = '') => {
+                const body = `<div class="md-kpi-card__icon ${colorClass}">${svg}</div><div class="md-kpi-card__label">${label}</div><div class="md-kpi-card__value">${value}</div>`;
+                const subHtml = `<div class="md-kpi-card__sub">${sub}</div>${extra}`;
+                if (!perm) return `<div class="md-kpi-card">${body}${subHtml}</div>`;
+                return `<div class="md-kpi-card"><a href="${href}" class="md-kpi-card__hit">${body}</a>${subHtml}</div>`;
+            };
+
+            document.getElementById('md-date').textContent = new Date().toLocaleDateString('en-US', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+
+            // ═══════════════════════════════════════════
+            //  PERIOD PICKER
+            // ═══════════════════════════════════════════
+            const PERIOD_KEY = 'md_period_v2';
+            const fromInput = document.getElementById('md-from-date');
+            const toInput = document.getElementById('md-to-date');
+
+            function ymdLocal(d) {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const da = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${da}`;
+            }
+            function getToday() { return ymdLocal(new Date()); }
+            function getFirstOfMonth() { const dt = new Date(); return ymdLocal(new Date(dt.getFullYear(), dt.getMonth(), 1)); }
+            function getLastOfMonth() { const dt = new Date(); return ymdLocal(new Date(dt.getFullYear(), dt.getMonth() + 1, 0)); }
+
+            function initPeriod() {
+                const urlParams = new URLSearchParams(location.search);
+                const urlFrom = urlParams.get('from_date');
+                const urlTo = urlParams.get('to_date');
+                if (urlFrom && urlTo) {
+                    fromInput.value = urlFrom;
+                    toInput.value = urlTo;
+                    savePeriod();
+                    return;
+                }
+                const saved = sessionStorage.getItem(PERIOD_KEY);
+                if (saved) {
+                    try {
+                        const p = JSON.parse(saved);
+                        fromInput.value = p.from;
+                        toInput.value = p.to;
+                        return;
+                    } catch {}
+                }
+                fromInput.value = getFirstOfMonth();
+                toInput.value = getLastOfMonth();
+            }
+
+            function savePeriod() {
+                sessionStorage.setItem(PERIOD_KEY, JSON.stringify({ from: fromInput.value, to: toInput.value }));
+            }
+
+            function periodParams() {
+                const from = fromInput.value;
+                const to = toInput.value;
+                if (!from || !to) return "";
+                return "from_date=" + encodeURIComponent(from) + "&to_date=" + encodeURIComponent(to);
+            }
+
+            function urlWithPeriod(baseUrl) {
+                const sep = baseUrl.includes('?') ? '&' : '?';
+                return baseUrl + sep + periodParams();
+            }
+
+            function getWeekBounds(today) {
+                const dow = (today.getDay() + 6) % 7; // 0 = Monday
+                const from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - dow);
+                const to = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6);
+                return [from, to];
+            }
+
+            function setPreset(preset) {
+                const today = new Date();
+                let from, to;
+                if (preset === 'today') {
+                    from = today;
+                    to = today;
+                } else if (preset === 'this_week') {
+                    [from, to] = getWeekBounds(today);
+                } else if (preset === 'this_month') {
+                    from = new Date(today.getFullYear(), today.getMonth(), 1);
+                    to = new Date(today.getFullYear(), today.getMonth()+1, 0);
+                } else if (preset === 'this_year') {
+                    from = new Date(today.getFullYear(), 0, 1);
+                    to = new Date(today.getFullYear(), 11, 31);
+                }
+                fromInput.value = ymdLocal(from);
+                toInput.value = ymdLocal(to);
+                savePeriod();
+                highlightPreset(preset);
+                loadAllData();
+            }
+
+            function highlightPreset(active) {
+                document.querySelectorAll('.md-period-preset').forEach(btn => {
+                    btn.classList.toggle('md-period-preset--active', btn.dataset.preset === active);
+                });
+            }
+
+            function detectPreset() {
+                const today = new Date();
+                const [weekFrom, weekTo] = getWeekBounds(today);
+                const ranges = {
+                    today: [ymdLocal(today), ymdLocal(today)],
+                    this_week: [ymdLocal(weekFrom), ymdLocal(weekTo)],
+                    this_month: [
+                        ymdLocal(new Date(today.getFullYear(), today.getMonth(), 1)),
+                        ymdLocal(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
+                    ],
+                    this_year: [
+                        ymdLocal(new Date(today.getFullYear(), 0, 1)),
+                        ymdLocal(new Date(today.getFullYear(), 11, 31)),
+                    ],
+                };
+                for (const [key, [f, t]] of Object.entries(ranges)) {
+                    if (fromInput.value === f && toInput.value === t) return key;
+                }
+                return '';
+            }
+
+            // ─── Period label shown as subtitle on period-aware charts ───
+            const PRESET_LABELS = {
+                today: '{% trans "Today"|escapejs %}',
+                this_week: '{% trans "This Week"|escapejs %}',
+                this_month: '{% trans "This Month"|escapejs %}',
+                this_year: '{% trans "This Year"|escapejs %}',
+            };
+            function shortDate(d) {
+                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+            function periodLabel() {
+                const preset = detectPreset();
+                const from = new Date(fromInput.value + 'T00:00:00');
+                const to = new Date(toInput.value + 'T00:00:00');
+                let detail;
+                if (preset === 'this_month') {
+                    detail = from.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                } else if (preset === 'this_year') {
+                    detail = String(from.getFullYear());
+                } else if (preset === 'today') {
+                    detail = shortDate(from);
+                } else {
+                    detail = shortDate(from) + ' – ' + shortDate(to);
+                }
+                const name = PRESET_LABELS[preset] || '{% trans "Custom"|escapejs %}';
+                return name + ' · ' + detail;
+            }
+            function applyPeriodLabels() {
+                const label = ' — ' + periodLabel();
+                document.querySelectorAll('[data-period-label]').forEach(el => { el.textContent = label; });
+                const yearLabel = ' — ' + '{% trans "Year"|escapejs %}' + ' ' + new Date(toInput.value + 'T00:00:00').getFullYear();
+                document.querySelectorAll('[data-period-year-label]').forEach(el => { el.textContent = yearLabel; });
+            }
+
+            // Preset buttons
+            document.querySelectorAll('.md-period-preset').forEach(btn => {
+                btn.addEventListener('click', () => setPreset(btn.dataset.preset));
+            });
+
+            // Date input change
+            [fromInput, toInput].forEach(input => {
+                input.addEventListener('change', () => {
+                    savePeriod();
+                    highlightPreset('');
+                    loadAllData();
+                });
+            });
+
+            initPeriod();
+            highlightPreset(detectPreset());
+            applyPeriodLabels();
+
+            // ═══════════════════════════════════════════
+            //  CHART REORDER + VISIBILITY SYSTEM
+            // ═══════════════════════════════════════════
+
+            function getDefaultOrder() {
+                const roleDefaults = {{ role_default_prefs|default:"[]"|safe }};
+                const byId = {};
+                if (Array.isArray(roleDefaults)) {
+                    roleDefaults.forEach(p => { if (p && p.id) byId[p.id] = !!p.visible; });
+                }
+                const cards = document.querySelectorAll('#md-charts-container [data-chart-id]');
+                return Array.from(cards).map(c => {
+                    const id = c.dataset.chartId;
+                    let visible;
+                    if (Object.prototype.hasOwnProperty.call(byId, id)) {
+                        visible = byId[id];
+                    } else {
+                        visible = c.dataset.chartDefault !== 'hidden';
+                    }
+                    return { id, visible };
+                });
+            }
+
+            function loadPrefs() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (!raw) return null;
+                    const parsed = JSON.parse(raw);
+                    // Validate: must be array of objects with id property (not old Horilla string format)
+                    if (!Array.isArray(parsed) || (parsed.length > 0 && typeof parsed[0] !== 'object')) {
+                        localStorage.removeItem(STORAGE_KEY);
+                        return null;
+                    }
+                    return parsed;
+                } catch { return null; }
+            }
+
+            function savePrefs(prefs) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+            }
+
+            function applyPrefs(prefs) {
+                if (!prefs) return;
+                const container = document.getElementById('md-charts-container');
+                const cards = {};
+                container.querySelectorAll('[data-chart-id]').forEach(c => { cards[c.dataset.chartId] = c; });
+
+                // Reorder
+                prefs.forEach(p => {
+                    const card = cards[p.id];
+                    if (card) {
+                        container.appendChild(card);
+                        if (p.visible === false) {
+                            card.classList.add('md-chart-card--hidden');
+                        } else {
+                            card.classList.remove('md-chart-card--hidden');
+                        }
+                    }
+                });
+
+                // Append any new charts not in prefs (honor data-chart-default)
+                Object.keys(cards).forEach(id => {
+                    if (!prefs.find(p => p.id === id)) {
+                        container.appendChild(cards[id]);
+                        if (cards[id].dataset.chartDefault === 'hidden') {
+                            cards[id].classList.add('md-chart-card--hidden');
+                        } else {
+                            cards[id].classList.remove('md-chart-card--hidden');
+                        }
+                    }
+                });
+            }
+
+            // Apply saved preferences on load (localStorage first, DB fallback, else role defaults)
+            // DB prefs are embedded in the page context by the server (already normalized)
+            let _dbPrefsRaw = {{ employee_chart_prefs|safe }};
+            if (!Array.isArray(_dbPrefsRaw) || (_dbPrefsRaw.length && typeof _dbPrefsRaw[0] === 'string')) {
+                _dbPrefsRaw = [];
+            }
+            const _localPrefs = loadPrefs();
+            if (_localPrefs) {
+                applyPrefs(_localPrefs);
+            } else if (_dbPrefsRaw && _dbPrefsRaw.length) {
+                applyPrefs(_dbPrefsRaw);
+                savePrefs(_dbPrefsRaw);
+            } else {
+                const rolePrefs = getDefaultOrder();
+                applyPrefs(rolePrefs);
+            }
+
+            document.getElementById('md-reset-customize').addEventListener('click', () => {
+                const rolePrefs = getDefaultOrder();
+                localStorage.removeItem(STORAGE_KEY);
+                // Persist role defaults so reload does not restore a stale customized layout
+                fetch("{% url 'dashboard-save-prefs' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
+                    },
+                    body: JSON.stringify({ prefs: rolePrefs }),
+                }).finally(() => {
+                    savePrefs(rolePrefs);
+                    location.reload();
+                });
+            });
+
+            // ── Customize panel ──
+            const overlay = document.getElementById('md-customize-overlay');
+            const panel = document.getElementById('md-customize-panel');
+            const listEl = document.getElementById('md-customize-list');
+
+            function openCustomize() {
+                const prefs = loadPrefs() || getDefaultOrder();
+                renderCustomizeList(prefs);
+                overlay.classList.add('md-customize-overlay--open');
+                panel.classList.add('md-customize-panel--open');
+            }
+
+            function closeCustomize() {
+                overlay.classList.remove('md-customize-overlay--open');
+                panel.classList.remove('md-customize-panel--open');
+            }
+
+            function renderCustomizeList(prefs) {
+                // Build from current DOM + prefs
+                const allCards = {};
+                document.querySelectorAll('#md-charts-container [data-chart-id]').forEach(c => {
+                    allCards[c.dataset.chartId] = {
+                        id: c.dataset.chartId,
+                        label: c.dataset.chartLabel,
+                        section: c.dataset.chartSection,
+                    };
+                });
+
+                // Merge: ordered prefs first, then any missing
+                const ordered = [];
+                prefs.forEach(p => {
+                    if (allCards[p.id]) {
+                        ordered.push({ ...allCards[p.id], visible: p.visible !== false });
+                    }
+                });
+                Object.keys(allCards).forEach(id => {
+                    if (!ordered.find(o => o.id === id)) {
+                        ordered.push({ ...allCards[id], visible: true });
+                    }
+                });
+
+                let html = '';
+                let lastSection = '';
+                ordered.forEach((item, idx) => {
+                    if (item.section !== lastSection) {
+                        html += `<div class="md-cust-section-title">${SECTION_LABELS[item.section] || item.section}</div>`;
+                        lastSection = item.section;
+                    }
+                    html += `
+                <div class="md-cust-item" draggable="true" data-cust-id="${item.id}" data-cust-idx="${idx}">
+                    <span class="md-cust-item__handle">&#x2630;</span>
+                    <div class="md-cust-item__label">${item.label}</div>
+                    <button class="md-cust-item__toggle ${item.visible ? 'md-cust-item__toggle--on' : ''}" data-cust-toggle="${item.id}" title="{% trans 'Toggle visibility'|escapejs %}"></button>
+                </div>`;
+                });
+
+                listEl.innerHTML = html;
+                initDragAndDrop();
+            }
+
+            function initDragAndDrop() {
+                let dragEl = null;
+
+                listEl.querySelectorAll('.md-cust-item').forEach(item => {
+                    item.addEventListener('dragstart', e => {
+                        dragEl = item;
+                        item.classList.add('md-dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', '');
+                    });
+
+                    item.addEventListener('dragend', () => {
+                        if (dragEl) dragEl.classList.remove('md-dragging');
+                        listEl.querySelectorAll('.md-cust-item').forEach(i => i.classList.remove('md-drag-over'));
+                        dragEl = null;
+                    });
+
+                    item.addEventListener('dragover', e => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        if (item !== dragEl) {
+                            item.classList.add('md-drag-over');
+                        }
+                    });
+
+                    item.addEventListener('dragleave', () => {
+                        item.classList.remove('md-drag-over');
+                    });
+
+                    item.addEventListener('drop', e => {
+                        e.preventDefault();
+                        item.classList.remove('md-drag-over');
+                        if (dragEl && item !== dragEl) {
+                            // Find all items (exclude section titles)
+                            const items = Array.from(listEl.querySelectorAll('.md-cust-item'));
+                            const fromIdx = items.indexOf(dragEl);
+                            const toIdx = items.indexOf(item);
+
+                            if (fromIdx < toIdx) {
+                                item.parentNode.insertBefore(dragEl, item.nextSibling);
+                            } else {
+                                item.parentNode.insertBefore(dragEl, item);
+                            }
+                        }
+                    });
+                });
+
+                // Toggle visibility
+                listEl.querySelectorAll('.md-cust-item__toggle').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        e.stopPropagation();
+                        btn.classList.toggle('md-cust-item__toggle--on');
+                    });
+                });
+            }
+
+            function getCustomizeState() {
+                const items = listEl.querySelectorAll('.md-cust-item');
+                return Array.from(items).map(item => ({
+                    id: item.dataset.custId,
+                    visible: item.querySelector('.md-cust-item__toggle').classList.contains('md-cust-item__toggle--on')
+                }));
+            }
+
+            document.getElementById('md-open-customize').addEventListener('click', openCustomize);
+            document.getElementById('md-close-customize').addEventListener('click', closeCustomize);
+            overlay.addEventListener('click', closeCustomize);
+
+            document.getElementById('md-save-customize').addEventListener('click', () => {
+                const prefs = getCustomizeState();
+                savePrefs(prefs);
+                applyPrefs(prefs);
+                closeCustomize();
+                // Persist to DB
+                fetch("{% url 'dashboard-save-prefs' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
+                    },
+                    body: JSON.stringify({ prefs: prefs }),
+                });
+            });
+
+            // ═══════════════════════════════════════════
+            //  DATA FETCHES
+            // ═══════════════════════════════════════════
+
+            // ═══════════════════════════════════════════
+            //  PERIOD-AWARE RELOAD
+            // ═══════════════════════════════════════════
+            function loadAllData() {
+                // Apply the period in place: keep the address shareable, then re-run every load.
+                const params = periodParams();
+                history.replaceState(null, '', location.pathname + (params ? '?' + params : ''));
+                applyPeriodLabels();
+                lastRefresh = Date.now();
+                updateRefreshText();
+                refreshAllData();
+            }
+
+            // Helper: fetch with period params for period-sensitive endpoints
+            function fetchP(url) { return fetch(urlWithPeriod(url)); }
+
+            // ── Chart instance registry ──
+            // ApexCharts.render() always appends a new SVG into the target
+            // element rather than replacing it, so calling the same chart
+            // block twice (e.g. on auto-refresh) would stack duplicate
+            // charts on top of each other. Every chart goes through here so
+            // a refresh destroys the previous instance first.
+            const chartInstances = {};
+            function renderChart(key, el, options) {
+                if (!el) return null;
+                if (chartInstances[key]) {
+                    chartInstances[key].destroy();
+                    chartInstances[key] = null;
+                }
+                // Ensure axis/legend/default label color contrasts with card surface
+                const chartOpts = options.chart || {};
+                options = {
+                    ...options,
+                    chart: {
+                        fontFamily: 'inherit',
+                        background: 'transparent',
+                        foreColor: textColor,
+                        ...chartOpts,
+                    },
+                    theme: options.theme || { mode: isDark ? 'dark' : 'light' },
+                };
+                // A draw can still be mounting when the next one replaces it (two loads close
+                // together, a tab coming back from the background). destroy() on a chart that has
+                // not mounted yet leaves its drawing behind and it lands in the page anyway: the same
+                // chart, twice. So each draw gets its own holder, and putting that holder in place
+                // throws away whatever the previous draw left, finished or not.
+                const holder = document.createElement('div');
+                el.replaceChildren(holder);
+                const chart = new ApexCharts(holder, options);
+                chartInstances[key] = chart;
+                const drawn = chart.render();
+                // render() finishes asynchronously. If this chart was replaced while it was
+                // still drawing (two loads close together), destroy() ran on a chart that
+                // had not mounted yet and its SVG then arrived anyway: the same chart,
+                // twice. Whichever draw finishes after being superseded removes itself.
+                if (drawn && drawn.then) {
+                    drawn.then(() => { if (chartInstances[key] !== chart) { try { chart.destroy(); } catch (e) { /* already gone */ } } });
+                }
+                return chart;
+            }
+
+            // ── Auto-refresh ──
+            const REFRESH_INTERVAL = 300000; // 5 minutes
+            const REFRESH_KEY = 'md_auto_refresh';
+            let refreshTimer = null;
+            let lastRefresh = Date.now();
+            const refreshDot = document.getElementById('md-refresh-dot');
+            const refreshText = document.getElementById('md-refresh-text');
+            const refreshToggle = document.getElementById('md-refresh-toggle');
+            let autoRefreshOn = localStorage.getItem(REFRESH_KEY) !== 'off';
+
+            function updateRefreshText() {
+                const mins = Math.floor((Date.now() - lastRefresh) / 60000);
+                refreshText.textContent = mins < 1 ? '{% trans "Just now"|escapejs %}' : mins + '{% trans "m ago"|escapejs %}';
+            }
+            registerAutoRefresh(setInterval(updateRefreshText, 30000));
+
+            // Re-runs every data/chart load in place instead of reloading
+            // the whole document -- refreshAllData() is defined further
+            // down, once every load function it calls exists, but function
+            // declarations are hoisted so referencing it here is safe.
+            function startAutoRefresh() {
+                autoRefreshOn = true;
+                localStorage.setItem(REFRESH_KEY, 'on');
+                refreshDot.classList.add('md-refresh__dot--pulse');
+                refreshToggle.textContent = '⟳';
+                refreshToggle.title = '{% trans "Auto-refresh ON (5 min)"|escapejs %}';
+                // Wrapped so a hidden tab does not keep fetching; refreshes once on return.
+                const refreshTick = autoRefreshWhenVisible(() => {
+                    lastRefresh = Date.now();
+                    updateRefreshText();
+                    refreshAllData();
+                });
+                refreshTimer = setInterval(refreshTick, REFRESH_INTERVAL);
+                registerAutoRefresh(refreshTimer);
+            }
+            function stopAutoRefresh() {
+                autoRefreshOn = false;
+                localStorage.setItem(REFRESH_KEY, 'off');
+                refreshDot.classList.remove('md-refresh__dot--pulse');
+                refreshToggle.textContent = '⏸';
+                refreshToggle.title = '{% trans "Auto-refresh OFF"|escapejs %}';
+                if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+            }
+            refreshToggle.addEventListener('click', () => { if (autoRefreshOn) stopAutoRefresh(); else startAutoRefresh(); });
+            if (autoRefreshOn) startAutoRefresh(); else stopAutoRefresh();
+
+            // ─── KPI CARDS ───
+            function loadKpiCards() {
+                fetch("{% url 'dashboard-kpi-data' %}")
+                    .then(r => r.json())
+                    .then(data => {
+                        const empSvg   = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+                        const attSvg   = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>';
+                        const leaveSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+                        const offlineSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/></svg>';
+                        document.getElementById('md-kpi-grid').innerHTML =
+                            kpiCard("{% url 'employee-view' %}?is_active=True&filter_applied=on",   PERM.employee,    'md-kpi-card__icon--indigo', empSvg,   '{% trans "Total Employees"|escapejs %}',   data.total_employees,   data.new_joiners > 0 ? '<span class="md-badge md-badge--green">+' + data.new_joiners + ' {% trans "This Month"|escapejs %}</span>' : '') +
+                            kpiCard("{% url 'employee-view' %}?checked_in_on={% now 'Y-m-d' %}&is_active=True&filter_applied=on",  PERM.employee,    'md-kpi-card__icon--green',  attSvg,   '{% trans "Checked In Today"|escapejs %}',     data.present_today,     data.week_off_today ? '<span class="md-badge md-badge--amber">' + data.week_off_count + ' {% trans "on week off"|escapejs %}</span>' : '') +
+                            kpiCard("{% url 'employee-view' %}?expected_to_check_in={% now 'Y-m-d' %}&is_active=True&filter_applied=on", PERM.employee, 'md-kpi-card__icon--red', offlineSvg, '{% trans "Not Checked In Today"|escapejs %}', data.not_checked_in, '') +
+                            kpiCard(`{% url 'request-view' %}?status=approved&today_leave=true&filter_applied=on`,     PERM.leave,       'md-kpi-card__icon--amber',  leaveSvg, '{% trans "On Leave"|escapejs %}',           data.on_leave,          data.half_day_today > 0 ? '<span class="md-badge md-badge--amber">' + data.half_day_today + ' {% trans "Half Day"|escapejs %}</span>' : '');
+                    });
+            }
+            loadKpiCards();
+
+            // Count beside a side panel's title; hidden when there is nothing in it.
+            function setMdCount(id, n) {
+                const badge = document.getElementById(id);
+                if (!badge) return;
+                badge.textContent = n;
+                badge.hidden = !n;
+            }
+
+            // ─── ANNOUNCEMENTS ───
+            function loadAnnouncements() {
+                fetch("{% url 'dashboard-announcements' %}")
+                    .then(r => r.json())
+                    .then(data => {
+                        const el = document.getElementById('md-announcements');
+                        setMdCount('md-announcements-count', data.announcements.length);
+                        if (!data.announcements.length) { el.innerHTML = '<div class="md-info-panel__empty">{% trans "No announcements"|escapejs %}</div>'; return; }
+                        el.innerHTML = data.announcements.map(a => `
+                    <div class="md-ann-item" data-ann-id="${a.id}" style="cursor:pointer;">
+                        <div class="md-ann-item__title">${a.title}</div>
+                        <div class="md-ann-item__meta">${a.date}${a.expire_date ? '<span class="md-ann-item__expire">{% trans "Expires"|escapejs %} ' + a.expire_date + '</span>' : ''}</div>
+                    </div>`).join('');
+
+                        // Clicking opens the announcement in the standard Horilla detail modal
+                        const annIds = data.announcements.map(a => a.id);
+                        el.querySelectorAll('.md-ann-item[data-ann-id]').forEach(item => {
+                            item.addEventListener('click', () => {
+                                const id = item.dataset.annId;
+                                const instanceIds = JSON.stringify(annIds);
+                                htmx.ajax('GET',
+                                    `/announcement-single-view/${id}/?instance_ids=${encodeURIComponent(instanceIds)}`,
+                                    { target: '#objectDetailsModalTarget', swap: 'innerHTML' }
+                                ).then(() => {
+                                    document.getElementById('objectDetailsModal').classList.add('oh-modal--show');
+                                    htmx.process(document.getElementById('objectDetailsModalTarget'));
+                                });
+                            });
+                        });
+                    }).catch(() => { document.getElementById('md-announcements').innerHTML = '<div class="md-info-panel__empty">{% trans "No announcements"|escapejs %}</div>'; });
+            }
+            loadAnnouncements();
+
+            // ─── TODAY'S LEAVE ───
+
+            {% if perms.attendance.view_attendance or home_role == "manager" %}
+            // ─── ATTENDANCE TREND ───
+            {% endif %}
+
+            // ─── DEPARTMENT HEADCOUNT ───
+            // ─── TICKETS (open tickets only) ───
+            {% if perms.helpdesk.view_ticket or request.user.is_superuser %}
+            const TICKET_STATUS_COLORS = { new: '#3b82f6', in_progress: '#f59e0b', on_hold: '#94a3b8' };
+            const ticketListUrl = (extra) => {
+                const p = new URLSearchParams(extra);
+                p.set('created_date_from', fromInput.value);
+                p.set('created_date_till', toInput.value);
+                p.set('filter_applied', 'on');
+                // 3rd tab = All Tickets (managers / ticket viewers), rather than My Tickets.
+                p.set('open_tab', '3');
+                return "{% url 'ticket-view' %}?" + p.toString();
+            };
+            function loadTicketPriority() {
+                fetchP("{% url 'dashboard-ticket-priority' %}")
+                .then(r => r.json())
+                .then(data => {
+                    if (data.no_permission) { hideCard('ticket_priority'); return; }
+                    document.getElementById('ticket-priority-link').href = ticketListUrl({ is_open: 'true' });
+                    if (!data.total) { document.querySelector("#chart-ticket-priority").innerHTML = emptyHtml('{% trans "No open tickets in this period"|escapejs %}'); return; }
+                    const cats = data.priorities;
+                    renderChart('ticket-priority', document.querySelector("#chart-ticket-priority"), {
+                        series: data.statuses.map(st => ({ name: st.label, data: cats.map(c => c.by_status[st.key] || 0) })),
+                        chart: { type: 'bar', stacked: true, height: 320, toolbar: { show: false }, background: 'transparent', fontFamily: 'inherit', animations: ANIM,
+                            events: { dataPointSelection: (e, ctx, config) => {
+                                const c = cats[config.dataPointIndex];
+                                const st = data.statuses[config.seriesIndex];
+                                if (!c || !st) return;
+                                window.location.href = ticketListUrl({ priority: c.priority, status: st.key });
+                            }}
+                        },
+                        colors: data.statuses.map(st => TICKET_STATUS_COLORS[st.key] || '#94a3b8'),
+                        plotOptions: { bar: { borderRadius: 6, borderRadiusApplication: 'end', borderRadiusWhenStacked: 'last', columnWidth: '42%' } },
+                        stroke: { width: 2, colors: [cardBg] },
+                        xaxis: { ...XAXIS_STYLE, categories: cats.map(c => c.label) },
+                        yaxis: { min: 0, forceNiceScale: true, labels: { style: { colors: textColor, fontSize: '11px' }, formatter: v => Number.isInteger(+v) ? v : '' } },
+                        grid: GRID,
+                        dataLabels: { enabled: false },
+                        legend: { ...LEGEND_STYLE, position: 'top', horizontalAlign: 'right' },
+                        tooltip: { ...TOOLTIP_STYLE, shared: true, intersect: false, custom: ({ dataPointIndex }) => {
+                            const c = cats[dataPointIndex];
+                            if (!c) return '';
+                            return tipCard(c.label + ' ' + '{% trans "priority"|escapejs %}', [
+                                { total: true, label: '{% trans "Open tickets"|escapejs %}', value: c.total },
+                                ...data.statuses.map(st => ({ color: TICKET_STATUS_COLORS[st.key] || '#94a3b8', label: st.label, value: c.by_status[st.key] || 0 })),
+                                { color: '#dc2626', label: '{% trans "Overdue"|escapejs %}', value: c.overdue },
+                            ]);
+                        } },
+                        states: { hover: { filter: { type: 'darken', value: 0.9 } } },
+                    });
+                }).catch(() => { document.querySelector("#chart-ticket-priority").innerHTML = emptyHtml('{% trans "Unable to load tickets"|escapejs %}'); });
+            }
+            loadTicketPriority();
+
+            function loadOverdueTickets() {
+                fetchP("{% url 'dashboard-overdue-tickets' %}")
+                .then(r => r.json())
+                .then(data => {
+                    if (data.no_permission) { hideCard('overdue_tickets'); return; }
+                    const list = document.getElementById('overdue-tickets-list');
+                    const badge = document.getElementById('overdue-tickets-count');
+                    document.getElementById('overdue-tickets-link').href = ticketListUrl({ is_overdue: 'true' });
+                    if (!data.tickets.length) {
+                        badge.style.display = 'none';
+                        list.innerHTML = '<div class="md-info-panel__empty">{% trans "No overdue tickets in this period"|escapejs %}</div>';
+                        return;
+                    }
+                    badge.textContent = data.count;
+                    badge.style.display = '';
+                    const detailBase = "{% url 'ticket-detail' 0 %}";
+                    list.innerHTML = data.tickets.map(t => `
+                        <a class="md-tkt-row" href="${detailBase.replace(/0\/$/, t.id + '/')}">
+                            <img class="md-tkt-row__avatar" src="${escHtml(t.avatar || '/static/images/ui/default_avatar.jpg')}" alt="">
+                            <div class="md-tkt-row__main">
+                                <div class="md-tkt-row__title"><span class="md-tkt-row__id">${escHtml(t.ticket_id)}</span>${escHtml(t.title)}</div>
+                                <div class="md-tkt-row__meta">${escHtml(t.owner)}${t.assignee ? ' · {% trans "Assigned to"|escapejs %} ' + escHtml(t.assignee) : ' · {% trans "Unassigned"|escapejs %}'} · ${escHtml(t.status_label)}</div>
+                            </div>
+                            <div class="md-tkt-row__side">
+                                <span class="md-tkt-late">${t.days_overdue} {% trans "d overdue"|escapejs %}</span>
+                                <span class="md-tkt-prio md-tkt-prio--${escHtml(t.priority)}">${escHtml(t.priority_label)}</span>
+                            </div>
+                        </a>`).join('');
+                }).catch(() => { document.getElementById('overdue-tickets-list').innerHTML = '<div class="md-info-panel__empty">{% trans "Unable to load tickets"|escapejs %}</div>'; });
+            }
+            loadOverdueTickets();
+            {% endif %}
+
+            // ─── Shared pie/donut legend ───
+            // One row only: as many chips as fit, then a "+N" chip whose hover
+            // popover lists the rest with checkboxes. Every item starts selected, minus
+            // whatever the user unticked before (see LegendPrefs); pass selectAll: false (or
+            // initialCount: N) to start with only the first `topN` (N). Unselected items are
+            // zeroed out of the series, so the canvas never carries extra labels.
+            const escHtml = (v) => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            function createPieLegend({ el, chartKey, noun, topN = 5, maxChips = null, toSeries = null, onChange = null, selectAll = true, initialCount = null }) {
+                const prefId = el.id || chartKey;
+                let items = [];
+                let selected = null;
+                const dot = (c) => `<span class="md-pie-chip__dot" style="background:${c}"></span>`;
+
+                function series() {
+                    return items.map(it => selected.has(it.name) ? it.value : 0);
+                }
+                function syncChart() {
+                    const chart = chartInstances[chartKey];
+                    if (onChange) { onChange(); return; }
+                    if (chart) chart.updateSeries(toSeries ? toSeries(series()) : series());
+                }
+                let visible = 0;
+                function chipsHtml(k) {
+                    return items.slice(0, k).map(it => {
+                        const on = selected.has(it.name);
+                        return `<button type="button" class="md-pie-chip${on ? '' : ' is-off'}" data-name="${escHtml(it.name)}" data-tip="${escHtml(it.name)}: ${it.detail != null ? escHtml(it.detail) : it.value}">${dot(it.color)}<span class="md-pie-chip__name">${escHtml(it.name)}</span></button>`;
+                    }).join('');
+                }
+                // Toggling only touches the chips and checkbox states, never the
+                // popover element, so it stays open while items are ticked.
+                function refreshState() {
+                    const chips = el.querySelector('.md-pie-chips');
+                    if (chips) chips.innerHTML = chipsHtml(visible);
+                    el.querySelectorAll('input[data-name]').forEach(cb => {
+                        cb.checked = selected.has(cb.dataset.name);
+                    });
+                }
+                function toggle(name) {
+                    if (selected.has(name)) {
+                        if (selected.size > 1) selected.delete(name);
+                    } else {
+                        selected.add(name);
+                    }
+                    LegendPrefs.save(prefId, items.map(i => i.name), selected);
+                    refreshState();
+                    syncChart();
+                }
+                function build(k) {
+                    visible = k;
+                    const rest = items.slice(k);
+                    let html = `<span class="md-pie-chips">${chipsHtml(k)}</span>`;
+                    if (rest.length) {
+                        html += `<span class="md-pie-more"><button type="button" class="md-pie-chip md-pie-chip--more">+${rest.length} ${escHtml(noun)}</button>`
+                            + `<div class="md-pie-pop"><div class="md-pie-pop__box"><div class="md-pie-pop__list">`
+                            + rest.map(it => `<label class="md-pie-pop__row"><input type="checkbox" data-name="${escHtml(it.name)}"${selected.has(it.name) ? ' checked' : ''}>${dot(it.color)}<span class="md-pie-pop__text"><span>${escHtml(it.name)}</span>${it.detail != null ? `<small>${escHtml(it.detail)}</small>` : ''}</span><span class="md-pie-pop__count">${it.value}</span></label>`).join('')
+                            + `</div></div></div></span>`;
+                    }
+                    el.innerHTML = html;
+                }
+                function render() {
+                    let k = Math.min(maxChips || topN, items.length);
+                    build(k);
+                    while (k > 1 && el.scrollWidth > el.clientWidth + 1) {
+                        k--;
+                        build(k);
+                    }
+                }
+                el.addEventListener('click', (e) => {
+                    const chip = e.target.closest('.md-pie-chip[data-name]');
+                    if (chip) toggle(chip.dataset.name);
+                });
+                el.addEventListener('change', (e) => {
+                    if (e.target.matches('input[data-name]')) toggle(e.target.dataset.name);
+                });
+                let resizeTimer = null;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(() => { if (items.length) render(); }, 150);
+                });
+                return {
+                    set(newItems) {
+                        items = newItems;
+                        const names = items.map(i => i.name);
+                        selected = LegendPrefs.initial(prefId, names, null, initialCount || (selectAll ? null : topN));
+                        render();
+                    },
+                    series,
+                    selectedNames() { return items.filter(it => selected.has(it.name)).map(it => it.name); },
+                    clear() { items = []; el.innerHTML = ''; },
+                };
+            }
+            // One colour per department, never reused: ten well-separated base colours,
+            // then golden-angle hues so any number of departments stays distinct.
+            const DEPT_PALETTE = ['#3b82f6','#22c55e','#f59e0b','#ef4444','#a855f7','#06b6d4','#ec4899','#84cc16','#f97316','#14b8a6'];
+            const deptColor = (i) => i < DEPT_PALETTE.length ? DEPT_PALETTE[i] : `hsl(${Math.round((i * 137.508) % 360)}, 65%, ${i % 2 ? 45 : 58}%)`;
+            const deptLegend = createPieLegend({
+                el: document.getElementById('md-pie-legend-departments'),
+                chartKey: 'departments',
+                noun: '{% trans "departments"|escapejs %}',
+            });
+            let deptData = [];
+
+            function loadDepartmentHeadcount() {
+                fetch("{% url 'dashboard-department-headcount' %}")
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.departments.length) {
+                        document.querySelector("#chart-departments").innerHTML = emptyHtml('{% trans "No department data"|escapejs %}');
+                        deptLegend.clear();
+                        return;
+                    }
+                    deptData = data.departments;
+                    deptLegend.set(deptData.map((d, i) => ({ name: d.department, value: d.count, color: deptColor(i) })));
+                    renderChart('departments', document.querySelector("#chart-departments"), {
+                        series: deptLegend.series(),
+                        chart: { type: 'donut', height: 300, background: 'transparent', fontFamily: 'inherit', animations: ANIM,
+                            events: { dataPointSelection: (e, ctx, config) => {
+                                if (!PERM.employee) return;
+                                const dept = deptData[config.dataPointIndex].department;
+                                window.location.href = "{% url 'employee-view' %}?department=" + encodeURIComponent(dept);
+                            }}
+                        },
+                        labels: deptData.map(d => d.department),
+                        colors: deptData.map((d, i) => deptColor(i)),
+                        plotOptions: { pie: { expandOnClick: true, donut: { size: '68%',
+                            labels: { show: true,
+                                name: { fontSize: '13px', fontWeight: 700, color: textColor, offsetY: -4 },
+                                value: { fontSize: '22px', fontWeight: 800, color: textColor, offsetY: 4 },
+                                total: { show: true, label: '{% trans "Total"|escapejs %}', color: subTextColor, fontSize: '12px', fontWeight: 600, formatter: w => w.globals.seriesTotals.reduce((a,b)=>a+b,0) } } } } },
+                        stroke: { width: 3, colors: [cardBg] },
+                        dataLabels: { enabled: false },
+                        legend: { show: false },
+                        tooltip: stdTooltip({ rowLabel: '{% trans "Employees"|escapejs %}' }),
+                    });
+                });
+            }
+            loadDepartmentHeadcount();
+
+            // ─── GENDER ───
+            {# keyed on the raw gender value: the name the API sends is translated #}
+            const genderColorMap = { 'male': '#3b82f6', 'female': '#ec4899', 'other': '#a855f7', '': '#94a3b8' };
+            const genderDimensionSelect = document.getElementById('gender-dimension');
+            let genderData = null;
+            // onChange, not the legend's own built-in series()/updateSeries(): the
+            // department view is a multi-series stacked bar (one series per gender
+            // across every department), not one value per legend item, so toggling
+            // a chip has to rebuild the whole chart from the cached payload rather
+            // than call chart.updateSeries() the way a plain donut chip would.
+            // Reused for the donut view too, so both views share one legend with
+            // one consistent chip style instead of the bar chart falling back to
+            // ApexCharts' own plain square-swatch legend.
+            const genderLegend = createPieLegend({
+                el: document.getElementById('md-pie-legend-gender'),
+                chartKey: 'gender',
+                noun: '{% trans "more"|escapejs %}',
+                onChange: () => drawGenderChart(),
+            });
+            function drawGenderChart() {
+                const data = genderData;
+                if (!data) return;
+                const picked = new Set(genderLegend.selectedNames());
+                const visible = data.genders.filter(g => picked.has(g.gender));
+                const genderColors = visible.map(g => genderColorMap[g.key != null ? g.key : ''] || '#94a3b8');
+                if (data.view === 'department') {
+                    const depts = data.departments;
+                    renderChart('gender', document.querySelector("#chart-gender"), {
+                        series: visible.map(g => ({ name: g.gender, data: depts.map(d => d.by_gender[g.key] || 0) })),
+                        chart: { type: 'bar', height: 300, stacked: true, background: 'transparent', fontFamily: 'inherit', animations: ANIM,
+                            toolbar: { show: false },
+                            events: { dataPointSelection: (e, ctx, config) => {
+                                if (!PERM.employee) return;
+                                const d = depts[config.dataPointIndex];
+                                const g = visible[config.seriesIndex];
+                                if (!d) return;
+                                let url = "{% url 'employee-view' %}?department=" + encodeURIComponent(d.department) + "&filter_applied=on";
+                                if (g) url += "&gender=" + encodeURIComponent(g.key != null ? g.key : g.gender.toLowerCase());
+                                window.location.href = url;
+                            }}
+                        },
+                        colors: genderColors,
+                        plotOptions: { bar: { borderRadius: 4, borderRadiusApplication: 'end', borderRadiusWhenStacked: 'last', columnWidth: '45%' } },
+                        stroke: { width: 2, colors: [cardBg] },
+                        xaxis: { ...XAXIS_STYLE, categories: depts.map(d => d.department) },
+                        yaxis: { ...YAXIS_STYLE, min: 0, forceNiceScale: true, labels: { ...YAXIS_STYLE.labels, formatter: v => Number.isInteger(+v) ? v : '' } },
+                        grid: GRID,
+                        dataLabels: { enabled: false },
+                        legend: { show: false },
+                        tooltip: stdTooltip({ rowLabel: '{% trans "Employees"|escapejs %}' }),
+                    });
+                } else {
+                    renderChart('gender', document.querySelector("#chart-gender"), {
+                        series: visible.map(g => g.count),
+                        chart: { type: 'donut', height: 300, background: 'transparent', fontFamily: 'inherit', animations: ANIM,
+                            toolbar: { show: false },
+                            events: { dataPointSelection: (e, ctx, config) => {
+                                if (!PERM.employee) return;
+                                const g = visible[config.dataPointIndex];
+                                window.location.href = "{% url 'employee-view' %}?gender=" + encodeURIComponent(g.key != null ? g.key : g.gender.toLowerCase());
+                            }}
+                        },
+                        labels: visible.map(g => g.gender),
+                        colors: genderColors,
+                        plotOptions: { pie: { expandOnClick: true, donut: { size: '68%',
+                            labels: { show: true,
+                                name: { fontSize: '13px', fontWeight: 700, color: textColor },
+                                value: { fontSize: '20px', fontWeight: 800, color: textColor },
+                                total: { show: true, label: '{% trans "Total"|escapejs %}', color: subTextColor, fontSize: '11px', fontWeight: 600,
+                                    formatter: w => w.globals.seriesTotals.reduce((a,b)=>a+b,0) }
+                            }
+                        } } },
+                        stroke: { width: 3, colors: [cardBg] },
+                        dataLabels: { enabled: false },
+                        legend: { show: false },
+                        tooltip: stdTooltip({ rowLabel: '{% trans "Employees"|escapejs %}' }),
+                    });
+                }
+            }
+            function loadGenderSplit() {
+                const view = genderDimensionSelect.value;
+                fetch("{% url 'dashboard-gender-split' %}?view=" + encodeURIComponent(view))
+                .then(r => r.json())
+                .then(data => {
+                    genderData = data;
+                    document.getElementById('gender-subtitle').textContent =
+                        data.view === 'department' ? '{% trans "Active employees, by department"|escapejs %}' : '{% trans "Active employees"|escapejs %}';
+                    const empty = data.view === 'department' ? !data.departments.length : !data.genders.length;
+                    if (empty) {
+                        document.querySelector("#chart-gender").innerHTML = emptyHtml('{% trans "No data"|escapejs %}');
+                        genderLegend.clear();
+                        return;
+                    }
+                    const genderColors = data.genders.map(g => genderColorMap[g.key != null ? g.key : ''] || '#94a3b8');
+                    const totalFor = (g) => data.view === 'department'
+                        ? data.departments.reduce((sum, d) => sum + (d.by_gender[g.key] || 0), 0)
+                        : g.count;
+                    genderLegend.set(data.genders.map((g, i) => ({ name: g.gender, value: totalFor(g), color: genderColors[i] })));
+                    drawGenderChart();
+                });
+            }
+            loadGenderSplit();
+            genderDimensionSelect.addEventListener('change', loadGenderSplit);
+
+            {% if perms.leave.view_leaverequest or request.user.is_superuser %}
+            // ─── LEAVE BREAKDOWN ───
+            const leaveTypeColor = (i) => COLORS[i % COLORS.length];
+            let leaveTypeData = [];
+            let leaveRange = { from: '', to: '' };
+            const LEAVE_STATUS_COLORS = ['#22c55e', '#f59e0b'];
+            function drawLeaveBreakdown() {
+                const names = new Set(leaveTypeLegend.selectedNames());
+                const shown = leaveTypeData.filter(b => names.has(b.type));
+                const leaveEl = document.querySelector("#chart-leave");
+                const leaveAxis = categoryAxis(shown.map(b => b.type), '10px', leaveEl);
+                const crowded = leaveAxis.labels.rotateAlways;   // names left off the axis: columns are narrow too
+                renderChart('leave-breakdown', document.querySelector("#chart-leave"), {
+                    series: [
+                        { name: '{% trans "Approved"|escapejs %}', data: shown.map(b => b.approved) },
+                        { name: '{% trans "Pending"|escapejs %}', data: shown.map(b => b.requested) },
+                    ],
+                    chart: { type: 'bar', stacked: true, stackType: '100%', height: 320, toolbar: { show: false }, background: 'transparent', fontFamily: 'inherit', animations: ANIM,
+                        events: { dataPointSelection: (e, ctx, config) => {
+                            if (!PERM.leave) return;
+                            const row = shown[config.dataPointIndex];
+                            if (!row) return;
+                            const status = config.seriesIndex === 0 ? 'approved' : 'requested';
+                            window.location.href = "{% url 'request-view' %}?leave_type_id=" + row.id + "&status=" + status
+                                + "&from_date=" + leaveRange.from + "&to_date=" + leaveRange.to
+                                + "&nested_fields=leave_type_id&nested_fields=status&filter_applied=on";
+                        }}
+                    },
+                    colors: LEAVE_STATUS_COLORS,
+                    plotOptions: { bar: { horizontal: false, columnWidth: crowded ? '70%' : '42%', borderRadius: crowded ? 3 : 6, borderRadiusApplication: 'around', borderRadiusWhenStacked: 'all' } },
+                    // The card-coloured outline eats into narrow columns, so thin it out.
+                    stroke: { width: crowded ? 1 : 3, colors: [cardBg] },
+                    xaxis: leaveAxis,
+                    yaxis: { min: 0, max: 100, tickAmount: 4, labels: { style: { colors: textColor, fontSize: '11px' }, formatter: v => Math.round(v) + '%' } },
+                    grid: GRID,
+                    dataLabels: { enabled: false },
+                    legend: { ...LEGEND_STYLE, position: 'top', horizontalAlign: 'right' },
+                    tooltip: { ...TOOLTIP_STYLE, shared: true, intersect: false, custom: ({ dataPointIndex }) => {
+                        const r = shown[dataPointIndex];
+                        if (!r) return '';
+                        const pct = (n) => r.count ? Math.round(n / r.count * 100) + '%' : '0%';
+                        return tipCard(r.type, [
+                            { total: true, label: '{% trans "Total records"|escapejs %}', value: r.count },
+                            { color: LEAVE_STATUS_COLORS[0], label: '{% trans "Approved"|escapejs %}', value: r.approved, sub: '(' + pct(r.approved) + ')' },
+                            { color: LEAVE_STATUS_COLORS[1], label: '{% trans "Pending"|escapejs %}', value: r.requested, sub: '(' + pct(r.requested) + ')' },
+                        ]);
+                    } },
+                    states: { hover: { filter: { type: 'darken', value: 0.85 } } },
+                });
+            }
+            const leaveTypeLegend = createPieLegend({
+                el: document.getElementById('md-pie-legend-leave'),
+                chartKey: 'leave-breakdown',
+                noun: '{% trans "leave types"|escapejs %}',
+                onChange: drawLeaveBreakdown,
+                initialCount: 5,
+            });
+            function loadLeaveBreakdown() {
+                fetchP("{% url 'dashboard-leave-breakdown' %}")
+                .then(r => r.json())
+                .then(data => {
+                    if (data.no_permission) { hideCard('leave_breakdown'); return; }
+                    if (!data.breakdown.length) {
+                        document.querySelector("#chart-leave").innerHTML = emptyHtml('{% trans "No leave types"|escapejs %}');
+                        leaveTypeLegend.clear();
+                        return;
+                    }
+                    leaveTypeData = data.breakdown;
+                    leaveRange = { from: data.from_date, to: data.to_date };
+                    leaveTypeLegend.set(leaveTypeData.map((b, i) => ({ name: b.type, value: b.count, color: leaveTypeColor(i),
+                        detail: b.count + ' {% trans "total"|escapejs %} · ' + b.approved + ' {% trans "approved"|escapejs %} · ' + b.requested + ' {% trans "pending"|escapejs %}' })));
+                    drawLeaveBreakdown();
+                });
+            }
+            loadLeaveBreakdown();
+            {% endif %}
+
+            // ─── EMPLOYEE STATUS ───
+            // Donut (not radialBar): API returns absolute headcounts; radialBar treats series as 0–100%.
+
+            {% if perms.attendance.view_attendance or home_role == "manager" %}
+            // ─── ATTENDANCE OVERVIEW ───
+            let attData = null;
+            function drawAttendanceOverview() {
+                const names = new Set(attLegend.selectedNames());
+                const data = { labels: attData.labels, dataSet: attData.dataSet.filter(d => names.has(d.label)) };
+                renderChart('attendance-overview', document.querySelector("#chart-attendance-overview"), {
+                    // x-axis = departments; the stack = on time / late arrival / early departure.
+                    series: data.labels.map((statusLabel, k) => ({ name: statusLabel, data: data.dataSet.map(d => d.data[k]) })),
+                    chart: { type: 'bar', stacked: true, stackType: '100%', height: 320, toolbar: { show: false }, background: 'transparent', fontFamily: 'inherit', animations: ANIM,
+                        events: { dataPointSelection: (e, ctx, config) => {
+                            if (!PERM.employee) return;
+                            // A series is a STATUS and a data point is a DEPARTMENT.
+                            // Indexing the statuses (rather than matching data.labels
+                            // text) keeps this working under translation, since those
+                            // labels are gettext'd.
+                            const ATT_STATUS = ['on_time', 'late_come', 'early_out'];
+                            const deptId = data.dataSet[config.dataPointIndex]?.id;
+                            const status = ATT_STATUS[config.seriesIndex];
+                            if (!deptId || !status) return;
+                            const params = new URLSearchParams({
+                                present_from: '{% now "Y-m-d" %}',
+                                present_to: '{% now "Y-m-d" %}',
+                                attendance_status: status,
+                                employee_work_info__department_id: deptId,
+                                is_active: 'True',
+                                filter_applied: 'on',
+                            });
+                            window.location.href = "{% url 'employee-view' %}?" + params.toString();
+                        }}
+                    },
+                    colors: ['#22c55e', '#f59e0b', '#ef4444'],
+                    fill: { type: 'gradient', gradient: { type: 'vertical', shadeIntensity: 0.25, opacityFrom: 1, opacityTo: 0.85 } },
+                    plotOptions: { bar: { borderRadius: 6, borderRadiusApplication: 'end', columnWidth: '58%' } },
+                    xaxis: categoryAxis(data.dataSet.map(d => d.label), '11px', document.querySelector("#chart-attendance-overview")),
+                    yaxis: { min: 0, max: 100, tickAmount: 4, labels: { style: { colors: textColor, fontSize: '11px' }, formatter: v => Math.round(v) + '%' } },
+                    grid: GRID,
+                    dataLabels: { enabled: false },
+                    legend: { ...LEGEND_STYLE, position: 'top', horizontalAlign: 'right' },
+                    tooltip: { ...TOOLTIP_STYLE, shared: true, intersect: false, custom: ({ dataPointIndex }) => {
+                        const d = data.dataSet[dataPointIndex];
+                        if (!d) return '';
+                        const total = d.data.reduce((a, b) => a + b, 0);
+                        const colors = ['#22c55e', '#f59e0b', '#ef4444'];
+                        return tipCard(d.label, [
+                            { total: true, label: '{% trans "Total"|escapejs %}', value: total },
+                            ...data.labels.map((lbl, k) => ({ color: colors[k], label: lbl, value: d.data[k], sub: total ? '(' + Math.round(d.data[k] / total * 100) + '%)' : '(0%)' })),
+                        ]);
+                    } },
+                    states: { hover: { filter: { type: 'darken', value: 0.85 } } },
+                });
+            }
+            const attLegend = createPieLegend({
+                el: document.getElementById('md-pie-legend-attendance'),
+                chartKey: 'attendance-overview',
+                noun: '{% trans "departments"|escapejs %}',
+                maxChips: 50,
+                onChange: drawAttendanceOverview,
+            });
+            function loadAttendanceOverview() {
+                fetch("{% url 'dashboard-attendance-overview' %}")
+                .then(r => r.json())
+                .then(data => {
+                    if (data.no_permission) { hideCard('attendance_overview'); return; }
+                    if (!data.dataSet || !data.dataSet.length) { document.querySelector("#chart-attendance-overview").innerHTML = emptyHtml('{% trans "No attendance records available"|escapejs %}'); return; }
+                    attData = data;
+                    attLegend.set(data.dataSet.map((d, i) => {
+                        const total = d.data.reduce((a, b) => a + b, 0);
+                        return { name: d.label, value: total, color: deptColor(i),
+                            detail: total + ' {% trans "total"|escapejs %} · ' + data.labels.map((l, k) => d.data[k] + ' ' + l).join(' · ') };
+                    }));
+                    drawAttendanceOverview();
+                }).catch(() => { document.querySelector("#chart-attendance-overview").innerHTML = emptyHtml('{% trans "Unable to load attendance data"|escapejs %}'); });
+            }
+            loadAttendanceOverview();
+
+            {% endif %}
+
+            {% if perms.leave.view_leaverequest or request.user.is_superuser %}
+            // ─── LEAVE OVER PERIOD ───
+            let leaveTrendData = null;
+            let leaveTrendHoverIndex = -1;
+            // The approved leave behind one point of the chart, grouped Department > Employee.
+            function openLeaveTrendPeriod(index) {
+                if (!PERM.leave || index == null || index < 0 || !leaveTrendData || !leaveTrendData.ranges) return;
+                const range = leaveTrendData.ranges[index];
+                if (!range) return;
+                window.location.href = "{% url 'request-view' %}?from_date=" + range.from + "&to_date=" + range.to
+                    + "&status=approved&filter_applied=1"
+                    + "&nested_fields=employee_id__employee_work_info__department_id&nested_fields=employee_id";
+            }
+            function drawLeaveTrend() {
+                const names = new Set(leaveTrendLegend.selectedNames());
+                const lines = leaveTrendData.dataset.map((d, i) => ({ ...d, color: deptColor(i) })).filter(d => names.has(d.label));
+                // Axis tops out one step above the highest point, so the peak never sits on the top edge.
+                const peak = Math.max(1, ...lines.flatMap(d => d.data));
+                const yStep = peak <= 8 ? 1 : Math.ceil(peak / 5);
+                const yMax = (Math.ceil(peak / yStep) + 1) * yStep;
+                // Monthly points are labelled "Jan 2026": twelve of those do not fit side by side
+                // and run into each other. Within one year just the month is enough (the card
+                // names the year); across years the year goes on a second line.
+                const MONTH_LABEL = /^([A-Za-z]{3,9})\.?\s+(\d{4})$/;
+                const monthMatches = leaveTrendData.labels.map(l => MONTH_LABEL.exec(String(l)));
+                const monthly = monthMatches.length > 0 && monthMatches.every(Boolean);
+                const spansYears = new Set(monthMatches.filter(Boolean).map(m => m[2])).size > 1;
+                renderChart('leave-trend', document.querySelector("#chart-leave-trend"), {
+                    series: lines.map(d => ({ name: d.label, data: d.data })),
+                    chart: { type: 'line', height: 300, toolbar: { show: false }, zoom: { enabled: false }, background: 'transparent', fontFamily: 'inherit',
+                        animations: { enabled: false },
+                        events: {
+                            // A click anywhere on a day's column opens that day's leave: no need to
+                            // land on a line. The column is the one the pointer is over.
+                            click: (e, ctx, cfg) => openLeaveTrendPeriod(leaveTrendHoverIndex >= 0 ? leaveTrendHoverIndex : (cfg && cfg.dataPointIndex)),
+                            xAxisLabelClick: (e, ctx, { labelIndex }) => openLeaveTrendPeriod(labelIndex),
+                            mouseLeave: () => { leaveTrendHoverIndex = -1; },
+                        } },
+                    colors: lines.map(d => d.color),
+                    stroke: { curve: 'smooth', width: 3 },
+                    markers: { size: 0, hover: { size: 5 } },
+                    dataLabels: { enabled: false },
+                    legend: { show: false },
+                    // A week reads "05 Oct - 11 Oct": split over two lines (start, then "– end") so every
+                    // label fits upright, instead of tilting and running off the chart's edges.
+                    xaxis: { ...XAXIS_STYLE, categories: leaveTrendData.labels.map((l, i) => { if (monthly) return spansYears ? [monthMatches[i][1], monthMatches[i][2]] : monthMatches[i][1]; const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(l); if (m) return `${+m[1]} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m[2] - 1]}`; const range = String(l).split(/\s+[-–]\s+/); return range.length === 2 ? [range[0], '– ' + range[1]] : l; }),
+                        labels: { ...XAXIS_STYLE.labels, rotate: 0, rotateAlways: false, hideOverlappingLabels: false, trim: false, maxHeight: 44, style: { ...XAXIS_STYLE.labels.style, fontSize: '10px' } } },
+                    yaxis: { ...YAXIS_STYLE, min: 0, max: yMax, tickAmount: yMax / yStep, labels: { style: { colors: textColor, fontSize: '11px' }, formatter: v => Number.isInteger(+v) ? v : '' } },
+                    grid: { ...GRID, padding: { left: 18, right: 22 } },
+                    tooltip: { ...TOOLTIP_STYLE, shared: true, intersect: false, custom: ({ series, dataPointIndex, w }) => {
+                        leaveTrendHoverIndex = dataPointIndex;
+                        const rows = lines.map((d, i) => ({ color: d.color, label: d.label, value: series[i][dataPointIndex] + ' {% trans "leave(s)"|escapejs %}', n: series[i][dataPointIndex] }));
+                        const total = rows.reduce((a, r) => a + r.n, 0);
+                        const raw = (w.globals.categoryLabels && w.globals.categoryLabels[dataPointIndex]) || w.globals.labels[dataPointIndex] || '';
+                        // Monthly axis labels drop the year; the tooltip keeps the full "Jan 2026".
+                        const title = monthly ? String(leaveTrendData.labels[dataPointIndex]) : (Array.isArray(raw) ? raw.join(' ') : raw);
+                        return tipCard(title, [{ total: true, label: '{% trans "Total"|escapejs %}', value: total + ' {% trans "leave(s)"|escapejs %}' }, ...rows]);
+                    } },
+                });
+            }
+            const leaveTrendLegend = createPieLegend({
+                el: document.getElementById('md-pie-legend-leave-trend'),
+                chartKey: 'leave-trend',
+                noun: '{% trans "departments"|escapejs %}',
+                maxChips: 50,
+                onChange: drawLeaveTrend,
+            });
+            function loadLeaveOverPeriod() {
+                fetchP("{% url 'dashboard-leave-trends' %}?group=department&count=requests" + (detectPreset() === 'this_month' ? '&bucket=week' : ''))
+                .then(r => r.json())
+                .then(data => {
+                    if (data.no_permission) { hideCard('leave_trends'); return; }
+                    if (!data.labels || !data.labels.length || !data.dataset || !data.dataset.length) { document.querySelector("#chart-leave-trend").innerHTML = emptyHtml('{% trans "No leave data"|escapejs %}'); leaveTrendLegend.clear(); return; }
+                    leaveTrendData = data;
+                    leaveTrendLegend.set(data.dataset.map((d, i) => ({ name: d.label, value: d.data.reduce((a, b) => a + b, 0), color: deptColor(i),
+                        detail: d.data.reduce((a, b) => a + b, 0) + ' {% trans "leave requests"|escapejs %}' })));
+                    drawLeaveTrend();
+                }).catch(() => { document.querySelector("#chart-leave-trend").innerHTML = emptyHtml('{% trans "No leave data"|escapejs %}'); });
+            }
+            loadLeaveOverPeriod();
+            {% endif %}
+
+            {% if perms.recruitment.view_recruitment or request.user.is_superuser %}
+            // ─── RECRUITMENT PIPELINE ───
+            let pipelineData = null;
+            let pipelineHoverIndex = -1;
+            // Every open recruitment's candidates at one stage, grouped Recruitment > Job Position.
+            function openPipelineStage(index) {
+                if (!PERM.candidate || index == null || index < 0 || !pipelineData) return;
+                const stage = (pipelineData.labels[index] || '').toLowerCase();
+                if (!stage) return;
+                window.location.href = "{% url 'candidate-view' %}?stage_id__stage_type=" + encodeURIComponent(stage)
+                    + "&recruitment_id__closed=False"
+                    + "&nested_fields=recruitment_id&nested_fields=job_position_id";
+            }
+            const pipelineColor = (name) => COLORS[Math.max(0, pipelineData.dataSet.findIndex(r => r.label === name)) % COLORS.length];
+            function drawPipeline() {
+                const names = new Set(pipelineLegend.selectedNames());
+                const recs = pipelineData.dataSet.filter(r => names.has(r.label));
+                renderChart('pipeline', document.querySelector("#chart-pipeline"), {
+                    // One thin column per recruitment inside every stage: y = number of that
+                    // recruitment's candidates sitting at the stage.
+                    series: recs.map(r => ({ name: r.label, data: r.data })),
+                    chart: { type: 'bar', height: 320, toolbar: { show: false }, zoom: { enabled: false }, background: 'transparent', fontFamily: 'inherit',
+                        animations: { enabled: false },
+                        events: {
+                            // A click anywhere on a stage's column opens that stage's candidates:
+                            // no need to land on a line or a dot. The column is whichever one the
+                            // pointer is over (tracked by the tooltip below), falling back to the
+                            // one Apex reports for the click.
+                            click: (e, ctx, cfg) => {
+                                const idx = pipelineHoverIndex >= 0 ? pipelineHoverIndex : (cfg && cfg.dataPointIndex);
+                                openPipelineStage(idx);
+                            },
+                            xAxisLabelClick: (e, ctx, { labelIndex }) => openPipelineStage(labelIndex),
+                            mouseLeave: () => { pipelineHoverIndex = -1; },
+                        }
+                    },
+                    colors: recs.map(r => pipelineColor(r.label)),
+                    plotOptions: { bar: { columnWidth: Math.min(70, 12 * Math.max(recs.length, 1) + 10) + '%', borderRadius: 4, borderRadiusApplication: 'end', dataLabels: { position: 'top' } } },
+                    stroke: { show: true, width: 2, colors: ['transparent'] },
+                    xaxis: { ...XAXIS_STYLE, categories: pipelineData.labels },
+                    // Scaled to the tallest column, on whole-number ticks so counts never show decimals.
+                    yaxis: (() => {
+                        const peak = Math.max(1, ...recs.map(r => Math.max(0, ...r.data)));
+                        const step = Math.max(1, Math.ceil(peak * 1.15 / 5));
+                        return { min: 0, max: step * 5, tickAmount: 5,
+                            labels: { style: { colors: textColor, fontSize: '11px' }, formatter: v => Math.round(v) } };
+                    })(),
+                    grid: GRID,
+                    // No counts printed above the bars: with several recruitments per stage they
+                    // crowd each other; the hover popup carries the numbers.
+                    dataLabels: { enabled: false },
+                    states: { hover: { filter: { type: 'none' } } },
+                    legend: { show: false },
+                    // Fixed to the chart's top-right rather than following the pointer. This
+                    // tooltip lists every recruitment and its job positions, which at a busy
+                    // stage is taller than the chart: following the pointer it was placed
+                    // above the top of the screen, under the page header, and so "sometimes"
+                    // did not appear at all.
+                    tooltip: { ...TOOLTIP_STYLE, shared: true, intersect: false, custom: ({ dataPointIndex }) => {
+                        pipelineHoverIndex = dataPointIndex;
+                        const rows = [];
+                        let total = 0;
+                        const POSITIONS_SHOWN = 2;
+                        // Only recruitments that have candidates at this stage, busiest first; the
+                        // rest are folded into one line so the card stays shorter than the chart.
+                        const RECRUITMENTS_SHOWN = 5;
+                        const here = recs.filter(r => r.data[dataPointIndex] > 0)
+                            .sort((a, b) => b.data[dataPointIndex] - a.data[dataPointIndex]);
+                        here.forEach(r => { total += r.data[dataPointIndex]; });
+                        here.slice(0, RECRUITMENTS_SHOWN).forEach((r) => {
+                            const n = r.data[dataPointIndex];
+                            const t = r.data.reduce((a, b) => a + b, 0);
+                            rows.push({ color: pipelineColor(r.label), label: r.label, value: n, sub: t ? '(' + Math.round(n / t * 100) + '%)' : '(0%)' });
+                            // Busiest job positions first, the rest folded into one line.
+                            const atStage = (r.positions || []).filter(pos => pos.data[dataPointIndex] > 0)
+                                .sort((a, b) => b.data[dataPointIndex] - a.data[dataPointIndex]);
+                            atStage.slice(0, POSITIONS_SHOWN).forEach(pos => rows.push({ indent: true, label: pos.name, value: pos.data[dataPointIndex] }));
+                            if (atStage.length > POSITIONS_SHOWN) {
+                                const rest = atStage.slice(POSITIONS_SHOWN).reduce((sum, pos) => sum + pos.data[dataPointIndex], 0);
+                                rows.push({ indent: true, label: '+' + (atStage.length - POSITIONS_SHOWN) + ' {% trans "more positions"|escapejs %}', value: rest });
+                            }
+                        });
+                        if (here.length > RECRUITMENTS_SHOWN) {
+                            const rest = here.slice(RECRUITMENTS_SHOWN).reduce((sum, r) => sum + r.data[dataPointIndex], 0);
+                            rows.push({ label: '+' + (here.length - RECRUITMENTS_SHOWN) + ' {% trans "more recruitments"|escapejs %}', value: rest });
+                        }
+                        rows.push({ note: '{% trans "Figure: candidates at this stage. In brackets: their share of all active candidates in that recruitment."|escapejs %}' });
+                        return tipCard(pipelineData.labels[dataPointIndex] || '', [{ total: true, label: '{% trans "Total candidates"|escapejs %}', value: total }, ...rows]);
+                    } },
+                });
+            }
+            const pipelineLegend = createPieLegend({
+                el: document.getElementById('md-pie-legend-pipeline'),
+                chartKey: 'pipeline',
+                noun: '{% trans "recruitments"|escapejs %}',
+                onChange: drawPipeline,
+            });
+            function loadRecruitmentPipeline() {
+                fetch("{% url 'dashboard-recruitment-by-stage' %}?group=job_position&_t=" + Date.now())
+                .then(r => {
+                    const ct = r.headers.get('content-type') || '';
+                    if (!r.ok || !ct.includes('application/json')) {
+                        hideCard('recruitment_pipeline');
+                        return null;
+                    }
+                    return r.json();
+                })
+                .then(data => {
+                    if (!data) return;
+                    if (!data.dataSet || !data.dataSet.length) { document.querySelector("#chart-pipeline").innerHTML = emptyHtml('{% trans "No active recruitments"|escapejs %}'); pipelineLegend.clear(); return; }
+                    try {
+                        pipelineData = data;
+                        document.getElementById('pipeline-subtitle').textContent = '{% trans "All open recruitments"|escapejs %} (' + data.open_recruitments + ') — {% trans "number of each recruitment's active candidates at each stage, not affected by the date filter"|escapejs %}';
+                        // Busiest recruitments first, so the default top 5 are the ones with most candidates.
+                        const total = (r) => r.data.reduce((a, b) => a + b, 0);
+                        pipelineData.dataSet.sort((a, b) => total(b) - total(a));
+                        pipelineLegend.set(pipelineData.dataSet.map((r, i) => ({ name: r.label, value: total(r), color: COLORS[i % COLORS.length], detail: total(r) + ' {% trans "candidates"|escapejs %}' })));
+                        drawPipeline();
+                    } catch(e) { document.querySelector("#chart-pipeline").innerHTML = emptyHtml('{% trans "Chart error"|escapejs %}: ' + e.message); }
+                }).catch(() => { hideCard('recruitment_pipeline'); });
+            }
+            loadRecruitmentPipeline();
+
+            // ─── HIRING TIMELINE ───
+            let hiringData = null;
+            const hiringColor = (name) => COLORS[Math.max(0, hiringData.dataSet.findIndex(d => d.label === name)) % COLORS.length];
+            function drawHiring() {
+                const names = new Set(hiringLegend.selectedNames());
+                const shown = hiringData.dataSet.filter(d => names.has(d.label));
+                const monthTotals = hiringData.labels.map((_, m) => shown.reduce((a, d) => a + d.data[m], 0));
+                const peak = Math.max(0, ...monthTotals);
+                // Whole numbers only on the y-axis: with small counts use one tick per integer.
+                const yaxis = peak <= 5
+                    ? { min: 0, max: Math.max(peak, 1), tickAmount: Math.max(peak, 1) }
+                    : { min: 0, forceNiceScale: true };
+                renderChart('hiring', document.querySelector("#chart-hiring"), {
+                    series: shown.map(d => ({ name: d.label, data: d.data })),
+                    chart: { type: 'bar', stacked: true, height: 280, toolbar: { show: false }, background: 'transparent', fontFamily: 'inherit', animations: ANIM,
+                        events: { dataPointSelection: (e, ctx, config) => {
+                            if (!PERM.candidate) return;
+                            const monthNum = config.dataPointIndex + 1;
+                            const year = hiringData.year || new Date().getFullYear();
+                            const lastDay = new Date(year, monthNum, 0).getDate();
+                            const pad = n => String(n).padStart(2, '0');
+                            const from = `${year}-${pad(monthNum)}-01`;
+                            const till = `${year}-${pad(monthNum)}-${lastDay}`;
+                            const pos = shown[config.seriesIndex];
+                            window.location.href = "{% url 'candidate-view' %}?joining_date_from=" + from + "&joining_date_till=" + till + "&hired=true"
+                                + (pos && pos.id ? "&job_position_id=" + pos.id : "");
+                        }}
+                    },
+                    colors: shown.map(d => hiringColor(d.label)),
+                    plotOptions: { bar: { borderRadius: 6, borderRadiusApplication: 'end', borderRadiusWhenStacked: 'last', columnWidth: '48%' } },
+                    stroke: { width: 2, colors: [cardBg] },
+                    xaxis: { ...XAXIS_STYLE, categories: hiringData.labels },
+                    yaxis: { ...yaxis, labels: { style: { colors: textColor, fontSize: '11px' }, formatter: v => Math.round(v) } },
+                    grid: GRID,
+                    dataLabels: { enabled: false },
+                    legend: { show: false },
+                    tooltip: { ...TOOLTIP_STYLE, shared: true, intersect: false, custom: ({ series, dataPointIndex, w }) => {
+                        const rows = shown.map((d, i) => ({ color: hiringColor(d.label), label: d.label, n: series[i][dataPointIndex] })).filter(r => r.n > 0);
+                        const total = rows.reduce((a, r) => a + r.n, 0);
+                        return tipCard(hiringData.labels[dataPointIndex] || '', [
+                            { total: true, label: '{% trans "Total shortlisted"|escapejs %}', value: total },
+                            ...rows.map(r => ({ color: r.color, label: r.label, value: r.n, sub: total ? '(' + Math.round(r.n / total * 100) + '%)' : '' })),
+                        ]);
+                    } },
+                    states: { hover: { filter: { type: 'darken', value: 0.9 } } },
+                });
+            }
+            const hiringLegend = createPieLegend({
+                el: document.getElementById('md-pie-legend-hiring'),
+                chartKey: 'hiring',
+                noun: '{% trans "job positions"|escapejs %}',
+                onChange: drawHiring,
+            });
+            function loadHiringTimeline() {
+                fetchP("{% url 'dashboard-hiring-timeline' %}?group=job_position")
+                .then(r => {
+                    const ct = r.headers.get('content-type') || '';
+                    if (!r.ok || !ct.includes('application/json')) {
+                        hideCard('hiring_timeline');
+                        return null;
+                    }
+                    return r.json();
+                })
+                .then(data => {
+                    if (!data) return;
+                    if (!data.dataSet || !data.dataSet.length) { document.querySelector("#chart-hiring").innerHTML = emptyHtml('{% trans "No shortlisting data"|escapejs %}'); hiringLegend.clear(); return; }
+                    hiringData = data;
+                    const totalOf = (d) => d.data.reduce((a, b) => a + b, 0);
+                    hiringLegend.set(data.dataSet.map(d => ({ name: d.label, value: totalOf(d), color: hiringColor(d.label), detail: totalOf(d) + ' {% trans "shortlisted"|escapejs %}' })));
+                    drawHiring();
+                }).catch(() => { hideCard('hiring_timeline'); });
+            }
+            loadHiringTimeline();
+            {% endif %}
+
+            {% if perms.leave.view_leaverequest or home_role == "manager" %}
+            // ─── LEAVE BY DEPARTMENT ───
+
+
+            // ─── DEPARTMENT LEAVE DAYS ───
+            {% endif %}
+
+            // ─── BIRTHDAYS & ANNIVERSARIES ───
+            function loadBirthdaysAnniversaries() {
+                fetch("{% url 'dashboard-birthdays-anniversaries' %}")
+                .then(r => r.json())
+                .then(data => {
+                    const el = document.getElementById('md-birthdays');
+                    if (!el) return;
+                    const items = [];
+                    (data.birthdays || []).forEach(b => {
+                        items.push({
+                            name: b.name,
+                            detail: '{% trans "Birthday"|escapejs %}',
+                            kind: 'birthday',
+                            date: b.date,
+                            days_away: b.days_away,
+                            avatar: b.avatar,
+                        });
+                    });
+                    (data.anniversaries || []).forEach(a => {
+                        items.push({
+                            name: a.name,
+                            detail: (a.years || 0) + ' {% trans "yr anniversary"|escapejs %}',
+                            kind: 'anniversary',
+                            date: a.date,
+                            days_away: a.days_away,
+                            avatar: a.avatar,
+                        });
+                    });
+                    items.sort((a, b) => a.days_away - b.days_away);
+                    setMdCount('md-birthdays-count', items.length);
+                    if (!items.length) {
+                        el.innerHTML = '<div class="md-info-panel__empty">{% trans "None this month"|escapejs %}</div>';
+                        return;
+                    }
+                    el.innerHTML = items.slice(0, 8).map(item => {
+                        const badge = item.days_away === 0
+                            ? '<span class="md-bday-item__badge md-bday-item__badge--today">{% trans "Today"|escapejs %}</span>'
+                            : `<span class="md-bday-item__badge md-bday-item__badge--soon">${item.date}</span>`;
+                        const avatar = item.avatar
+                            ? `<img src="${item.avatar}" alt="">`
+                            : (item.name || '?').charAt(0);
+                        return `
+                    <div class="md-bday-item">
+                        <div class="md-bday-item__avatar">${avatar}</div>
+                        <div class="md-bday-item__info">
+                            <div class="md-bday-item__name">${item.name}</div>
+                            <div class="md-bday-item__detail"><ion-icon name="${item.kind === 'birthday' ? 'gift-outline' : 'ribbon-outline'}" class="md-bday-item__kind md-bday-item__kind--${item.kind}"></ion-icon>${item.detail}</div>
+                        </div>
+                        ${badge}
+                    </div>`;
+                    }).join('');
+                }).catch(() => {
+                    const el = document.getElementById('md-birthdays');
+                    if (el) el.innerHTML = '<div class="md-info-panel__empty">{% trans "Could not load"|escapejs %}</div>';
+                });
+            }
+            loadBirthdaysAnniversaries();
+
+            // ─── PENDING APPROVALS ───
+            function renderPendingCards(p) {
+                return `
+                <div class="md-pending-grid">
+                    <a href="{% url 'request-view' %}?status=requested&filter_applied=1" class="md-pending-card md-pending-card--amber">
+                        <div class="md-pending-card__count">${p.leave_requests}</div>
+                        <div class="md-pending-card__label">{% trans "Leave"|escapejs %}</div>
+                    </a>
+                    <a href="{% url 'request-attendance-view' %}?open_tab=1&is_validate_request_approved=False&filter_applied=1" class="md-pending-card md-pending-card--blue">
+                        <div class="md-pending-card__count">${p.attendance_requests}</div>
+                        <div class="md-pending-card__label">{% trans "Attendance"|escapejs %}</div>
+                    </a>
+                    <a href="{% url 'asset-request-allocation-view' %}?open_tab=2&asset_request_status=Requested&filter_applied=1" class="md-pending-card md-pending-card--green">
+                        <div class="md-pending-card__count">${p.asset_requests}</div>
+                        <div class="md-pending-card__label">{% trans "Assets"|escapejs %}</div>
+                    </a>
+                    <a href="{% url 'shift-request-view' %}?open_tab=1&status=requested&filter_applied=1" class="md-pending-card" style="background:#f0fdfa;">
+                        <div class="md-pending-card__count" style="color:#0d9488;">${p.shift_requests}</div>
+                        <div class="md-pending-card__label">{% trans "Shift"|escapejs %}</div>
+                    </a>
+                    <a href="{% url 'work-type-request-view' %}?status=requested&filter_applied=1" class="md-pending-card" style="background:#eef2ff;">
+                        <div class="md-pending-card__count" style="color:#4f46e5;">${p.work_type_requests}</div>
+                        <div class="md-pending-card__label">{% trans "Work Type"|escapejs %}</div>
+                    </a>
+                    <a href="{% url 'view-reimbursement' %}?open_tab=1&status=requested&type=reimbursement&filter_applied=1" class="md-pending-card md-pending-card--purple">
+                        <div class="md-pending-card__count">${p.reimbursements}</div>
+                        <div class="md-pending-card__label">{% trans "Reimbursements"|escapejs %}</div>
+                    </a>
+                </div>`;
+            }
+            function loadPendingApprovals() {
+                fetchP("{% url 'dashboard-pending-approvals' %}")
+                .then(r => r.json())
+                .then(data => {
+                    const sideEl = document.getElementById('md-pending-approvals');
+                    if (data.is_restricted) {
+                        const panel = sideEl?.closest('.md-info-panel');
+                        if (panel) panel.style.display = 'none';
+                        return;
+                    }
+                    if (sideEl) sideEl.innerHTML = renderPendingCards(data.pending);
+                    setMdCount('md-pending-count', Number((data.pending || {}).total) || 0);
+                }).catch(() => {
+                    const sideEl = document.getElementById('md-pending-approvals');
+                    if (sideEl) sideEl.innerHTML = '<div class="md-info-panel__empty">{% trans "Unable to load"|escapejs %}</div>';
+                });
+            }
+            loadPendingApprovals();
+
+            {% if perms.recruitment.view_recruitment or request.user.is_superuser %}
+            // ─── RECRUITMENT FUNNEL (HTML stage funnel — share of candidates) ───
+            {% endif %}
+
+            {% if perms.employee.view_employee or request.user.is_superuser %}
+            // ─── EMPLOYEE TURNOVER ───
+            let turnoverData = null;
+            let turnoverView = 'overall';   // 'overall' | 'department'
+            let turnoverMeasure = 'hires';  // department view only: 'hires' | 'exits'
+            const turnoverDeptColor = (name) => deptColor(Math.max(0, turnoverData.departments.findIndex(d => d.name === name)));
+            const turnoverLegend = createPieLegend({
+                el: document.getElementById('md-pie-legend-turnover'),
+                chartKey: 'turnover',
+                noun: '{% trans "departments"|escapejs %}',
+                onChange: () => drawTurnoverDepartments(),
+            });
+            const turnoverLabel = (measure) => measure === 'hires' ? '{% trans "New Hires"|escapejs %}' : '{% trans "Exits"|escapejs %}';
+
+            // One stacked column per month, one segment per department, for the chosen measure.
+            function drawTurnoverDepartments() {
+                const data = turnoverData;
+                const names = new Set(turnoverLegend.selectedNames());
+                const shown = data.departments.filter(d => names.has(d.name));
+                const measure = turnoverMeasure;
+                const labels = data.months.map(m => m.month);
+                const monthTotals = labels.map((_, m) => shown.reduce((a, d) => a + d[measure][m], 0));
+                const peak = Math.max(0, ...monthTotals);
+                // Whole people only: one tick per integer while the counts are small.
+                const yaxis = peak <= 5
+                    ? { min: 0, max: Math.max(peak, 1), tickAmount: Math.max(peak, 1) }
+                    : { min: 0, forceNiceScale: true };
+                renderChart('turnover', document.querySelector("#chart-turnover"), {
+                    series: shown.map(d => ({ name: d.name, data: d[measure] })),
+                    chart: { type: 'bar', stacked: true, height: 290, toolbar: { show: false }, background: 'transparent', fontFamily: 'inherit', animations: ANIM,
+                        events: { dataPointSelection: (e, ctx, config) => {
+                            const m = data.months[config.dataPointIndex];
+                            const dept = shown[config.seriesIndex];
+                            // "No Department" has no id to filter on, so it cannot drill down.
+                            if (!m || !m.from || !dept || dept.id == null || !PERM.employee) return;
+                            const range = measure === 'hires'
+                                ? "joined_from=" + m.from + "&joined_till=" + m.to
+                                : "exited_from=" + m.from + "&exited_till=" + m.to;
+                            window.location.href = "{% url 'employee-view' %}?is_active=all&" + range
+                                + "&employee_work_info__department_id=" + dept.id + "&filter_applied=on";
+                        } } },
+                    colors: shown.map(d => turnoverDeptColor(d.name)),
+                    plotOptions: { bar: { borderRadius: 6, borderRadiusApplication: 'end', borderRadiusWhenStacked: 'last', columnWidth: '52%' } },
+                    stroke: { width: 2, colors: [cardBg] },
+                    xaxis: { ...XAXIS_STYLE, categories: labels },
+                    yaxis: { ...YAXIS_STYLE, ...yaxis, labels: { ...YAXIS_STYLE.labels, formatter: v => Math.round(v) } },
+                    grid: GRID,
+                    dataLabels: { enabled: false },
+                    legend: { show: false },
+                    tooltip: { ...TOOLTIP_STYLE, shared: true, intersect: false, custom: ({ dataPointIndex }) => {
+                        const rows = shown.map(d => ({ color: turnoverDeptColor(d.name), label: d.name, n: d[measure][dataPointIndex] })).filter(r => r.n > 0);
+                        const total = rows.reduce((a, r) => a + r.n, 0);
+                        return tipCard(labels[dataPointIndex] || '', [
+                            { total: true, label: turnoverLabel(measure), value: total },
+                            ...rows.map(r => ({ color: r.color, label: r.label, value: r.n, sub: total ? '(' + Math.round(r.n / total * 100) + '%)' : '' })),
+                        ]);
+                    } },
+                    states: { hover: { filter: { type: 'darken', value: 0.9 } } },
+                });
+            }
+
+            // Switch between the overall bars and the department breakdown.
+            function showTurnover() {
+                const data = turnoverData;
+                if (!data) return;
+                const rateEl = document.getElementById('turnover-rate');
+                const legendEl = document.getElementById('md-pie-legend-turnover');
+                const dept = turnoverView === 'department';
+                document.getElementById('turnover-measure').hidden = !dept;
+                legendEl.hidden = !dept;
+                document.querySelectorAll('#turnover-view .md-seg__btn').forEach(b => b.classList.toggle('is-active', b.dataset.view === turnoverView));
+                document.querySelectorAll('#turnover-measure .md-seg__btn').forEach(b => b.classList.toggle('is-active', b.dataset.measure === turnoverMeasure));
+                if (!dept) {
+                    turnoverLegend.clear();
+                    rateEl.textContent = `{% trans "6-month turnover rate"|escapejs %}: ${data.turnover_rate_6m}%`;
+                    rateEl.title = `${data.turnover_formula}\n= ${data.turnover_exits_6m} ÷ ${data.turnover_headcount} × 100 = ${data.turnover_rate_6m}%`;
+                    drawTurnoverOverall(data);
+                    return;
+                }
+                rateEl.textContent = turnoverLabel(turnoverMeasure) + ' {% trans "by department — last 6 months"|escapejs %}';
+                rateEl.title = '';
+                const totalOf = (d) => d[turnoverMeasure].reduce((a, b) => a + b, 0);
+                const depts = (data.departments || []).filter(d => totalOf(d) > 0);
+                if (!depts.length) {
+                    turnoverLegend.clear();
+                    if (chartInstances['turnover']) { chartInstances['turnover'].destroy(); chartInstances['turnover'] = null; }
+                    document.querySelector("#chart-turnover").innerHTML = emptyHtml('{% trans "No data"|escapejs %}');
+                    return;
+                }
+                // Legend colours and order follow the full list, so a department keeps
+                // its colour when the measure switches.
+                turnoverLegend.set(depts.map(d => ({ name: d.name, value: totalOf(d), color: turnoverDeptColor(d.name),
+                    detail: totalOf(d) + ' ' + (turnoverMeasure === 'hires' ? '{% trans "hires"|escapejs %}' : '{% trans "exits"|escapejs %}') })));
+                // set() does not redraw by itself. Only departments with data are in the
+                // legend, so drawTurnoverDepartments() filtering by it drops the empty ones.
+                drawTurnoverDepartments();
+            }
+            document.getElementById('turnover-view')?.addEventListener('click', (e) => {
+                const b = e.target.closest('[data-view]');
+                if (!b || b.dataset.view === turnoverView) return;
+                turnoverView = b.dataset.view;
+                showTurnover();
+            });
+            document.getElementById('turnover-measure')?.addEventListener('click', (e) => {
+                const b = e.target.closest('[data-measure]');
+                if (!b || b.dataset.measure === turnoverMeasure) return;
+                turnoverMeasure = b.dataset.measure;
+                showTurnover();
+            });
+
+            function loadEmployeeTurnover() {
+                fetchP("{% url 'dashboard-turnover' %}?group=department")
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.months.length) { document.querySelector("#chart-turnover").innerHTML = emptyHtml('{% trans "No data"|escapejs %}'); return; }
+                    turnoverData = data;
+                    showTurnover();
+                }).catch(() => { document.querySelector("#chart-turnover").innerHTML = emptyHtml('{% trans "No turnover data"|escapejs %}'); });
+            }
+            function drawTurnoverOverall(data) {
+                    renderChart('turnover', document.querySelector("#chart-turnover"), {
+                        series: [
+                            { name: '{% trans "New Hires"|escapejs %}', data: data.months.map(m => m.hires) },
+                            { name: '{% trans "Exits"|escapejs %}', data: data.months.map(m => m.exits) },
+                        ],
+                        chart: { type: 'bar', height: 290, toolbar: { show: false }, background: 'transparent', fontFamily: 'inherit', animations: ANIM,
+                            // A column opens the people behind it. Green: the candidates hired in
+                            // that month. Red (exits) is not clickable.
+                            events: { dataPointSelection: (e, ctx, config) => {
+                                const m = data.months[config.dataPointIndex];
+                                if (!m || !m.from) return;
+                                if (!PERM.employee) return;
+                                // Only the hires column opens a list; exits don't redirect.
+                                if (config.seriesIndex !== 0) return;
+                                const range = "joined_from=" + m.from + "&joined_till=" + m.to;
+                                window.location.href = "{% url 'employee-view' %}?is_active=all&" + range + "&filter_applied=on";
+                            } } },
+                        colors: ['#22c55e', '#ef4444'],
+                        fill: { type: 'gradient', gradient: { type: 'vertical', shadeIntensity: 0.3, opacityFrom: 1, opacityTo: 0.8 } },
+                        plotOptions: { bar: { borderRadius: 6, borderRadiusApplication: 'end', columnWidth: '52%', grouped: true } },
+                        xaxis: { ...XAXIS_STYLE, categories: data.months.map(m => m.month) },
+                        // Whole people only: one tick per integer while the counts are small.
+                        yaxis: (() => {
+                            const peak = Math.max(1, ...data.months.map(m => Math.max(m.hires, m.exits)));
+                            return { ...YAXIS_STYLE, min: 0, ...(peak <= 5 ? { max: peak, tickAmount: peak } : { forceNiceScale: true }),
+                                labels: { ...YAXIS_STYLE.labels, formatter: v => Math.round(v) } };
+                        })(),
+                        grid: GRID,
+                        dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 700, colors: ['#fff'] }, background: { enabled: false } },
+                        legend: { ...LEGEND_STYLE, position: 'top', horizontalAlign: 'right' },
+                        tooltip: stdTooltip(),
+                        states: { hover: { filter: { type: 'darken', value: 0.85 } } },
+                    });
+            }
+            loadEmployeeTurnover();
+            {% endif %}
+
+            {% if request.user.is_superuser or perms.payroll.view_payslip and request.user.is_staff or perms.payroll.view_payslip and perms.payroll.change_payslip %}
+            // ─── PAYROLL SUMMARY ───
+            {% endif %}
+
+            // ── Re-run every load/chart function above in place (used by the
+            // auto-refresh timer instead of location.reload()). Permission-gated
+            // load functions only exist when their Django if-block rendered, so
+            // each is guarded with a typeof check.
+            function refreshAllData() {
+                loadKpiCards();
+                loadAnnouncements();
+                if (typeof loadTicketPriority === 'function') loadTicketPriority();
+                if (typeof loadOverdueTickets === 'function') loadOverdueTickets();
+                loadDepartmentHeadcount();
+                loadGenderSplit();
+                if (typeof loadLeaveBreakdown === 'function') loadLeaveBreakdown();
+                if (typeof loadAttendanceOverview === 'function') loadAttendanceOverview();
+                if (typeof loadLeaveOverPeriod === 'function') loadLeaveOverPeriod();
+                if (typeof loadRecruitmentPipeline === 'function') loadRecruitmentPipeline();
+                if (typeof loadHiringTimeline === 'function') loadHiringTimeline();
+                if (typeof loadBirthdaysAnniversaries === 'function') loadBirthdaysAnniversaries();
+                loadPendingApprovals();
+                if (typeof loadEmployeeTurnover === 'function') loadEmployeeTurnover();
+            }
+
+            // ═══════════════════════════════════════════
+            //  ANNOUNCEMENT MODALS
+            // ═══════════════════════════════════════════
+
+            // Custom announcement modal removed — now uses standard #objectCreateModal via HTMX
+
+            // ── Create Announcement — uses standard #objectCreateModal via HTMX ──
+            // Reload announcements when the create modal is closed (after successful save)
+            const createModal = document.getElementById('objectCreateModal');
+            if (createModal) {
+                const observer = new MutationObserver(() => {
+                    if (!createModal.classList.contains('oh-modal--show')) {
+                        loadAnnouncements();
+                    }
+                });
+                observer.observe(createModal, { attributes: true, attributeFilter: ['class'] });
+            }
+
+        })();
+
+/* Keep every chart tooltip inside its card. Apex flips a wide tooltip to the left of the
+   bar and, near the card's left edge, that puts it past the edge where the page clips it.
+   After Apex positions it, nudge it back in. */
+(function () {
+    if (window.__tooltipClamp) return;
+    window.__tooltipClamp = true;
+    var queued = false;
+    function clamp() {
+        queued = false;
+        document.querySelectorAll('.apexcharts-tooltip.apexcharts-active').forEach(function (t) {
+            var holder = t.closest('[id^="chart-"]') || t.parentElement;
+            var card = (holder && holder.parentElement) || holder;
+            if (!card) return;
+            var box = card.getBoundingClientRect(), r = t.getBoundingClientRect();
+            if (r.width > box.width) return;
+            var margin = 8, shift = 0;
+            if (r.left < box.left + margin) shift = box.left + margin - r.left;
+            else if (r.right > box.right - margin) shift = box.right - margin - r.right;
+            if (shift) t.style.left = (parseFloat(t.style.left) || 0) + shift + 'px';
+        });
+    }
+    // After Apex has placed the tooltip for this move (a moment later), pull it inside its card.
+    // No mutation observer: nothing here listens for its own change.
+    document.addEventListener('mousemove', function () {
+        if (!queued) { queued = true; setTimeout(clamp, 40); }
+    }, { passive: true });
+})();
+</script>
+{% endblock %}

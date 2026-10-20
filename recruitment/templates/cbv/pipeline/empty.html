@@ -1,0 +1,12 @@
+{% load i18n recruitmentfilters %}
+{# The Actions button for this stage already renders unconditionally in    #}
+{# cbv/pipeline/quick_actions.html, included by candidate_list.html above  #}
+{# this template's {% else %} branch - a second one here duplicated it     #}
+{# whenever the stage had no candidates.                                   #}
+<div class="oh-wrapper" align="center" style="margin-top: 2vh; margin-bottom:2vh;">
+    <div align="center">
+      <p class="oh-404__subtitle">
+        {% trans "No records found." %}
+      </p>
+    </div>
+  </div>

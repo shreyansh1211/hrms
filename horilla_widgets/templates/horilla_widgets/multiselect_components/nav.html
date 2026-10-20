@@ -1,0 +1,216 @@
+{% load i18n %}
+<style>
+    /* Not inline: Alpine's x-show toggles the element's own inline
+       style.display directly (removing it entirely when shown), which
+       would otherwise wipe out an inline display:flex declared alongside
+       it every time the panel opens. A stylesheet rule survives that. */
+    #{{section_id}} .oh-filter-scroll-menu {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    #{{section_id}} .oh-filter-scroll-menu__body {
+        overflow-y: auto;
+        flex: 1 1 auto;
+    }
+</style>
+<section
+    class="oh-main__topbar p-3 mb-1 m-0"
+    style="padding-left: 0 !important; padding-right: 0 !important"
+    x-data="{searchShow: false}"
+    id="widgetFilterFormContainer{{self.attrs.id}}"
+>
+    <div class="oh-main__titlebar oh-main__titlebar--left">
+        <div class="mb-2 mt-2">
+            <h1 class="oh-main__titlebar-title fw-bold">{{ field.label }}</h1>
+        </div>
+    </div>
+    <div class="oh-main__titlebar oh-main__titlebar--right">
+        <div
+            class="oh-input-group oh-input__search-group"
+            :class="searchShow ? 'oh-input__search-group--show' : ''"
+        >
+            <input
+                type="text"
+                class="oh-input oh-input__icon"
+                name="search"
+                aria-label="{% trans 'Search Input' %}"
+                placeholder="{% trans 'Search' %}"
+            >
+        </div>
+        <div class="oh-main__titlebar-button-container">
+            <div class="oh-dropdown" x-data="{open: false}">
+                <button
+                    hx-get="{% url 'get-filter-form' %}?template_path={{filter_template_path}}"
+                    hx-target="#widgetFilterContainer"
+                    hx-swap="innerHTML"
+                    hx-trigger="load"
+                    id="hxButton"
+                    hidden
+                >
+                    <button
+                        onclick="$(this).closest('.oh-main__titlebar-button-container').find('#hxButton').click()"
+                        class="oh-btn ml-2"
+                        @click="open = !open; $nextTick(() => positionFilterScrollMenu($el))"
+                    >
+                        <ion-icon
+                            name="filter"
+                            class="mr-1 md hydrated"
+                            role="img"
+                            aria-label="{% trans 'filter' %}"
+                        ></ion-icon>{% trans "Filter" %}
+                        <div id="filterCount"></div>
+                    </button>
+                </button>
+                <div
+                    class="oh-dropdown__menu oh-dropdown__menu--left oh-dropdown__filter oh-filter-scroll-menu p-4"
+                    x-show="open"
+                    @click.outside="open = false"
+                    style="max-height: 70vh;"
+                >
+                    <div id="widgetFilterContainer" class="oh-filter-scroll-menu__body">
+                        {% comment %} {% include filter_template_path %} {% endcomment %}
+                    </div>
+                    <div class="oh-dropdown__filter-footer" style="flex: 0 0 auto;">
+                        <button
+                            type="submit"
+                            class="oh-btn oh-btn--secondary oh-btn--small w-100"
+                            data-action="{% url filter_route_name %}"
+                            id="widgetFilterButton{{self.attrs.id}}"
+                        >
+                            {% trans "Filter" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<script>
+    if (typeof positionFilterScrollMenu !== "function") {
+      // The panel's max-height was a fixed 70vh, but it's positioned
+      // partway down whatever modal/page it's opened in -- inside a
+      // shorter modal that 70vh comfortably overflows the modal's own
+      // clipping box (overflow:hidden), pushing the Filter submit button
+      // out of view instead of just scrolling within the panel. Recompute
+      // max-height each time it opens from the actual space available
+      // before the nearest clipping ancestor (or the viewport, whichever
+      // is smaller).
+      window.positionFilterScrollMenu = function (triggerEl) {
+        const dropdown = triggerEl.closest(".oh-dropdown");
+        const menu = dropdown ? dropdown.querySelector(".oh-filter-scroll-menu") : null;
+        if (!menu || menu.style.display === "none" || getComputedStyle(menu).display === "none") {
+          return;
+        }
+        let clip = menu.parentElement;
+        while (clip && clip !== document.body) {
+          const cs = getComputedStyle(clip);
+          if (["hidden", "auto", "scroll"].indexOf(cs.overflowY) !== -1) {
+            break;
+          }
+          clip = clip.parentElement;
+        }
+        const menuTop = menu.getBoundingClientRect().top;
+        const clipBottom = clip ? clip.getBoundingClientRect().bottom : window.innerHeight;
+        const available = Math.min(clipBottom, window.innerHeight) - menuTop - 16;
+        menu.style.maxHeight = Math.max(available, 200) + "px";
+      };
+    }
+
+    $(document).ready(function () {
+      function transformJson(inputJson) {
+        // Clone the input JSON to avoid modifying the original object
+        const modifiedJson = JSON.parse(JSON.stringify(inputJson));
+
+        // Iterate through each object in the JSON array
+        modifiedJson.forEach((obj) => {
+          // Remove "_id" when it appears at the end of a name
+
+          // If there are "__" in the name, keep only the word after the last "__" and capitalize it
+          obj.name = obj.name.replace(/_id$/, "");
+          obj.name.replace("_", " ");
+          if (obj.name.includes("__")) {
+            const parts = obj.name.split("__");
+            obj.name = parts[parts.length - 1];
+          }
+          obj.name = obj.name.charAt(0).toUpperCase() + obj.name.slice(1);
+          obj.name = obj.name.replace(/_/g, " ");
+        });
+
+        return modifiedJson;
+      }
+
+      $("#{{section_id}} #widgetFilterButton{{self.attrs.id}}").click(function (e) {
+        e.preventDefault();
+        const formFields = $("#{{section_id}} #widgetFilterFormContainer{{self.attrs.id}}").find(
+          "[name]"
+        );
+        var formData = [];
+        formFields.each(function () {
+          // .val() on a checkbox/radio returns its "value" attribute
+          // regardless of whether it's actually checked, so an unchecked
+          // one still contributed its value here -- e.g. every option of
+          // the Is Active radio group (empty/True/False) was sent at once,
+          // filtering every search down to zero results.
+          const type = (this.type || "").toLowerCase();
+          if ((type === "checkbox" || type === "radio") && !this.checked) {
+            return;
+          }
+          const name = $(this).attr("name");
+          const value = $(this).val();
+          formData.push({ name, value });
+        });
+        var filterUrl = $(this).attr("data-action");
+        $.ajax({
+          type: "get",
+          url: filterUrl,
+          data: formData,
+          success: function (response) {
+            let ids = response.ids;
+            $("#{{section_id}} #chooseTableHeaderParent .oh-sticky-table__tbody").hide();
+            $.each(ids, function (indexInArray, valueOfElement) {
+              $(
+                `#{{section_id}} #chooseTableHeaderParent .oh-sticky-table__tbody[data-instance-id=${valueOfElement}]`
+              ).show();
+            });
+            $("#{{section_id}} .visible-count").html(
+              $("#{{section_id}} .oh-sticky-table__tr--custom:visible .oh-sticky-table__sd")
+                .length
+            );
+            var labeledTags = transformJson(formData);
+            var tagContainer = $("#{{section_id}} #filterTagContainer{{self.attrs.id}}");
+            tagContainer.html("");
+            $.each(labeledTags, function (indexInArray, valueOfElement) {
+              if (valueOfElement.value.length != 0) {
+                tagContainer.append(
+                  $(`
+                <span class="oh-filter-tag" id="tag-{{self.attrs.id}}"
+                  >${valueOfElement.name}<button class="oh-filter-tag__close" onclick="closeFilterTag(event, ${formData[indexInArray].name}, '#{{section_id}} #tag-{{self.attrs.id}}')">
+                    <ion-icon name="close-outline"></ion-icon></button
+                  >
+                </span>`)
+                );
+              }
+            });
+          },
+        });
+      });
+      $("#{{section_id}} #widgetFilterFormContainer{{self.attrs.id}} [name=search]").keyup(
+        function (e) {
+          $("#{{section_id}} #widgetFilterButton{{self.attrs.id}}").click();
+        }
+      );
+    });
+    function closeFilterTag(e, fieldName, targetTag) {
+      e.preventDefault();
+      $(fieldName).val("");
+      if ($(fieldName).is("select")) {
+        $(fieldName)
+          .next()
+          .find(`#select2-${$(fieldName).attr("id")}-container`)
+          .html("---------");
+      }
+      $("#{{section_id}} #widgetFilterButton{{self.attrs.id}}").click();
+      $(targetTag).remove();
+    }
+</script>

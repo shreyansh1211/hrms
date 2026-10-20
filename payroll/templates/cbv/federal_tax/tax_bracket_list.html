@@ -1,0 +1,37 @@
+{% load i18n %}
+{% comment %}
+Body of one filing status row on the Filing Status page.
+
+Leads with how this status actually computes tax, in order, because that was
+previously only knowable by reading a mode flag, a slab table and four
+adjustment fields and knowing which order the engine applies them in.
+{% endcomment %}
+
+<div class="p-3">
+  <div class="row">
+    <div class="col-lg-5">
+      <div class="p-3 mb-2" style="background:#f7f7f9;border-radius:8px;">
+        <div class="fw-bold mb-2" style="font-size:14px;">
+          {% trans "How this works out tax" %}
+        </div>
+        <ol class="text-sm" style="margin:0;padding-left:18px;color:#444;line-height:1.7;">
+          {% for step in filing_status.computation_steps %}
+            <li>{{ step }}</li>
+          {% endfor %}
+        </ol>
+      </div>
+      <a href="{{ filing_status.get_rules_url }}" class="oh-btn oh-btn--secondary w-100">
+        <ion-icon name="create-outline" class="me-1"></ion-icon>
+        {% trans "Edit slabs, adjustments & preview" %}
+      </a>
+    </div>
+
+    <div class="col-lg-7">
+      {% if filing_status.use_py %}
+        {% include "payroll/tax/_python_editor_standalone.html" %}
+      {% else %}
+        {% include "generic/horilla_list_table.html" %}
+      {% endif %}
+    </div>
+  </div>
+</div>

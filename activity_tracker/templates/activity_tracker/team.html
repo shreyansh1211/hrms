@@ -1,0 +1,61 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<div class="oh-wrapper">
+  <style>
+    .at-table { width:100%; border-collapse:collapse; background:#fff; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; font-size:14px; }
+    .at-table th { background:#f4fafc; color:#132238; text-align:left; padding:10px 12px; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+    .at-table td { padding:10px 12px; border-top:1px solid #e2e8f0; color:#1e293b; }
+    .at-low { color:#92400e; font-weight:700; } .at-muted { color:#64748b; }
+    .at-bar { display:flex; gap:10px; align-items:end; flex-wrap:wrap; margin:14px 0; }
+    .at-bar label { display:block; font-size:12px; color:#64748b; }
+    .at-bar input { border:1px solid #cbd5e1; border-radius:6px; padding:7px; }
+    .at-btn { background:#017391; color:#fff; border:0; border-radius:6px; padding:8px 16px; font-weight:600; cursor:pointer; }
+    .at-btn--ghost { background:#fff; color:#017391; border:1px solid #a5d5e3; }
+    .at-note { background:#f4fafc; border-left:4px solid #38BDF8; padding:10px 14px; color:#132238; font-size:13px; margin-bottom:12px; }
+  </style>
+  <h1 style="font-size:22px;font-weight:700;color:#132238;margin-bottom:2px;">{% trans "Team time" %}</h1>
+  <p class="at-muted" style="margin-bottom:6px;">
+    {% trans "In time comes from attendance, active time from the desk agent, project time from timesheets." %}
+  </p>
+  {% if not configured %}
+    <div class="at-note">{% trans "The activity tracker is not connected yet. Set ACTIVITY_TRACKER_URL and ACTIVITY_TRACKER_API_KEY in the server settings; active time stays empty until then." %}</div>
+  {% endif %}
+  <form class="at-bar" method="get">
+    <div><label>{% trans "From" %}</label><input type="date" name="from_date" value="{{ from_date|date:'Y-m-d' }}"></div>
+    <div><label>{% trans "To" %}</label><input type="date" name="to_date" value="{{ to_date|date:'Y-m-d' }}"></div>
+    <button class="at-btn" type="submit">{% trans "Show" %}</button>
+  </form>
+  {% if configured %}
+    <form method="post" action="{% url 'activity-sync-now' %}" style="margin-bottom:12px;">
+      {% csrf_token %}
+      <button class="at-btn at-btn--ghost" type="submit">{% trans "Sync from tracker now" %}</button>
+      <span class="at-muted" style="font-size:12px;margin-left:8px;">{% trans "Runs automatically every 15 minutes." %}</span>
+    </form>
+  {% endif %}
+  <table class="at-table">
+    <thead><tr>
+      <th>{% trans "Employee" %}</th><th>{% trans "In time" %}</th><th>{% trans "Active time" %}</th>
+      <th>{% trans "Project time" %}</th><th>{% trans "Active / in" %}</th><th>{% trans "Agent" %}</th>
+      <th>{% trans "Last seen" %}</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><strong>{{ r.employee.get_full_name }}</strong><div class="at-muted" style="font-size:12px;">{{ r.employee.employee_work_info.department_id|default:"" }}</div></td>
+        <td>{{ r.in }}</td><td>{{ r.active }}</td><td>{{ r.project }}</td>
+        <td class="{% if r.low %}at-low{% endif %}">{% if r.ratio is None %}-{% else %}{{ r.ratio }}%{% endif %}</td>
+        <td class="at-muted">{{ r.status }}</td>
+        <td class="at-muted">{% if r.last_seen %}{{ r.last_seen|date:"d M, h:i A" }}{% else %}-{% endif %}</td>
+        <td>{% if r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener noreferrer">{% trans "Detailed activity" %}</a>{% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8" class="at-muted">{% trans "No employees." %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="at-muted" style="font-size:12px;margin-top:10px;">
+    {% trans "A low active/in percentage is only a prompt to look closer (meetings, calls and offline work are not desk activity). Applications, URLs and screenshots are kept in the tracker console, not here." %}
+  </p>
+</div>
+{% endblock %}

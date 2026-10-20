@@ -1,0 +1,116 @@
+{% load i18n %}
+<div id="formContainer">
+    {% include "generic/horilla_form.html" %}
+    <button
+        hidden
+        hx-target="#moreOptionContainer_{{form.option_count}}"
+        hx-swap="outerHTML"
+        hx-post="{% url 'add-remove-options-field' %}"
+        role="button"
+        class="text-primary-600"
+        id="addMoreOptions"
+    >
+        {% trans "Add more options.." %}
+    </button>
+</div>
+
+<script>
+    function toggleOpt() {
+            if ($("#genericModalBody form [name=type]").first().val() == "options" || $("#genericModalBody form [name=type]").first().val() == "multiple") {
+                $("#id_options_parent_div").show();
+                $('[id^="moreOptionContainer_"]').remove();
+                var optionCount = {{ form.option_count }}
+
+                for (var i = 1; i < optionCount; i++) {
+                    var parentDivId = "id_options"+ i +"_parent_div";
+                    var parentDiv = document.getElementById(parentDivId);
+                    $(parentDiv).removeClass("col-md-6");
+                    if (i >= 1) {
+                        $(parentDiv).find('.oh-label__info').remove();
+                    }
+                }
+
+                // Check if "Add more options" button already exists
+                var test = document.getElementById('addOptions')
+                if (!document.getElementById('addOptions')) {
+                    var divElement = document.createElement('div');
+                    divElement.id = 'moreOptionContainer_' + optionCount;
+                    divElement.className = 'pt-2 text-primary-600';
+                    divElement.style.textAlign = 'end';
+
+                    var anchorElement = document.createElement('a');
+                    anchorElement.setAttribute('role', 'button');
+                    anchorElement.setAttribute('id', 'addOptions');
+                    anchorElement.innerText = 'Add more options..';
+
+                    divElement.appendChild(anchorElement);
+
+                    //var parentDiv = document.getElementById('id_options_parent_div');
+                    if (parentDiv) {
+                        parentDiv.insertAdjacentElement('afterend', divElement);
+
+                    }
+                    else {
+                        var parentDivMain = document.getElementById('id_options_parent_div');
+                        parentDivMain.insertAdjacentElement('afterend', divElement);
+                        var nextDiv = parentDivMain.nextElementSibling;
+                        nextDiv.id = 'moreOptionContainer_1';
+                    }
+
+                }
+                else{
+                    $("#addOptions").show();
+                }
+
+            } else {
+                $("#id_options_parent_div").hide();
+                $("#addOptions").hide();
+                $('[id^="moreOptionContainer_"]').remove();
+            }
+        }
+        $(document).off('click', '#addOptions').on('click', '#addOptions', function(event) {
+            $('#addMoreOptions').click();
+        });
+
+      $(document).on('change', '#genericModalBody form [name=type]', function (e) {
+        toggleOpt();
+    });
+
+      $(document).ready(function() {
+          toggleOpt();
+      });
+
+        $(document).ready(function () {
+            // Excludes [name=type]: on a failed-submit re-render it carries
+            // required/aria-invalid/aria-describedby attributes, and this
+            // vendored select2 build's constructor throws inside
+            // _syncAttributes() when it tries to process them -- late
+            // enough that it has already added the select2-hidden-
+            // accessible class (and rendered its own dropdown UI) but
+            // before it stores the internal select2 instance data. That
+            // leaves the native <select> fully visible and clickable right
+            // alongside select2's own (semi-broken) widget: two stacked
+            // dropdowns for one field. Type is a plain ~10-option static
+            // choice field -- it gets no benefit from select2's search/
+            // pagination, so the robust fix is to just not select2-ify it;
+            // its existing server-rendered class/style already style it
+            // reasonably as a native select.
+            //
+            // Guard against a double-init on the remaining fields (e.g.
+            // this modal reopened without the previous select2 instance
+            // being torn down first): calling .select2() again on an
+            // already-initialized <select> without destroying it first
+            // leaves the old UI in place and stacks a second one next to
+            // it -- same guard used by history_tracking_fields_content.html
+            // and the report templates.
+            $("#{{ view_id }}Form").find("select").not("[name=type]").each(function () {
+                var $select = $(this);
+                if ($select.hasClass("select2-hidden-accessible")) {
+                    $select.select2("destroy");
+                }
+                $select.select2({
+                    width: '100%'
+                });
+            });
+        });
+</script>

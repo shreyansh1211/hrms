@@ -1,0 +1,581 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-10 13:50+0530\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+msgid "An unexpected error occurred. Please refresh the page."
+msgstr "حدث خطأ غير متوقع. يُرجى تحديث الصفحة."
+
+msgid "Do you really want to validate all the selected attendances?"
+msgstr "هل تريد حقًا التحقق من صحة جميع الحضورات المحددة؟"
+
+msgid "No rows are selected from Validate Attendances."
+msgstr "لم يتم تحديد أي صفوف من التحقق من الحضور."
+
+msgid "Do you really want to approve OT for all the selected attendances?"
+msgstr ""
+"هل تريد حقًا الموافقة على ساعات العمل الإضافية لجميع سجلات الحضور المحددة؟"
+
+msgid "No rows are selected from OT Attendances."
+msgstr "لم يتم تحديد أي صفوف في سجلات حضور العمل الإضافي."
+
+msgid "Do you really want to reject all the selected attendance requests?"
+msgstr "هل تريد حقًا رفض جميع طلبات الحضور المحددة؟"
+
+msgid "Pending Attendance Update Request!"
+msgstr "طلب تحديث الحضور معلق!"
+
+msgid ""
+"An attendance request exists for updating this attendance prior to "
+"validation."
+msgstr "يوجد طلب حضور لتحديث هذا الحضور قبل التحقق من الصحة."
+
+msgid "View Request"
+msgstr "عرض الطلب"
+
+msgid "Employees Imported Successfully"
+msgstr "تم استيراد الموظفين بنجاح"
+
+msgid "You have"
+msgstr "لديك"
+
+msgid "errors. Do you want to download the error list?"
+msgstr "أخطاء. هل تريد تنزيل قائمة الأخطاء؟"
+
+msgid "Download error list & Skip Import"
+msgstr "تنزيل قائمة الأخطاء وتخطي الاستيراد"
+
+msgid "Download error list & Continue Import"
+msgstr "تنزيل قائمة الأخطاء ومتابعة الاستيراد"
+
+msgid "Invalid File"
+msgstr "ملف غير صالح"
+
+msgid "Please upload a valid XLSX file."
+msgstr "يرجى رفع ملف XLSX صالح."
+
+msgid "Stage updated"
+msgstr "تم تحديث المرحلة"
+
+msgid "Failed to update sequence: "
+msgstr "فشل تحديث التسلسل: "
+
+msgid "Sequence updated"
+msgstr "تم تحديث التسلسل"
+
+msgid "Confirm Stage Change"
+msgstr "تأكيد تغيير المرحلة"
+
+msgid ""
+"The candidate is being moved from %(from)s to the %(to)s stage. Do you want "
+"to proceed?"
+msgstr "يتم نقل المرشح من %(from)s إلى %(to)s. هل تريد المتابعة؟"
+
+msgid "Don't show this again in this session"
+msgstr "لا تظهر هذا مرة أخرى في هذه الجلسة"
+
+msgid "Cannot Change Stage"
+msgstr "لا يمكن تغيير المرحلة"
+
+msgid "This move is not allowed."
+msgstr "هذه الخطوة غير مسموح بها."
+
+msgid "Employees"
+msgstr "الموظفون"
+
+msgid "Number of days"
+msgstr "عدد الأيام"
+
+msgid "Draft"
+msgstr "مسودة"
+
+msgid "Review Ongoing"
+msgstr "مراجعة قيد التنفيذ"
+
+msgid "Confirmed"
+msgstr "مؤكد"
+
+msgid "Paid"
+msgstr "مدفوع"
+
+msgid "Leave count"
+msgstr "عدد الإجازات"
+
+msgid "Do you wish to create a Leave Report?"
+msgstr "هل ترغب في إنشاء تقرير إجازة؟"
+
+msgid "Do you want to reject the selected leave requests?"
+msgstr "هل تريد رفض طلبات الإجازة المحددة؟"
+
+msgid "Onboarding Candidates"
+msgstr "مرشحو الانضمام للعمل"
+
+msgid "Candidates per Stage"
+msgstr "المرشحون حسب المرحلة"
+
+msgid "Number of Candidates"
+msgstr "عدد المرشحين"
+
+msgid "Do you want to send the payslip by mail?"
+msgstr "هل تريد إرسال كشف الراتب عبر البريد الإلكتروني؟"
+
+msgid "Name of Employees"
+msgstr "أسماء الموظفين"
+
+msgid "Amount"
+msgstr "المبلغ"
+
+msgid "Objective"
+msgstr "الهدف"
+
+msgid "Key Result"
+msgstr "النتيجة الرئيسية"
+
+msgid "Feedback"
+msgstr "التعليقات"
+
+msgid "Upload Completed!"
+msgstr "تم التحميل!"
+
+msgid "Imported Successfully!"
+msgstr "تم الاستيراد بنجاح!"
+
+msgid "Please upload a file with the .xlsx extension only."
+msgstr "يرجى تحميل الملف بامتداد .xlsx فقط."
+
+msgid "Hired Candidates"
+msgstr "المرشحون المعينون"
+
+msgid "Stage sequence updated"
+msgstr "تم تحديث تسلسل المراحل"
+
+msgid "Dashboard"
+msgstr "لوحة التحكم"
+
+msgid "Horilla dashboard section"
+msgstr "قسم لوحة تحكم Horilla"
+
+msgid "Mark Attendance"
+msgstr "تسجيل الحضور"
+
+msgid "Used to mark your attendance"
+msgstr "يُستخدم لتسجيل حضورك"
+
+msgid "Settings"
+msgstr "الإعدادات"
+
+msgid "Settings configurations"
+msgstr "تكوينات الإعدادات"
+
+msgid "Notification"
+msgstr "إشعار"
+
+msgid "Notifications section"
+msgstr "قسم الإشعارات"
+
+msgid "Language"
+msgstr "اللغة"
+
+msgid "Multi-Language options"
+msgstr "خيارات تعدد اللغات"
+
+msgid "Multi-Company"
+msgstr "متعدد الشركات"
+
+msgid "Multi-Company options"
+msgstr "خيارات تعدد الشركات"
+
+msgid "Profile"
+msgstr "الملف الشخصي"
+
+msgid "Profile and change password options"
+msgstr "خيارات الملف الشخصي وتغيير كلمة المرور"
+
+msgid "Dashboard Tiles"
+msgstr "بلاطات لوحة التحكم"
+
+msgid "Horilla Dashboard Tiles"
+msgstr "بلاطات لوحة تحكم Horilla"
+
+msgid "Dashboard Actions"
+msgstr "إجراءات لوحة التحكم"
+
+msgid "Approve or Reject Options"
+msgstr "الموافقة على الخيارات أو رفضها"
+
+msgid "Add announcement"
+msgstr "إضافة إعلان"
+
+msgid "Create announcement from dashboard"
+msgstr "إنشاء إعلان من لوحة التحكم"
+
+msgid "Quick Actions"
+msgstr "إجراءات سريعة"
+
+msgid "Create Quick Requests"
+msgstr "إنشاء طلبات سريعة"
+
+msgid "Company"
+msgstr "الشركة"
+
+msgid "Your current company access"
+msgstr "وصولك الحالي للشركة"
+
+msgid "App"
+msgstr "برنامج"
+
+msgid "Horilla Hr Apps. eg Dashboard"
+msgstr "تطبيقات Horilla HR مثل لوحة التحكم"
+
+msgid "Pipeline"
+msgstr "خط الأنابيب"
+
+msgid "Recruitment pipeline management"
+msgstr "إدارة خط أنابيب التوظيف"
+
+msgid "New Recruitment"
+msgstr "توظيف جديد"
+
+msgid "Add new recruitment"
+msgstr "إضافة توظيف جديد"
+
+msgid "Filter"
+msgstr "تصفية"
+
+msgid "Pipeline filter option"
+msgstr "خيار تصفية خط الأنابيب"
+
+msgid "Toggle View"
+msgstr "تبديل العرض"
+
+msgid "Toggle view type"
+msgstr "تبديل نوع العرض"
+
+msgid "Search"
+msgstr "بحث"
+
+msgid "Search in candidate, recruitment and stage"
+msgstr "البحث في المرشح والتوظيف والمرحلة"
+
+msgid "Filter Tag"
+msgstr "وسم التصفية"
+
+msgid "Filter tag option"
+msgstr "خيار وسم التصفية"
+
+msgid "Quick Filters"
+msgstr "تصفية سريعة"
+
+msgid "Recruitment"
+msgstr "التوظيف"
+
+msgid "Add Stage"
+msgstr "أضف مرحلة"
+
+msgid "Add new stage to recruitment"
+msgstr "إضافة مرحلة جديدة للتوظيف"
+
+msgid "Stage"
+msgstr "المرحلة"
+
+msgid "Recruitment stage"
+msgstr "مرحلة التوظيف"
+
+msgid "Add candidate"
+msgstr "إضافة مرشح"
+
+msgid "Add candidate to stage option"
+msgstr "إضافة مرشح إلى خيار المرحلة"
+
+msgid "Candidate"
+msgstr "مُرَشَّح"
+
+msgid "Candidate record"
+msgstr "سجل المرشح"
+
+msgid "Rating"
+msgstr "التقييم"
+
+msgid "Candidate rating option"
+msgstr "خيار تصنيف المرشح"
+
+msgid "Change Stage"
+msgstr "مرحلة التغيير"
+
+msgid "Candidate change stage option"
+msgstr "خيار مرحلة تغيير المرشح"
+
+msgid "Options"
+msgstr "خيارات"
+
+msgid "Candidate management options"
+msgstr "خيارات إدارة المرشحين"
+
+msgid "visible"
+msgstr ""
+
+msgid "bgcolor"
+msgstr ""
+
+msgid "bordercolor"
+msgstr ""
+
+msgid "borderwidth"
+msgstr ""
+
+msgid "thickness"
+msgstr ""
+
+msgid "autorange"
+msgstr ""
+
+msgid "range"
+msgstr ""
+
+msgid "x"
+msgstr ""
+
+msgid "y"
+msgstr ""
+
+msgid "minor"
+msgstr ""
+
+msgid "label"
+msgstr "تسمية"
+
+msgid "arrowlen"
+msgstr ""
+
+msgid "source"
+msgstr ""
+
+msgid "target"
+msgstr ""
+
+msgid "value"
+msgstr ""
+
+msgid "line.color"
+msgstr ""
+
+msgid "line.width"
+msgstr ""
+
+msgid "hoverinfo"
+msgstr ""
+
+msgid "hovertemplate"
+msgstr ""
+
+msgid "color"
+msgstr ""
+
+msgid "hovercolor"
+msgstr ""
+
+msgid "customdata"
+msgstr ""
+
+msgid "All your company and base configurations"
+msgstr "جميع تكوينات شركتك وقاعدتك"
+
+msgid "Settings Options"
+msgstr "خيارات الإعدادات"
+
+msgid "Settings menu bar"
+msgstr "شريط قائمة الإعدادات"
+
+msgid "Settings View"
+msgstr "عرض الإعدادات"
+
+msgid "Selected settings view"
+msgstr "عرض الإعدادات المحدد"
+
+msgid "Project: "
+msgstr ""
+
+msgid "watchFile"
+msgstr ""
+
+msgid "watchDirectory"
+msgstr ""
+
+msgid "getCompletionsAtPosition: getCompletionEntriesFromSymbols: "
+msgstr ""
+
+msgid "placeOpenBraceOnNewLineForControlBlocks"
+msgstr ""
+
+msgid "placeOpenBraceOnNewLineForFunctions"
+msgstr ""
+
+msgid "punc"
+msgstr ""
+
+msgid "name"
+msgstr "الاسم"
+
+msgid "keyword"
+msgstr ""
+
+msgid "arrow"
+msgstr ""
+
+msgid "operator"
+msgstr ""
+
+msgid "Expected "
+msgstr ""
+
+msgid "I"
+msgstr ""
+
+msgid "E"
+msgstr ""
+
+msgid "X"
+msgstr ""
+
+msgid "B"
+msgstr ""
+
+msgid "Invalid generatedCharacter found"
+msgstr ""
+
+msgid "Invalid sourceIndex found"
+msgstr ""
+
+msgid "Unsupported Format: No entries after sourceIndex"
+msgstr ""
+
+msgid "Invalid sourceLine found"
+msgstr ""
+
+msgid "Unsupported Format: No entries after sourceLine"
+msgstr ""
+
+msgid "Invalid sourceCharacter found"
+msgstr ""
+
+msgid "Invalid nameIndex found"
+msgstr ""
+
+msgid "Unsupported Error Format: Entries after nameIndex"
+msgstr ""
+
+msgid "collectAutoImports"
+msgstr ""
+
+msgid "continuePreviousIncompleteResponse"
+msgstr ""
+
+msgid "TypeRoots version has changed; provide new program"
+msgstr ""
+
+msgid "getIndentationAtPosition: getCurrentSourceFile: "
+msgstr ""
+
+msgid "getIndentationAtPosition: computeIndentation  : "
+msgstr ""
+
+msgid "Program"
+msgstr ""
+
+msgid "BlockStatement"
+msgstr ""
+
+msgid "close"
+msgstr "إغلاق"
+
+msgid "Confirm"
+msgstr "تأكيد"
+
+msgid "Close"
+msgstr "إغلاق"
+
+msgid "Cancel"
+msgstr "إلغاء"
+
+msgid "Selected"
+msgstr "مختارة"
+
+msgid "Uploading..."
+msgstr "جارٍ التحميل..."
+
+msgid "No Records found"
+msgstr "لم يتم العثور على سجلات"
+
+msgid "Ok"
+msgstr "نعم"
+
+msgid "Do you want to download the excel file?"
+msgstr "هل تريد تحميل ملف الاكسل؟"
+
+msgid "Do you want to download the template?"
+msgstr "هل تريد تنزيل القالب؟"
+
+msgid "No rows are selected from the records."
+msgstr "لم يتم تحديد أي صفوف من السجلات."
+
+msgid "Do you really want to delete all the selected records?"
+msgstr "هل تريد حقًا حذف كافة السجلات المحددة؟"
+
+msgid "Do you really want to archive all the selected records?"
+msgstr "هل تريد حقًا أرشفة كافة السجلات المحددة؟"
+
+msgid "Do you really want to approve all the selected requests?"
+msgstr "هل تريد حقًا الموافقة على جميع الطلبات المحددة؟"
+
+msgid "Do you really want to unarchive all the selected records?"
+msgstr "هل تريد حقًا إلغاء أرشفة كافة السجلات المحددة؟"
+
+msgid "Total vacancy is %(vacancy)s."
+msgstr "إجمالي الشواغر هو %(vacancy)s."
+
+msgid ""
+"Are you sure to change the candidate from %(from)s stage to %(to)s stage"
+msgstr "هل أنت متأكد من تغيير المرشح من مرحلة %(from)s إلى مرحلة %(to)s"
+
+msgid "Retry"
+msgstr "إعادة المحاولة"
+
+msgid "Something went wrong while loading this data."
+msgstr "حدث خطأ أثناء تحميل هذه البيانات."
+
+msgid "Request failed (status %(status)s)."
+msgstr "فشل الطلب (الحالة %(status)s)."
+
+msgid "The request took too long to respond."
+msgstr "استغرق الطلب وقتًا طويلاً للاستجابة."
+
+#~ msgid "Some selected requests have already been approved."
+#~ msgstr "لقد تمت الموافقة بالفعل على بعض الطلبات المحددة."
+
+#~ msgid "Some selected requests have already been rejected."
+#~ msgstr "لقد تم رفض بعض الطلبات المحددة بالفعل."
+
+#~ msgid "Do you really want to delete all the selected attendances?"
+#~ msgstr "هل تريد حقًا حذف كافة الحضور المحدد؟"
+
+#~ msgid "Do you really want to delete this employee?"
+#~ msgstr "هل تريد حقًا حذف هذا الموظف؟"
+
+#~ msgid "No rows are selected for deleting attendances."
+#~ msgstr "لم يتم تحديد أي صفوف لحذف الحضور."

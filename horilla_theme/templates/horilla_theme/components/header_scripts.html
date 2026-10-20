@@ -1,0 +1,394 @@
+{% load static %}
+{% load horillafilters %}
+{% get_company as theme_obj %}
+<style>
+    .oh-btn--secondary,
+    .oh-btn--secondary:disabled {
+        background-color: {{ theme_obj.primary_600|default:"#017391" }} !important;
+    }
+    .oh-btn--secondary:hover,
+    .oh-btn--secondary:focus,
+    .oh-btn--secondary:focus-visible {
+        background-color: {{ theme_obj.primary_700|default:"#015F77" }} !important;
+    }
+    .oh-btn--secondary-outline,
+    .oh-btn--secondary-link {
+        color: {{ theme_obj.primary_600|default:"#017391" }} !important;
+    }
+    .oh-btn--secondary-outline:hover,
+    .oh-btn--secondary-outline:focus,
+    .oh-btn--secondary-outline:focus-visible,
+    .oh-btn--secondary-link:hover,
+    .oh-btn--secondary-link:focus,
+    .oh-btn--secondary-link:focus-visible {
+        color: {{ theme_obj.primary_700|default:"#015F77" }} !important;
+    }
+
+    .oh-titlebar__tag--custom {
+        background-color: {{ theme_obj.primary_600|default:"#017391" }} !important;
+    }
+    .oh-titlebar__tag-close {
+        background-color: {{ theme_obj.primary_600|default:"#017391" }} !important;
+    }
+    .oh-titlebar__tag-close:hover {
+        background-color: {{ theme_obj.primary_700|default:"#015F77" }} !important;
+    }
+    .oh-titlebar__tag.filter-field {
+        border-color: {{ theme_obj.primary_600|default:"#017391" }} !important;
+    }
+
+    .oh-btn--add-another {
+        background-color: {{ theme_obj.primary_500|default:"#A5D5E3" }} !important;
+        color: #ffffff !important;
+        border: 1px solid {{ theme_obj.primary_500|default:"#A5D5E3" }} !important;
+    }
+    .oh-btn--add-another:hover,
+    .oh-btn--add-another:focus,
+    .oh-btn--add-another:focus-visible {
+        background-color: {{ theme_obj.primary_600|default:"#017391" }} !important;
+        border-color: {{ theme_obj.primary_600|default:"#017391" }} !important;
+    }
+
+    .list-checked li:before {
+        color: {{ theme_obj.primary_600|default:"#017391" }} !important;
+    }
+
+    .oh-btn--light {
+        color: {{ theme_obj.primary_600|default:"#017391" }} !important;
+    }
+    .oh-btn--light:hover,
+    .oh-btn--light:focus,
+    .oh-btn--light:focus-visible {
+        color: {{ theme_obj.primary_700|default:"#015F77" }} !important;
+    }
+
+    .oh-modal__dialog--custom .oh-general__tab .oh-general__tab-link--active {
+        background-color: {{ theme_obj.primary_600|default:"#017391" }} !important;
+        border-color: {{ theme_obj.primary_600|default:"#017391" }} !important;
+    }
+
+    .oh-tabs__content .heightContainer,
+    [id$="profileTab"] .heightContainer {
+        max-height: none !important;
+        overflow-y: visible !important;
+    }
+
+    [id^="pipelineTabContent"] .heightContainer {
+        max-height: calc(100vh - 260px) !important;
+        overflow-y: auto !important;
+    }
+
+    [id^="feedbackTabs"] .heightContainer {
+        max-height: calc(100vh - 260px) !important;
+        overflow-y: auto !important;
+    }
+</style>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    var btn = document.getElementById("themeToggleButton");
+    if (!btn) return;
+
+    btn.addEventListener("click", function (e) {
+        e.preventDefault();
+
+        fetch("{% url 'toggle_theme' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "X-Requested-With": "XMLHttpRequest"
+        }
+        })
+        .then(response => {
+        if (response.status === 204) {
+            const isDark = document.documentElement.classList.toggle("dark");
+            document.body.classList.toggle("dark", isDark);
+
+            const icon = btn.querySelector("i");
+            if (icon) {
+            icon.classList.toggle("fa-moon", !isDark);
+            icon.classList.toggle("fa-lightbulb", isDark);
+            }
+        }
+        })
+        .catch(err => console.error(err));
+    });
+    });
+</script>
+
+<script>
+    window.CURRENT_LANGUAGE = "{{ LANGUAGE_CODE }}";
+    var at_work_seconds = {{ request.user.employee_get.get_forecasted_at_work.forecasted_at_work_seconds }}
+    var run = 0
+</script>
+<script src="{% static 'horilla_theme/assets/js/tailwind.js' %}"></script>
+<script>
+    window.tailwind.config = {
+        theme: {
+            colors: {
+                white: '#FFFFFF',
+
+                primary: {
+                    50:  '{{ theme_obj.primary_50  | default:"#f6f6f6" }}',
+                    100: '{{ theme_obj.primary_100 | default:"#F4FAFC" }}',
+                    200: '{{ theme_obj.primary_200 | default:"#F4FAFC" }}',
+                    300: '{{ theme_obj.primary_300 | default:"#E6F4F8" }}',
+                    400: '{{ theme_obj.primary_400 | default:"#CFE9F1" }}',
+                    500: '{{ theme_obj.primary_500 | default:"#A5D5E3" }}',
+                    600: '{{ theme_obj.primary_600 | default:"#017391" }}',
+                    700: '{{ theme_obj.primary_700 | default:"#015F77" }}',
+                    800: '{{ theme_obj.primary_800 | default:"#014A5E" }}',
+                    900: '{{ theme_obj.primary_900 | default:"#132238" }}',
+                },
+
+                brand: {
+                    50:  '{{ theme_obj.primary_50  | default:"#f6f6f6" }}',
+                    100: '{{ theme_obj.primary_100 | default:"#F4FAFC" }}',
+                    200: '{{ theme_obj.primary_200 | default:"#F4FAFC" }}',
+                    300: '{{ theme_obj.primary_300 | default:"#E6F4F8" }}',
+                    400: '{{ theme_obj.primary_400 | default:"#CFE9F1" }}',
+                    500: '{{ theme_obj.primary_500 | default:"#A5D5E3" }}',
+                    600: '{{ theme_obj.primary_600 | default:"#017391" }}',
+                    700: '{{ theme_obj.primary_700 | default:"#015F77" }}',
+                    800: '{{ theme_obj.primary_800 | default:"#014A5E" }}',
+                    900: '{{ theme_obj.primary_900 | default:"#132238" }}',
+                },
+                info: {
+                    50:  '#eaf6fc', 100: '#c9e8f7', 200: '#95d0ec', 300: '#5eb8e2',
+                    400: '#3aa6da', 500: '#2E9BD6', 600: '#2E9BD6', 700: '#2585b8',
+                    800: '#1f6d97', 900: '#184f6f',
+                },
+
+                dark: {
+                    50:  '{{ theme_obj.dark_50  | default:"#E6E6E6" }}',
+                    100: '{{ theme_obj.dark_100 | default:"#A8A8A8" }}',
+                    200: '{{ theme_obj.dark_200 | default:"#515151" }}',
+                    300: '{{ theme_obj.dark_300 | default:"#132238" }}',
+                    400: '{{ theme_obj.dark_400 | default:"#64748B" }}',
+                    500: '{{ theme_obj.dark_500 | default:"#0B1424" }}',
+                    600: '{{ theme_obj.dark_600 | default:"#000000" }}',
+                },
+
+                secondary: {
+                    50:  '{{ theme_obj.secondary_50  | default:"#f8fafc" }}',
+                    100: '{{ theme_obj.secondary_100 | default:"#f1f5f9" }}',
+                    200: '{{ theme_obj.secondary_200 | default:"#e2e8f0" }}',
+                    300: '{{ theme_obj.secondary_300 | default:"#cbd5e1" }}',
+                    400: '{{ theme_obj.secondary_400 | default:"#CFE9F1" }}',
+                    500: '{{ theme_obj.secondary_500 | default:"#A5D5E3" }}',
+                    600: '{{ theme_obj.secondary_600 | default:"#017391" }}',
+                    700: '{{ theme_obj.secondary_700 | default:"#334155" }}',
+                    800: '{{ theme_obj.secondary_800 | default:"#1e293b" }}',
+                    900: '{{ theme_obj.secondary_900 | default:"#0f172a" }}',
+                },
+
+                success: {
+                    light: "#86efac",
+                    DEFAULT: "#22c55e",
+                    dark: "#15803d",
+                },
+                warning: {
+                    light: "#fde68a",
+                    DEFAULT: "#f59e0b",
+                    dark: "#b45309",
+                },
+                danger: {
+                    light: "#fca5a5",
+                    DEFAULT: "#ef4444",
+                    dark: "#b91c1c",
+                },
+            },
+
+            extend: {
+                boxShadow: {
+                    card: "0px 0px 10px rgba(0, 0, 0, 0.05)",
+                },
+                spacing: {
+                    18: "4.5rem",
+                    72: "18rem",
+                    84: "21rem",
+                    96: "24rem",
+                },
+                borderRadius: {
+                    "4xl": "2rem",
+                    "5xl": "2.5rem",
+                },
+                fontSize: {
+                    xxs: "0.625rem",
+                },
+                height: {
+                    "screen-50": "50vh",
+                    "screen-75": "75vh",
+                },
+            },
+        },
+    };
+</script>
+<script src="{% static '/jquery/ajax.js' %}"></script>
+<script src="{% static '/jquery/jquery.min.js' %}"></script>
+<script src="{% static '/jquery/jqueryui.js' %}"></script>
+<script src="{% static '/base/toggleColumn.js' %}"></script>
+<script src="{% static '/build/js/orgChart.js' %}"></script>
+<script src="{% static 'build/js/driver.js' %}"></script>
+<script src="{% static 'build/js/clearFilter.js' %}"></script>
+<script defer src="{% static '/cdn/alpine/alpine.min.js' %}"></script>
+<script src="{% static 'cdn/chartJs/scripts/chart.js' %}"></script>
+
+{% block header_scripts %}
+{% endblock header_scripts %}
+
+<script>
+    (function () {
+        var STORAGE_PREFIX = "hlv-open-groups:";
+
+        function listPathFrom(el) {
+            if (!el) {
+                return null;
+            }
+            if (el.getAttribute && el.getAttribute("data-list-path")) {
+                return el.getAttribute("data-list-path");
+            }
+            if (el.querySelector) {
+                var nested = el.querySelector("[data-list-path]");
+                if (nested) {
+                    return nested.getAttribute("data-list-path");
+                }
+            }
+            if (el.closest) {
+                var parent = el.closest("[data-list-path]");
+                if (parent) {
+                    return parent.getAttribute("data-list-path");
+                }
+            }
+            return null;
+        }
+
+        function containerForPath(path) {
+            if (!path) {
+                return null;
+            }
+            var nodes = document.querySelectorAll("[data-list-path]");
+            for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].getAttribute("data-list-path") === path) {
+                    return nodes[i];
+                }
+            }
+            return null;
+        }
+
+        function readStored(path) {
+            try {
+                return JSON.parse(sessionStorage.getItem(STORAGE_PREFIX + path) || "[]");
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function writeStored(path, indices) {
+            try {
+                sessionStorage.setItem(STORAGE_PREFIX + path, JSON.stringify(indices || []));
+            } catch (e) {
+            }
+        }
+
+        function openIndicesIn(container) {
+            if (!container || !container.querySelectorAll) {
+                return [];
+            }
+            return Array.prototype.map.call(
+                container.querySelectorAll(
+                    ".oh-accordion.oh-accordion--show > .oh-accordion-header[data-group]"
+                ),
+                function (header) {
+                    return header.getAttribute("data-group");
+                }
+            );
+        }
+
+        function captureFrom(target) {
+            var path = listPathFrom(target);
+            var container = containerForPath(path) || target;
+            if (!path || !container || !container.querySelectorAll) {
+                return;
+            }
+            writeStored(path, openIndicesIn(container));
+        }
+
+        function restorePath(path) {
+            var indices = readStored(path);
+            if (!indices.length) {
+                return;
+            }
+            var container = containerForPath(path);
+            if (!container) {
+                return;
+            }
+            container.querySelectorAll(".oh-accordion.oh-accordion--show").forEach(function (el) {
+                el.classList.remove("oh-accordion--show");
+            });
+            indices.forEach(function (idx) {
+                var header = container.querySelector(
+                    '.oh-accordion-header[data-group="' + idx + '"]'
+                );
+                if (header) {
+                    var accordion = header.closest(".oh-accordion");
+                    accordion.classList.add("oh-accordion--show");
+                    var icon = header.querySelector("ion-icon.icon");
+                    if (icon) {
+                        icon.setAttribute("name", "chevron-up-outline");
+                    }
+                }
+            });
+        }
+
+        function restoreAllKnown() {
+            Object.keys(sessionStorage).forEach(function (key) {
+                if (key.indexOf(STORAGE_PREFIX) === 0) {
+                    restorePath(key.slice(STORAGE_PREFIX.length));
+                }
+            });
+        }
+
+        window.hlvPersistOpenGroups = function (container) {
+            var path = listPathFrom(container);
+            if (path) {
+                writeStored(path, openIndicesIn(container));
+            }
+        };
+
+        document.addEventListener("htmx:beforeRequest", function (evt) {
+            captureFrom(evt.detail.target);
+        });
+
+        document.addEventListener("htmx:afterSettle", function (evt) {
+            var path = listPathFrom(evt.detail.target) || listPathFrom(evt.target);
+            if (path) {
+                restorePath(path);
+            } else {
+                restoreAllKnown();
+            }
+        });
+
+        document.addEventListener(
+            "click",
+            function (evt) {
+                var header = evt.target && evt.target.closest
+                    ? evt.target.closest(".oh-accordion-header[data-group]")
+                    : null;
+                if (!header) {
+                    return;
+                }
+                var path = listPathFrom(header);
+                if (!path) {
+                    return;
+                }
+                setTimeout(function () {
+                    var container = containerForPath(path);
+                    if (container) {
+                        writeStored(path, openIndicesIn(container));
+                    }
+                }, 0);
+            },
+            true
+        );
+    })();
+</script>

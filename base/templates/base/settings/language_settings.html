@@ -1,0 +1,168 @@
+{% load i18n static %}
+<div class="col-span-12 lang-settings" id="companyLanguageSettings">
+    <style>
+        #companyLanguageSettings .lang-select-wrap .select2-container {
+            width: 100% !important;
+        }
+        #companyLanguageSettings .lang-select-wrap .select2-selection--multiple {
+            min-height: 42px !important;
+            overflow-y: auto;
+            display: flex;
+            align-items: flex-start;
+        }
+        #companyLanguageSettings .lang-select-wrap select {
+            min-height: 42px;
+            width: 100%;
+        }
+        #companyLanguageSettings .lang-footer {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 18px;
+            padding: 12px 4px 4px;
+            gap: 12px;
+            border-top: 1px solid #e6e6e6;
+        }
+        #companyLanguageSettings .lang-unsaved-flag {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            color: #b45309;
+            font-weight: 600;
+            font-size: 11.5px;
+        }
+        #companyLanguageSettings .lang-unsaved-flag.is-visible {
+            display: inline-flex;
+        }
+        #companyLanguageSettings .lang-unsaved-flag::before {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #f59e0b;
+            content: '';
+        }
+        #companyLanguageSettings .lang-btn-cancel {
+            padding: 6px 16px;
+            border: 1px solid #e6e6e6;
+            border-radius: 6px;
+            background: #fff;
+            color: #374151;
+            font-weight: 600;
+            font-size: 12.5px;
+            cursor: pointer;
+        }
+        #companyLanguageSettings .lang-btn-cancel:hover {
+            border-color: #9ca3af;
+        }
+    </style>
+
+    <form
+        id="languageSettingsForm"
+        hx-post="{% url 'update-language-settings' %}"
+        hx-swap="none"
+        hx-on-htmx-after-request="if (event.detail.successful) { companyLanguageSettings.markSaved(); } setTimeout(() => { reloadMessage(); }, 100);"
+    >
+        {% csrf_token %}
+
+        <div class="flex space-x-2 pb-1">
+            <label>{% trans "Enabled Languages" %}</label>
+            <span
+                class="oh-info mr-2"
+                title="{% trans 'Choose which languages employees of this company can switch to. Leave empty to allow every language.' %}"
+            ></span>
+        </div>
+        <p class="text-xs text-gray-500 mt-1 pb-2">
+            {% trans "Selected languages will appear in the language switcher for employees of this company. Leave empty to enable every language." %}
+        </p>
+
+        <div class="lang-select-wrap">
+            <select
+                name="enabled_languages"
+                id="languageMultiSelect"
+                class="oh-select oh-select-2"
+                multiple
+                data-placeholder="{% trans 'Select languages…' %}"
+                style="width:100%;"
+            >
+                {% for code, label in languages %}
+                    <option value="{{ code }}" {% if code in enabled_languages %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="lang-footer">
+            <span class="lang-unsaved-flag" id="languageUnsavedFlag">{% trans "Unsaved changes" %}</span>
+            <div class="flex gap-2" style="margin-left: auto">
+                <button
+                    type="button"
+                    class="lang-btn-cancel"
+                    id="languageCancelBtn"
+                    hx-on:click="companyLanguageSettings.reset()"
+                >
+                    {% trans "Cancel" %}
+                </button>
+                <button type="submit" class="btn">{% trans "Save Changes" %}</button>
+            </div>
+        </div>
+    </form>
+
+    <script>
+        (function () {
+            var root = document.getElementById("companyLanguageSettings");
+            if (!root) return;
+
+            var select = root.querySelector("#languageMultiSelect");
+            var unsavedFlag = root.querySelector("#languageUnsavedFlag");
+            var initialValues = currentValues();
+
+            function currentValues() {
+                return Array.prototype.map.call(select.selectedOptions, function (option) {
+                    return option.value;
+                });
+            }
+
+            function refreshUnsaved() {
+                var current = currentValues();
+                var dirty = current.length !== initialValues.length || current.some(function (value) {
+                    return initialValues.indexOf(value) === -1;
+                });
+                unsavedFlag.classList.toggle("is-visible", dirty);
+            }
+
+            function initSelect() {
+                if (typeof $ === "undefined" || typeof $.fn.select2 !== "function") return;
+                var $select = $(select);
+                if ($select.hasClass("select2-hidden-accessible")) {
+                    $select.select2("destroy");
+                }
+                $select.select2({
+                    width: "100%",
+                    placeholder: "{% trans 'Select languages…'|escapejs %}",
+                    closeOnSelect: false,
+                });
+                $select.on("change", refreshUnsaved);
+            }
+
+            function resetToInitial() {
+                Array.prototype.forEach.call(select.options, function (option) {
+                    option.selected = initialValues.indexOf(option.value) > -1;
+                });
+                if (window.jQuery) {
+                    $(select).trigger("change");
+                }
+                refreshUnsaved();
+            }
+
+            initSelect();
+            setTimeout(initSelect, 50);
+
+            window.companyLanguageSettings = {
+                reset: resetToInitial,
+                markSaved: function () {
+                    initialValues = currentValues();
+                    refreshUnsaved();
+                },
+            };
+        })();
+    </script>
+</div>

@@ -1,0 +1,63 @@
+{% extends "index.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block content %}
+<style>
+      .approved--dot{
+        background-color:green;
+      }
+      .rejected--dot{
+        background-color:red;
+      }
+      .requested--dot{
+        background-color: rgb(103, 171, 238);
+      }
+
+      .status-rejected{
+        border-left: 4px solid red !important;
+        border-radius: 5px 0 0 4px;
+
+      }
+      .status-requested{
+
+        border-left: 4px solid  rgb(103, 171, 238)!important;
+        border-radius: 5px 0 0 4px;
+
+      }
+     .status-approved {
+        border-left: 4px solid yellowgreen !important;
+        border-radius: 5px 0 0 4px;
+
+      }
+</style>
+<meta name="csrf-token" content="{{ csrf_token }}">
+
+{% include "generic/components.html" %}
+
+<div
+    class="oh-wrapper"
+    id="listContainer"
+    hx-get="{% url "compensatory-tab-view" %}?{{ request.GET.urlencode }}"
+    hx-trigger="load"
+>
+    <div class="animated-background"></div>
+</div>
+
+
+<div class="oh-activity-sidebar" id="allocationactivitySidebar" style="z-index:1000;">
+	<div class="oh-activity-sidebar__body" id="commentContainer">
+	</div>
+</div>
+
+
+
+<div class="oh-modal" id="rejectModal" role="dialog" aria-labelledby="rejectDialogModal" aria-hidden="true">
+<div class="oh-modal__dialog" id="rejectTarget"></div>
+</div>
+
+<script src="{% static 'cbv/attendance_activity.js' %}?v=2"></script>
+
+
+
+{% endblock content %}

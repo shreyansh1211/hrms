@@ -1,0 +1,15 @@
+{% load i18n %}
+<div
+	class="flex items-center gap-1 min-w-0"
+	onclick="event.stopPropagation()"
+>
+	<span class="truncate min-w-0" title="{{ instance }}">{{ instance }}</span>
+	{% if instance.linkedin_account_id %}
+	<span
+		class="shrink-0 inline-flex items-center"
+		title="{{ instance }} posted on {{ instance.linkedin_account_id }} LinkedIn account."
+	>
+		<ion-icon name="logo-linkedin"></ion-icon>
+	</span>
+	{% endif %}
+</div>

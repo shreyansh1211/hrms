@@ -1,0 +1,45 @@
+"""
+helpdesk/sidebar.py
+"""
+
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
+
+MENU = _("Tickets")
+IMG_SRC = "images/ui/headset-solid.svg"
+
+SUBMENUS = [
+    {
+        "menu": _("Dashboard"),
+        "redirect": reverse_lazy("helpdesk-dashboard"),
+        "accessibility": "helpdesk.sidebar.dashboard_accessibility",
+    },
+    {
+        "menu": _("Tickets"),
+        "redirect": reverse_lazy("ticket-view"),
+        # ticket-detail/<id>/ and ticket-individual-view/<id>/ are sibling URLs
+        # (not sub-paths of ticket-view/), so they need explicit prefixes for
+        # the sidebar's path-based active-link highlighting to match them.
+        "match_prefixes": [
+            "/helpdesk/ticket-detail/",
+            "/helpdesk/ticket-individual-view/",
+        ],
+    },
+    {
+        "menu": _("Configuration"),
+        "redirect": reverse_lazy("helpdesk-settings-view"),
+        "accessibility": "helpdesk.sidebar.helpdesk_settings_accessibility",
+    },
+]
+
+
+def dashboard_accessibility(request, submenu, user_perms, *args, **kwargs):
+    return request.user.has_perm("helpdesk.view_ticket")
+
+
+def helpdesk_settings_accessibility(request, submenu, user_perms, *args, **kwargs):
+    return (
+        request.user.has_perm("helpdesk.view_departmentmanager")
+        or request.user.has_perm("helpdesk.view_tickettype")
+        or request.user.has_perm("base.view_tags")
+    )

@@ -1,0 +1,1404 @@
+{% extends "index.html" %}
+
+{% load static i18n horillafilters %}
+{% block content %}
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@7.8.0/dist/apexcharts.min.js"></script>
+    <style>
+        :root {
+            --ess-indigo: var(--primary-600, #017391);
+            --ess-green: #22c55e;
+            --ess-amber: #f59e0b;
+            --ess-red: #ef4444;
+            --ess-blue: #3b82f6;
+            --ess-purple: #a855f7;
+            --ess-teal: #14b8a6;
+            --ess-pink: #ec4899;
+        }
+
+        /* ── Dashboard shell ── */
+        .ess-dashboard {
+            min-height: calc(100vh - 80px);
+            margin: -24px;
+            padding: 24px;
+            background: #ffffff;
+            font-family: inherit;
+        }
+        .dark .ess-dashboard {
+            background: #000000;
+        }
+
+        /* ── Header ── */
+        .ess-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+        .ess-header h1 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 22px;
+        }
+        .ess-header__date {
+            margin-top: 2px;
+            font-size: 13px;
+            opacity: 0.6;
+        }
+        .ess-header__actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Period picker — mirrors onboarding/recruitment style */
+        .ess-period-picker {
+            display: none !important; /* TEMP: hide period picker */
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+        .ess-period-picker input[type="date"] {
+            padding: 5px 8px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            border-radius: 6px;
+            outline: none;
+            background: transparent;
+            color: inherit;
+            font-size: 12px;
+            transition: border-color 0.15s;
+        }
+        .ess-period-picker input[type="date"]:focus {
+            border-color: var(--ess-indigo);
+        }
+        .ess-period-picker__sep {
+            font-size: 11px;
+            opacity: 0.4;
+        }
+        .ess-period-preset {
+            padding: 4px 10px;
+            border: 1px solid rgba(128, 128, 128, 0.15);
+            border-radius: 6px;
+            background: none;
+            color: inherit;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .ess-period-preset:hover {
+            border-color: var(--ess-indigo);
+            color: var(--ess-indigo);
+        }
+        .ess-period-preset--active {
+            border-color: var(--ess-indigo);
+            background: var(--ess-indigo);
+            color: #fff;
+        }
+        .ess-period-preset--active:hover {
+            border-color: var(--ess-indigo);
+            background: var(--ess-indigo);
+            color: #fff;
+        }
+        .dark .ess-period-picker input[type="date"] {
+            color-scheme: dark;
+        }
+
+        /* Month filter on the Monthly Attendance Summary card */
+        .ess-month-filter {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ess-month-filter input[type="month"] {
+            padding: 5px 8px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            border-radius: 6px;
+            outline: none;
+            background: transparent;
+            color: inherit;
+            font-size: 12px;
+            transition: border-color 0.15s;
+        }
+        .ess-month-filter input[type="month"]:focus {
+            border-color: var(--ess-indigo);
+        }
+        .ess-month-filter button {
+            width: 28px;
+            height: 28px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            border-radius: 6px;
+            background: none;
+            color: inherit;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .ess-month-filter button:hover:not(:disabled) {
+            border-color: var(--ess-indigo);
+            color: var(--ess-indigo);
+        }
+        .ess-month-filter button:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .dark .ess-month-filter input[type="month"] {
+            color-scheme: dark;
+        }
+
+        /* ── KPI Grid ── */
+        .ess-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            margin-bottom: 20px;
+            gap: 14px;
+        }
+        @media (max-width: 1024px) {
+            .ess-kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 480px) {
+            .ess-kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ess-kpi-card {
+            display: block;
+            position: relative;
+            padding: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(128, 128, 128, 0.09);
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow:
+                0 1px 4px rgba(0, 0, 0, 0.04),
+                0 4px 14px rgba(0, 0, 0, 0.05);
+            color: inherit;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .ess-kpi-card::after {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 80px;
+            height: 80px;
+            transform: translate(20px, 20px);
+            border-radius: 50%;
+            background: currentColor;
+            content: "";
+            opacity: 0.06;
+            pointer-events: none;
+        }
+        .ess-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+            color: inherit;
+            text-decoration: none;
+        }
+        .ess-kpi-card:active {
+            transform: scale(0.97);
+        }
+        .dark .ess-kpi-card {
+            border-color: rgba(255, 255, 255, 0.07);
+            background: #242424;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .ess-kpi-card__icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            font-size: 18px;
+        }
+        .ess-kpi-card__icon--indigo {
+            background: #eef2ff;
+            color: var(--ess-indigo);
+        }
+        .ess-kpi-card__icon--green {
+            background: #dcfce7;
+            color: var(--ess-green);
+        }
+        .ess-kpi-card__icon--amber {
+            background: #fef3c7;
+            color: var(--ess-amber);
+        }
+        .ess-kpi-card__icon--purple {
+            background: #f3e8ff;
+            color: var(--ess-purple);
+        }
+        .dark .ess-kpi-card__icon--indigo {
+            background: #312e81;
+        }
+        .dark .ess-kpi-card__icon--green {
+            background: #14532d;
+        }
+        .dark .ess-kpi-card__icon--amber {
+            background: #78350f;
+        }
+        .dark .ess-kpi-card__icon--purple {
+            background: #3b0764;
+        }
+
+        .ess-kpi-card__label {
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            opacity: 0.5;
+        }
+        .ess-kpi-card__value {
+            margin-bottom: 6px;
+            font-weight: 800;
+            font-size: 30px;
+            line-height: 1;
+        }
+        .ess-kpi-card__sub {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        /* ── Two-column layout ── */
+        .ess-layout {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            align-items: start;
+            gap: 20px;
+        }
+        @media (max-width: 1280px) {
+            .ess-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── Chart grid ── */
+        .ess-chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            margin-bottom: 18px;
+            gap: 18px;
+        }
+        @media (max-width: 768px) {
+            .ess-chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ess-chart-card {
+            position: relative;
+            overflow: visible;
+            border: 1px solid rgba(128, 128, 128, 0.09);
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow:
+                0 1px 4px rgba(0, 0, 0, 0.04),
+                0 4px 16px rgba(0, 0, 0, 0.05);
+            transition:
+                box-shadow 0.25s ease,
+                transform 0.25s ease;
+        }
+        .ess-chart-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+        }
+        .dark .ess-chart-card {
+            border-color: rgba(255, 255, 255, 0.07);
+            background: #242424;
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.3),
+                0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+        .dark .ess-chart-card:hover {
+            box-shadow: 0 6px 28px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Colored top border strip */
+        .ess-chart-card::before {
+            z-index: 1;
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 3px;
+            border-radius: 16px 16px 0 0;
+            content: "";
+            pointer-events: none;
+        }
+        .ess-chart-card[data-section="leave"]::before {
+            background: linear-gradient(90deg, #017391, #a855f7);
+        }
+        .ess-chart-card[data-section="attendance"]::before {
+            background: linear-gradient(90deg, #22c55e, #06b6d4);
+        }
+        .ess-chart-card[data-section="payroll"]::before {
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+        .ess-chart-card[data-section="goals"]::before {
+            background: linear-gradient(90deg, #3b82f6, #017391);
+        }
+        .ess-chart-card[data-section="calendar"]::before {
+            background: linear-gradient(90deg, #22c55e, #06b6d4);
+        }
+
+        .ess-chart-card--wide {
+            margin-bottom: 18px;
+        }
+
+        .ess-chart-card__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px 4px;
+        }
+        .ess-chart-card__title {
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: -0.01em;
+        }
+        .ess-chart-card__subtitle {
+            margin-top: 2px;
+            font-weight: 500;
+            font-size: 11px;
+            opacity: 0.45;
+        }
+        .ess-chart-card__body {
+            padding: 4px 12px 16px;
+            overflow: visible;
+        }
+
+        .ess-dashboard .apexcharts-xaxis text,
+        .ess-dashboard .apexcharts-yaxis text,
+        .ess-dashboard .apexcharts-legend-text {
+            fill: #334155 !important;
+        }
+        .dark .ess-dashboard .apexcharts-xaxis text,
+        .dark .ess-dashboard .apexcharts-yaxis text,
+        .dark .ess-dashboard .apexcharts-legend-text {
+            fill: #cbd5e1 !important;
+        }
+
+        /* ── Attendance Calendar ── */
+        .ess-calendar-legend {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 4px 18px 0;
+            gap: 10px;
+            font-size: 10px;
+            opacity: 0.75;
+        }
+        .ess-cal-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            margin-right: 3px;
+            border-radius: 50%;
+            vertical-align: middle;
+        }
+        .ess-calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            padding: 10px 14px 6px;
+            gap: 4px;
+        }
+        .ess-cal-header {
+            padding: 2px 0;
+            font-weight: 600;
+            font-size: 10px;
+            text-align: center;
+            opacity: 0.45;
+        }
+        .ess-cal-day {
+            display: flex;
+            position: relative;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 2.2 / 1;
+            min-height: 22px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 11px;
+            cursor: default;
+        }
+        .ess-cal-day--present {
+            background: rgba(34, 197, 94, 0.15);
+            color: #16a34a;
+        }
+        .ess-cal-day--absent {
+            background: rgba(239, 68, 68, 0.12);
+            color: #dc2626;
+        }
+        .ess-cal-day--late {
+            background: rgba(245, 158, 11, 0.15);
+            color: #d97706;
+        }
+        .ess-cal-day--leave {
+            background: rgba(99, 102, 241, 0.13);
+            color: #4f46e5;
+        }
+        .ess-cal-day--holiday {
+            background: rgba(168, 85, 247, 0.13);
+            color: #7c3aed;
+        }
+        .ess-cal-day--weekend {
+            opacity: 0.35;
+        }
+        .ess-cal-day--future {
+            opacity: 0.25;
+        }
+        .ess-cal-day--empty {
+            visibility: hidden;
+        }
+        .dark .ess-cal-day--present {
+            background: rgba(34, 197, 94, 0.18);
+            color: #4ade80;
+        }
+        .dark .ess-cal-day--absent {
+            background: rgba(239, 68, 68, 0.18);
+            color: #f87171;
+        }
+        .dark .ess-cal-day--late {
+            background: rgba(245, 158, 11, 0.18);
+            color: #fbbf24;
+        }
+        .dark .ess-cal-day--leave {
+            background: rgba(99, 102, 241, 0.18);
+            color: #818cf8;
+        }
+        .dark .ess-cal-day--holiday {
+            background: rgba(168, 85, 247, 0.18);
+            color: #c084fc;
+        }
+
+        .ess-cal-summary {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 6px 18px 12px;
+            gap: 16px;
+            font-size: 12px;
+        }
+        .ess-cal-summary__item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* ── Goals ── */
+        #essGoalsContainer {
+            max-height: 240px;
+            padding: 6px 16px 10px;
+            overflow-y: auto;
+        }
+        .ess-goal-row {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+            cursor: pointer;
+        }
+        .ess-goal-row:last-child {
+            border-bottom: none;
+        }
+        .ess-goal-row:hover {
+            opacity: 0.8;
+        }
+        .ess-goal-row__header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            gap: 8px;
+        }
+        .ess-goal-row__title {
+            flex: 1;
+            font-weight: 500;
+            font-size: 12px;
+        }
+        .ess-goal-row__meta {
+            margin-top: 3px;
+            font-size: 10px;
+            opacity: 0.5;
+        }
+        .ess-progress {
+            height: 5px;
+            overflow: hidden;
+            border-radius: 3px;
+            background: rgba(128, 128, 128, 0.12);
+        }
+        .ess-progress__bar {
+            height: 100%;
+            border-radius: 3px;
+            background: var(--ess-indigo);
+            transition: width 0.4s;
+        }
+
+        /* ── Status badges ── */
+        .ess-badge {
+            flex-shrink: 0;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .ess-badge--requested {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--ess-indigo);
+        }
+        .ess-badge--approved {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+        .ess-badge--rejected {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+        .ess-badge--cancelled {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+        }
+        .ess-badge--Not\ Started,
+        .ess-badge--On\ Track {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--ess-indigo);
+        }
+        .ess-badge--Closed {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+        .ess-badge--At\ Risk,
+        .ess-badge--Behind {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+        /* ── Generic KPI sub badges ── */
+        .ess-badge--green {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+        .ess-badge--amber {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+        }
+        .ess-badge--red {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+        .ess-badge--blue {
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+        }
+        .ess-badge--purple {
+            background: rgba(168, 85, 247, 0.1);
+            color: #9333ea;
+        }
+
+        /* ── Sidebar ── */
+        .ess-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .ess-info-panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(128, 128, 128, 0.12);
+            border-radius: 12px;
+            background: #ffffff;
+        }
+        .dark .ess-info-panel {
+            border-color: rgba(255, 255, 255, 0.08);
+            background: #242424;
+        }
+
+        .ess-info-panel__header {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+            font-weight: 700;
+            font-size: 13px;
+        }
+        .ess-info-panel__title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        /* Title on top, the date period the card lists on the line below. */
+        .ess-info-panel__heading { min-width: 0; }
+        .ess-info-panel__sub {
+            margin-top: 2px;
+            font-size: 11px;
+            font-weight: 400;
+            opacity: 0.5;
+        }
+        .ess-count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: var(--ess-indigo);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .ess-count-badge[hidden] {
+            display: none;
+        }
+        .ess-info-panel__body {
+            flex: 1;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .ess-info-panel__footer {
+            padding: 8px 14px;
+            border-top: 1px solid rgba(128, 128, 128, 0.08);
+            font-size: 11px;
+            text-align: right;
+        }
+        .ess-info-panel__footer a {
+            color: var(--ess-indigo);
+            text-decoration: none;
+        }
+        .ess-info-panel__footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Quick actions */
+        .ess-quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 12px;
+            gap: 8px;
+        }
+        .ess-action-btn {
+            display: flex;
+            align-items: center;
+            padding: 9px 10px;
+            gap: 6px;
+            border-radius: 8px;
+            color: inherit;
+            font-weight: 500;
+            font-size: 12px;
+            text-decoration: none;
+            transition:
+                opacity 0.15s,
+                transform 0.15s;
+        }
+        .ess-action-btn:hover {
+            transform: translateY(-1px);
+            color: inherit;
+            text-decoration: none;
+            opacity: 0.85;
+        }
+        .ess-action-btn--green {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+        .ess-action-btn--blue {
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+        }
+        .ess-action-btn--indigo {
+            background: rgba(99, 102, 241, 0.1);
+            color: #4f46e5;
+        }
+        .ess-action-btn--purple {
+            background: rgba(168, 85, 247, 0.1);
+            color: #7c3aed;
+        }
+        .dark .ess-action-btn--green {
+            color: #4ade80;
+        }
+        .dark .ess-action-btn--blue {
+            color: #60a5fa;
+        }
+        .dark .ess-action-btn--indigo {
+            color: #818cf8;
+        }
+        .dark .ess-action-btn--purple {
+            color: #c084fc;
+        }
+
+        /* List rows */
+        .ess-list-row {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.07);
+            font-size: 12px;
+        }
+        .ess-list-row:last-child {
+            border-bottom: none;
+        }
+        /* A row that opens something (an announcement's detail) */
+        .ess-list-row--link {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .ess-list-row--link:hover,
+        .ess-list-row--link:focus-visible {
+            background: rgba(128, 128, 128, 0.08);
+            outline: none;
+        }
+        .ess-list-row__main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2px;
+            gap: 6px;
+        }
+        .ess-list-row__title {
+            font-weight: 500;
+        }
+        .ess-list-row__sub {
+            font-size: 11px;
+            opacity: 0.5;
+        }
+
+        /* Upcoming rows */
+        .ess-upcoming-row {
+            display: flex;
+            align-items: center;
+            padding: 9px 14px;
+            gap: 8px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.07);
+            font-size: 12px;
+        }
+        .ess-upcoming-row:last-child {
+            border-bottom: none;
+        }
+        .ess-upcoming-row svg {
+            flex-shrink: 0;
+        }
+        .ess-upcoming-row--birthday {
+            color: var(--ess-pink);
+        }
+        .ess-upcoming-row--anniversary {
+            color: var(--ess-amber);
+        }
+        .ess-upcoming-row--holiday {
+            color: inherit;
+        }
+
+        /* Birthdays card */
+        #essBirthdaysList {
+            max-height: 260px;
+            overflow-y: auto;
+        }
+        .ess-bday-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.07);
+            font-size: 12px;
+        }
+        .ess-bday-row:last-child {
+            border-bottom: none;
+        }
+        .ess-bday-row img {
+            flex-shrink: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .ess-bday-row__name {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            font-weight: 500;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .ess-bday-row__date {
+            flex-shrink: 0;
+            font-size: 11px;
+            opacity: 0.55;
+        }
+        .ess-bday-row--today .ess-bday-row__date {
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--ess-pink);
+            color: #fff;
+            font-weight: 600;
+            opacity: 1;
+        }
+
+        /* Empty / skeleton */
+        .ess-empty {
+            padding: 28px 16px;
+            font-size: 12px;
+            text-align: center;
+            opacity: 0.4;
+        }
+        .ess-empty-sm {
+            padding: 14px;
+            font-size: 11px;
+            text-align: center;
+            opacity: 0.4;
+        }
+        .ess-skeleton {
+            border-radius: 16px;
+            background: linear-gradient(
+                90deg,
+                rgba(128, 128, 128, 0.1) 25%,
+                transparent 50%,
+                rgba(128, 128, 128, 0.1) 75%
+            );
+            background-size: 200% 100%;
+            animation: ess-shimmer 1.5s infinite;
+        }
+        .ess-skeleton--kpi {
+            height: 110px;
+        }
+        @keyframes ess-shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+    </style>
+    <div class="ess-dashboard">
+        <!-- Header -->
+        <div class="ess-header">
+            <div>
+                <h1>{% trans "My Dashboard" %}</h1>
+                <div class="ess-header__date" id="essHeaderDate"></div>
+            </div>
+            <div class="ess-header__actions">
+                {% if can_switch_to_main_dashboard %}
+                    <a
+                        href="{% url 'dashboard' %}"
+                        class="oh-btn oh-btn--secondary"
+                        title="{% trans 'Switch to the main dashboard' %}"
+                        style="display: flex; align-items: center; gap: 5px; font-size: 13px"
+                    >
+                        <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <rect x="3" y="3" width="7" height="7" />
+                            <rect x="14" y="3" width="7" height="7" />
+                            <rect x="14" y="14" width="7" height="7" />
+                            <rect x="3" y="14" width="7" height="7" />
+                        </svg>
+                        {% trans "Admin Dashboard" %}
+                    </a>
+                {% endif %}
+                <div class="ess-period-picker" hidden>
+                    <button class="ess-period-preset" data-preset="this_month">
+                        {% trans "This Month" %}
+                    </button>
+                    <button class="ess-period-preset" data-preset="last_month">
+                        {% trans "Last Month" %}
+                    </button>
+                    <button class="ess-period-preset" data-preset="this_quarter">
+                        {% trans "Quarter" %}
+                    </button>
+                    <input
+                        type="date"
+                        id="essFromDate"
+                        title="{% trans 'From' %}"
+                    />
+                    <span class="ess-period-picker__sep">&rarr;</span>
+                    <input type="date" id="essToDate" title="{% trans 'To' %}" />
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="ess-kpi-grid" id="essKpiGrid">
+            <div class="ess-skeleton ess-skeleton--kpi"></div>
+            <div class="ess-skeleton ess-skeleton--kpi"></div>
+            <div class="ess-skeleton ess-skeleton--kpi"></div>
+            <div class="ess-skeleton ess-skeleton--kpi"></div>
+        </div>
+
+        <!-- Main layout -->
+        <div class="ess-layout">
+            <!-- Left: charts -->
+            <div class="ess-main">
+                <!-- Row 2: Monthly attendance summary (read-only, same calendar as
+                     Attendance > Monthly Summary, for the logged-in employee) -->
+                <div
+                    class="ess-chart-card ess-chart-card--wide"
+                    data-section="calendar"
+                >
+                    <div class="ess-chart-card__header">
+                        <div>
+                            <div class="ess-chart-card__title">
+                                {% trans "Monthly Attendance Summary" %}
+                            </div>
+                        </div>
+                        <div class="ess-month-filter">
+                            <button type="button" id="essCalPrev" title="{% trans 'Previous month' %}">&lsaquo;</button>
+                            <input type="month" id="essCalMonth" title="{% trans 'Month' %}" />
+                            <button type="button" id="essCalNext" title="{% trans 'Next month' %}">&rsaquo;</button>
+                        </div>
+                    </div>
+                    <div id="essMonthlySummary">
+                        <div class="ess-empty">{% trans "Loading..." %}</div>
+                    </div>
+                </div>
+            </div>
+            <!-- /ess-main -->
+
+            <!-- Right sidebar -->
+            <div class="ess-sidebar">
+                <!-- Announcements -->
+                <div class="ess-info-panel">
+                    <div class="ess-info-panel__header">
+                        <div class="ess-info-panel__title">
+                            {% trans "Announcements" %}
+                            <span id="essAnnouncementsCount" class="ess-count-badge" hidden title="{% trans 'Announcements' %}">0</span>
+                        </div>
+                    </div>
+                    <div id="essAnnouncementsList" class="ess-info-panel__body">
+                        <div class="ess-empty-sm">{% trans "Loading..." %}</div>
+                    </div>
+                </div>
+
+                <!-- In time / active time / project time -->
+                <div class="ess-info-panel">
+                    <div class="ess-info-panel__header">
+                        <div class="ess-info-panel__heading">
+                            <div class="ess-info-panel__title">{% trans "My Time" %}</div>
+                            <div class="ess-info-panel__sub">{% trans "In time, active time and project time" %}</div>
+                        </div>
+                    </div>
+                    <div id="essMyTime" class="ess-info-panel__body">
+                        <div class="ess-empty-sm">{% trans "Loading..." %}</div>
+                    </div>
+                </div>
+
+                <!-- Hours logged on projects in the selected period -->                <div class="ess-info-panel">
+                    <div class="ess-info-panel__header">
+                        <div class="ess-info-panel__heading">
+                            <div class="ess-info-panel__title">
+                                {% trans "My Project Hours" %}
+                                <span id="essProjectHoursTotal" class="ess-count-badge" hidden>0</span>
+                            </div>
+                            <div class="ess-info-panel__sub">{% trans "Logged in timesheets" %}</div>
+                        </div>
+                    </div>
+                    <div id="essProjectHoursList" class="ess-info-panel__body">
+                        <div class="ess-empty-sm">{% trans "Loading..." %}</div>
+                    </div>
+                </div>
+
+                <!-- Birthdays: today and the rest of this month, all employees -->
+                <div class="ess-info-panel">
+                    <div class="ess-info-panel__header">
+                        <div class="ess-info-panel__heading">
+                            <div class="ess-info-panel__title">
+                                {% trans "Birthdays" %}
+                                <span id="essBirthdaysCount" class="ess-count-badge" hidden title="{% trans 'Birthdays this month' %}">0</span>
+                            </div>
+                            <div class="ess-info-panel__sub">{% trans "This month" %}</div>
+                        </div>
+                    </div>
+                    <div id="essBirthdaysList" class="ess-info-panel__body">
+                        <div class="ess-empty-sm">{% trans "Loading..." %}</div>
+                    </div>
+                </div>
+
+                <!-- Upcoming holidays -->
+                <div class="ess-info-panel">
+                    <div class="ess-info-panel__header">
+                        <div class="ess-info-panel__heading">
+                            <div class="ess-info-panel__title">
+                                {% trans "Upcoming Holidays" %}
+                                <span id="essUpcomingCount" class="ess-count-badge" hidden title="{% trans 'Upcoming Holidays' %}">0</span>
+                            </div>
+                            <div class="ess-info-panel__sub">{% trans "Next 30 days" %}</div>
+                        </div>
+                    </div>
+                    <div id="essUpcomingList" class="ess-info-panel__body">
+                        <div class="ess-empty-sm">{% trans "Loading..." %}</div>
+                    </div>
+                </div>
+            </div>
+            <!-- /ess-sidebar -->
+        </div>
+        <!-- /ess-layout -->
+    </div>
+    <!-- /ess-dashboard -->
+
+    <script>
+        (function () {
+            'use strict';
+
+            var today             = new Date();
+
+            function isDark() {
+                return document.documentElement.classList.contains('dark');
+            }
+            function axisColor()  { return isDark() ? '#94a3b8' : '#64748b'; }
+            function gridColor()  { return isDark() ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'; }
+            function themeMode()  { return isDark() ? 'dark' : 'light'; }
+
+            // Format dates in the language selected in Infisetu MIS, not the browser's.
+            var uiLocale = window.CURRENT_LANGUAGE || 'en-US';
+
+            document.getElementById('essHeaderDate').textContent =
+                today.toLocaleDateString(uiLocale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+            // ── Period picker (matches onboarding/recruitment dashboards) ──────────────
+            var PERIOD_KEY = 'ess_period_v1';
+            var fromInput  = document.getElementById('essFromDate');
+            var toInput    = document.getElementById('essToDate');
+
+            function pad2(n) { return String(n).padStart(2, '0'); }
+            function ymd(d)  { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+            function firstOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+            function lastOfMonth(d)  { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
+
+            function initPeriod() {
+                var saved = sessionStorage.getItem(PERIOD_KEY);
+                if (saved) {
+                try {
+                    var p = JSON.parse(saved);
+                    if (p && p.from && p.to) { fromInput.value = p.from; toInput.value = p.to; return; }
+                } catch (e) {}
+                }
+                fromInput.value = ymd(firstOfMonth(today));
+                toInput.value   = ymd(lastOfMonth(today));
+            }
+            function savePeriod() {
+                sessionStorage.setItem(PERIOD_KEY, JSON.stringify({ from: fromInput.value, to: toInput.value }));
+            }
+            function periodParams() {
+                var f = fromInput.value, t = toInput.value;
+                return (f && t) ? ('from_date=' + encodeURIComponent(f) + '&to_date=' + encodeURIComponent(t)) : '';
+            }
+            function urlWithPeriod(u) {
+                var qs = periodParams();
+                if (!qs) return u;
+                return u + (u.indexOf('?') >= 0 ? '&' : '?') + qs;
+            }
+            function fetchP(url) { return fetch(urlWithPeriod(url)); }
+
+            function syncMonthLabels() {
+                var lbl = '';
+                if (fromInput.value) {
+                var d = new Date(fromInput.value + 'T00:00:00');
+                lbl = d.toLocaleDateString(uiLocale, { month: 'long', year: 'numeric' });
+                }
+                var calLabel = document.getElementById('essCalMonthLabel');
+                if (calLabel) calLabel.textContent = lbl;
+            }
+
+            function reloadAll() {
+                syncMonthLabels();
+                loadKpi();
+                loadMonthlySummary();
+                loadAnnouncements();
+                loadUpcoming();
+            }
+
+            function setPreset(p) {
+                var t = new Date(); var f, to;
+                if (p === 'this_month') {
+                f  = new Date(t.getFullYear(), t.getMonth(), 1);
+                to = new Date(t.getFullYear(), t.getMonth() + 1, 0);
+                } else if (p === 'last_month') {
+                f  = new Date(t.getFullYear(), t.getMonth() - 1, 1);
+                to = new Date(t.getFullYear(), t.getMonth(), 0);
+                } else if (p === 'this_quarter') {
+                var qStart = Math.floor(t.getMonth() / 3) * 3;
+                f  = new Date(t.getFullYear(), qStart, 1);
+                to = new Date(t.getFullYear(), qStart + 3, 0);
+                } else {
+                return;
+                }
+                fromInput.value = ymd(f); toInput.value = ymd(to);
+                savePeriod();
+                document.querySelectorAll('.ess-period-preset').forEach(function (b) {
+                b.classList.toggle('ess-period-preset--active', b.dataset.preset === p);
+                });
+                reloadAll();
+            }
+
+            document.querySelectorAll('.ess-period-preset').forEach(function (b) {
+                b.addEventListener('click', function () { setPreset(b.dataset.preset); });
+            });
+            [fromInput, toInput].forEach(function (i) {
+                i.addEventListener('change', function () {
+                if (fromInput.value && toInput.value && toInput.value < fromInput.value) {
+                    toInput.value = fromInput.value;
+                }
+                savePeriod();
+                document.querySelectorAll('.ess-period-preset').forEach(function (b) {
+                    b.classList.remove('ess-period-preset--active');
+                });
+                reloadAll();
+                });
+            });
+
+            initPeriod();
+            syncMonthLabels();
+
+            // ── KPI Cards ────────────────────────────────────────────────────────────────
+            function loadKpi() {
+                fetchP('/my-dashboard/api/kpi/')
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    var iconLeave   = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+                    var iconPresent = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>';
+                    var iconGoals   = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>';
+                    var iconTask    = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
+                    var iconPay     = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+                    document.getElementById('essKpiGrid').innerHTML =
+                    {% if request|is_check_in_enabled %}
+                    kpiCard('green',  iconPresent, '{% trans "Present This Month"|escapejs %}',
+                            d.present_this_month,
+                            '<span class="ess-badge ess-badge--blue">' + d.late_this_month + ' ' + '{% trans "late"|escapejs %}' + '</span>',
+                            '{% url "view-my-attendance" %}?attendance_date__gte=' + fromInput.value +
+                                '&attendance_date__lte=' + toInput.value + '&filter_applied=1') +
+                    {% endif %}
+                    kpiCard('amber', iconLeave, '{% trans "Pending Leave Requests"|escapejs %}',
+                            d.pending_leave_requests != null ? d.pending_leave_requests : 0,
+                            '',
+                            '{% url "user-request-view" %}?status=requested&filter_applied=1') +
+                    (d.assigned_tasks != null
+                        ? kpiCard('green', iconTask, '{% trans "Assigned Tasks"|escapejs %}',
+                            d.assigned_tasks,
+                            '<span class="ess-badge ess-badge--green">' + '{% trans "to do & in progress"|escapejs %}' + '</span>',
+                            d.assigned_tasks_url)
+                        : '') +
+                    kpiCard('purple', iconGoals, '{% trans "Open Goals"|escapejs %}',
+                            d.open_objectives,
+                            '<span class="ess-badge ess-badge--purple">' + '{% trans "active objectives"|escapejs %}' + '</span>',
+                            '{% url "objective-list-view" %}?open_tab=1&archive=false');
+                })
+                .catch(function () {});
+            }
+
+            function kpiCard(color, icon, label, value, sub, href) {
+                return '<a href="' + href + '" class="ess-kpi-card">' +
+                '<div class="ess-kpi-card__icon ess-kpi-card__icon--' + color + '">' + icon + '</div>' +
+                '<div class="ess-kpi-card__label">' + label + '</div>' +
+                '<div class="ess-kpi-card__value">' + value + '</div>' +
+                '<div class="ess-kpi-card__sub">'   + sub   + '</div>' +
+                '</a>';
+            }
+
+            // ── Monthly Attendance Summary ────────────────────────────────────────────────
+            // Server-rendered calendar (shared with Attendance > Monthly Summary).
+            // The month filter drives this card on its own; the page-wide period
+            // does not apply to it.
+            var calMonthInput = document.getElementById('essCalMonth');
+            var calPrevBtn    = document.getElementById('essCalPrev');
+            var calNextBtn    = document.getElementById('essCalNext');
+            var curMonth      = today.getFullYear() + '-' + pad2(today.getMonth() + 1);
+            calMonthInput.max   = curMonth;
+            calMonthInput.value = curMonth;
+
+            function shiftCalMonth(delta) {
+                var p = (calMonthInput.value || curMonth).split('-');
+                var d = new Date(+p[0], +p[1] - 1 + delta, 1);
+                calMonthInput.value = d.getFullYear() + '-' + pad2(d.getMonth() + 1);
+                loadMonthlySummary();
+            }
+            calPrevBtn.addEventListener('click', function () { shiftCalMonth(-1); });
+            calNextBtn.addEventListener('click', function () { shiftCalMonth(1); });
+            calMonthInput.addEventListener('change', function () {
+                if (!calMonthInput.value || calMonthInput.value > curMonth) calMonthInput.value = curMonth;
+                loadMonthlySummary();
+            });
+
+            function loadMonthlySummary() {
+                if (calMonthInput.value > curMonth) calMonthInput.value = curMonth;
+                calNextBtn.disabled = calMonthInput.value >= curMonth;
+                fetch('{% url "ess-monthly-summary" %}?month=' + encodeURIComponent(calMonthInput.value || curMonth))
+                .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+                .then(function (html) {
+                    document.getElementById('essMonthlySummary').innerHTML = html;
+                })
+                .catch(function () {
+                    document.getElementById('essMonthlySummary').innerHTML =
+                        '<div class="ess-empty">' + '{% trans "Unable to load attendance summary"|escapejs %}' + '</div>';
+                });
+            }
+
+            // ── Announcements ─────────────────────────────────────────────────────────────
+            function loadAnnouncements() {
+                fetchP('/my-dashboard/api/announcements/')
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    var container = document.getElementById('essAnnouncementsList');
+                    setCountBadge('essAnnouncementsCount', (d.announcements || []).length);
+                    if (!d.announcements || !d.announcements.length) {
+                    container.innerHTML = '<div class="ess-empty-sm">' + '{% trans "No announcements"|escapejs %}' + '</div>';
+                    return;
+                    }
+                    container.innerHTML = d.announcements.map(function (a) {
+                    return '<div class="ess-list-row ess-list-row--link" tabindex="0" role="button" data-ann-id="' + esc(a.id) + '">' +
+                        '<div class="ess-list-row__title">' + esc(a.title) + '</div>' +
+                        '<div class="ess-list-row__sub">'   + esc(a.date)  +
+                        (a.expire_date ? ' &middot; expires ' + esc(a.expire_date) : '') +
+                        '</div>' +
+                        '</div>';
+                    }).join('');
+
+                    // Clicking a row opens the announcement in the standard detail modal
+                    var annIds = d.announcements.map(function (a) { return a.id; });
+                    function openAnnouncement(row) {
+                        htmx.ajax('GET',
+                            '/announcement-single-view/' + row.dataset.annId + '/?instance_ids=' + encodeURIComponent(JSON.stringify(annIds)),
+                            { target: '#objectDetailsModalTarget', swap: 'innerHTML' }
+                        ).then(function () {
+                            document.getElementById('objectDetailsModal').classList.add('oh-modal--show');
+                            htmx.process(document.getElementById('objectDetailsModalTarget'));
+                        });
+                    }
+                    container.querySelectorAll('.ess-list-row[data-ann-id]').forEach(function (row) {
+                        row.addEventListener('click', function () { openAnnouncement(row); });
+                        row.addEventListener('keydown', function (e) {
+                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAnnouncement(row); }
+                        });
+                    });
+                })
+                .catch(function () {});
+            }
+
+            // ── My time: in / active / project ───────────────────────────────────────────
+            function loadMyTime() {
+                fetchP('/activity/my-time/')
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    var box = document.getElementById('essMyTime');
+                    if (!d.today) { box.innerHTML = ''; return; }
+                    function row(label, a, b) {
+                        return '<div class="ess-upcoming-row"><span><strong>' + label + '</strong> &mdash; ' +
+                            esc(a) + ' <span style="color:#64748b">(' + esc(b) + ')</span></span></div>';
+                    }
+                    box.innerHTML =
+                        '<div style="font-size:12px;color:#64748b;margin-bottom:4px;">{% trans "Today (selected period)"|escapejs %}</div>' +
+                        row('{% trans "In time"|escapejs %}', d.today.in, d.period.in) +
+                        row('{% trans "Active time"|escapejs %}', d.today.active, d.period.active) +
+                        row('{% trans "Project time"|escapejs %}', d.today.project, d.period.project);
+                })
+                .catch(function () {});
+            }
+
+            // ── Project hours ─────────────────────────────────────────────────────────────            function loadProjectHours() {
+                fetchP('/project/my-hours/')
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    var container = document.getElementById('essProjectHoursList');
+                    var badge = document.getElementById('essProjectHoursTotal');
+                    badge.textContent = d.total + ' h';
+                    badge.hidden = !(d.projects && d.projects.length);
+                    if (!d.projects || !d.projects.length) {
+                        container.innerHTML = '<div class="ess-empty-sm">' + '{% trans "No project hours logged in this period"|escapejs %}' + '</div>';
+                        return;
+                    }
+                    container.innerHTML = d.projects.map(function (p) {
+                        return '<div class="ess-upcoming-row">' +
+                            '<span><strong>' + esc(p.title) + '</strong>' +
+                            (p.role ? ' &middot; ' + esc(p.role) : '') +
+                            ' &mdash; ' + esc(p.hours) + ' h</span></div>';
+                    }).join('');
+                })
+                .catch(function () {});
+            }
+
+            // ── Birthdays ─────────────────────────────────────────────────────────────────
+            function loadBirthdays() {
+                fetch('{% url "ess-birthdays" %}')
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    var container = document.getElementById('essBirthdaysList');
+                    setCountBadge('essBirthdaysCount', (d.birthdays || []).length);
+                    if (!d.birthdays || !d.birthdays.length) {
+                    container.innerHTML = '<div class="ess-empty-sm">' + '{% trans "No more birthdays this month"|escapejs %}' + '</div>';
+                    return;
+                    }
+                    container.innerHTML = d.birthdays.map(function (b) {
+                    var isToday = b.days_away === 0;
+                    return '<div class="ess-bday-row' + (isToday ? ' ess-bday-row--today' : '') + '">' +
+                        '<img src="' + esc(b.avatar) + '" alt="">' +
+                        '<span class="ess-bday-row__name">' + esc(b.name) + '</span>' +
+                        '<span class="ess-bday-row__date">' +
+                        (isToday ? '{% trans "Today"|escapejs %}' : esc(b.date)) + '</span>' +
+                        '</div>';
+                    }).join('');
+                })
+                .catch(function () {});
+            }
+
+            // ── Upcoming holidays ──────────────────────────────────────────────────────────────────
+            function loadUpcoming() {
+                fetchP('/my-dashboard/api/upcoming/')
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    var container = document.getElementById('essUpcomingList');
+                    var html = '';
+                    var svgHoliday  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+                    d.holidays.forEach(function (h) {
+                    html += '<div class="ess-upcoming-row ess-upcoming-row--holiday">' + svgHoliday + '<span>' +
+                            esc(h.name) + ' &mdash; ' + esc(h.start) +
+                            (h.end !== h.start ? ' to ' + esc(h.end) : '') +
+                            ' (' + h.days_away + ' days)</span></div>';
+                    });
+                    setCountBadge('essUpcomingCount', d.holidays.length);
+                    if (!html) html = '<div class="ess-empty-sm">' + '{% trans "No upcoming holidays"|escapejs %}' + '</div>';
+                    container.innerHTML = html;
+                })
+                .catch(function () {});
+            }
+
+            // ── Utilities ─────────────────────────────────────────────────────────────────
+            function setCountBadge(id, n) {
+                var b = document.getElementById(id);
+                b.textContent = n;
+                b.hidden = !n;
+            }
+
+            function esc(str) {
+                return String(str)
+                .replace(/&/g,  '&amp;')
+                .replace(/</g,  '&lt;')
+                .replace(/>/g,  '&gt;')
+                .replace(/"/g,  '&quot;')
+                .replace(/'/g,  '&#x27;');
+            }
+
+            // ── Initial load ──────────────────────────────────────────────────────────────
+            loadKpi();
+            loadMonthlySummary();
+            loadAnnouncements();
+            loadMyTime();
+            loadProjectHours();
+            loadBirthdays();
+            loadUpcoming();
+
+        }());
+    </script>
+{% endblock %}

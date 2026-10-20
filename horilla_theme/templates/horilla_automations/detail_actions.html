@@ -1,0 +1,25 @@
+{% load static i18n %}
+{% if perms.horilla_automations.change_mailautomation %}
+    <!-- Start of Edit Button -->
+    <button
+        data-toggle="oh-modal-toggle"
+        data-target="#genericModal"
+        hx-get="{{ instance.edit_url }}?instance_ids={{ instance.ordered_ids }}"
+        hx-target="#genericModalBody"
+        class="oh-btn oh-btn--light-bkg oh-btn--sq-sm"
+    >
+        <ion-icon name="create-outline"></ion-icon>
+    </button>
+    <!-- End of Edit Button -->
+{% endif %}
+
+{% if perms.horilla_automations.delete_mailautomation %}
+    <!-- Start of Delete a href Tag -->
+    <a
+        class="oh-btn oh-btn--danger oh-btn--sq-sm"
+        onclick="event.stopPropagation();confirm('{% trans "Do you want to delete the automation?"|escapejs %}','{{instance.delete_url}}')"
+    >
+        <ion-icon name="trash-outline"></ion-icon>
+    </a>
+    <!-- End of Delete a href Tag -->
+{% endif %}

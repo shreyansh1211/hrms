@@ -1,0 +1,28 @@
+{% extends "index.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block styles %}
+    <style>
+        .taxable--dot{
+            background-color:red;
+        }
+        .non-taxable--dot{
+            background-color:gray;
+        }
+        .fixed--dot{
+            background-color:orange;
+
+        }
+        .not-fixed--dot{
+            background-color:yellowgreen;
+        }
+  </style>
+{% endblock %}
+
+{% block content %}
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    {% include "generic/components.html" %}
+    <div hx-get='{% url "payroll-settings-tab-view" %}' hx-trigger="load"></div>
+{% endblock content %}

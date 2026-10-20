@@ -1,0 +1,579 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-10 13:50+0530\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "An unexpected error occurred. Please refresh the page."
+msgstr "發生非預期錯誤。請重新整理頁面。"
+
+msgid "Do you really want to validate all the selected attendances?"
+msgstr "確定要驗證所有已選取的出勤紀錄嗎？"
+
+msgid "No rows are selected from Validate Attendances."
+msgstr "「驗證出勤」中未選取任何紀錄。"
+
+msgid "Do you really want to approve OT for all the selected attendances?"
+msgstr "確定要核准所有已選取出勤紀錄的加班嗎？"
+
+msgid "No rows are selected from OT Attendances."
+msgstr "「加班出勤」中未選取任何紀錄。"
+
+msgid "Do you really want to reject all the selected attendance requests?"
+msgstr "確定要拒絕所有已選取的出勤申請嗎？"
+
+msgid "Pending Attendance Update Request!"
+msgstr "出勤更新申請待處理！"
+
+msgid ""
+"An attendance request exists for updating this attendance prior to "
+"validation."
+msgstr "在驗證此出勤紀錄前，已有用於更新該紀錄的出勤申請。"
+
+msgid "View Request"
+msgstr "檢視申請"
+
+msgid "Employees Imported Successfully"
+msgstr "員工匯入成功"
+
+msgid "You have"
+msgstr "您有"
+
+msgid "errors. Do you want to download the error list?"
+msgstr "個錯誤。您要下載錯誤清單嗎？"
+
+msgid "Download error list & Skip Import"
+msgstr "下載錯誤清單並略過匯入"
+
+msgid "Download error list & Continue Import"
+msgstr "下載錯誤清單並繼續匯入"
+
+msgid "Invalid File"
+msgstr "無效的檔案"
+
+msgid "Please upload a valid XLSX file."
+msgstr "請上傳有效的 XLSX 檔案。"
+
+msgid "Stage updated"
+msgstr "階段已更新"
+
+msgid "Failed to update sequence: "
+msgstr "無法更新順序："
+
+msgid "Sequence updated"
+msgstr "順序已更新"
+
+msgid "Confirm Stage Change"
+msgstr "確認階段變更"
+
+msgid ""
+"The candidate is being moved from %(from)s to the %(to)s stage. Do you want "
+"to proceed?"
+msgstr "候選人正在從%(from)s階段移動到%(to)s階段。您想繼續嗎？"
+
+msgid "Don't show this again in this session"
+msgstr "本次會話中不再顯示此內容"
+
+msgid "Cannot Change Stage"
+msgstr "無法改變階段"
+
+msgid "This move is not allowed."
+msgstr "這種舉動是不允許的。"
+
+msgid "Employees"
+msgstr "員工"
+
+msgid "Number of days"
+msgstr "天數"
+
+msgid "Draft"
+msgstr "草稿"
+
+msgid "Review Ongoing"
+msgstr "審核進行中"
+
+msgid "Confirmed"
+msgstr "已確認"
+
+msgid "Paid"
+msgstr "已給薪"
+
+msgid "Leave count"
+msgstr "請假次數"
+
+msgid "Do you wish to create a Leave Report?"
+msgstr "要建立請假報表嗎？"
+
+msgid "Do you want to reject the selected leave requests?"
+msgstr "要拒絕已選取的請假申請嗎？"
+
+msgid "Onboarding Candidates"
+msgstr "入職候選人"
+
+msgid "Candidates per Stage"
+msgstr "各階段候選人數"
+
+msgid "Number of Candidates"
+msgstr "候選人數"
+
+msgid "Do you want to send the payslip by mail?"
+msgstr "要透過電子郵件傳送薪資單嗎？"
+
+msgid "Name of Employees"
+msgstr "員工姓名"
+
+msgid "Amount"
+msgstr "金額"
+
+msgid "Objective"
+msgstr "目標"
+
+msgid "Key Result"
+msgstr "關鍵成果"
+
+msgid "Feedback"
+msgstr "回饋"
+
+msgid "Upload Completed!"
+msgstr "上傳完成！"
+
+msgid "Imported Successfully!"
+msgstr "匯入成功！"
+
+msgid "Please upload a file with the .xlsx extension only."
+msgstr "請僅上傳副檔名為 .xlsx 的檔案。"
+
+msgid "Hired Candidates"
+msgstr "已錄用候選人"
+
+msgid "Stage sequence updated"
+msgstr "階段順序已更新"
+
+msgid "Dashboard"
+msgstr "儀表板"
+
+msgid "Horilla dashboard section"
+msgstr "Horilla 儀表板區塊"
+
+msgid "Mark Attendance"
+msgstr "標記出勤"
+
+msgid "Used to mark your attendance"
+msgstr "用於標記您的出勤"
+
+msgid "Settings"
+msgstr "設定"
+
+msgid "Settings configurations"
+msgstr "設定組態"
+
+msgid "Notification"
+msgstr "通知"
+
+msgid "Notifications section"
+msgstr "通知區塊"
+
+msgid "Language"
+msgstr "語言"
+
+msgid "Multi-Language options"
+msgstr "多語言選項"
+
+msgid "Multi-Company"
+msgstr "多公司"
+
+msgid "Multi-Company options"
+msgstr "多公司選項"
+
+msgid "Profile"
+msgstr "個人資料"
+
+msgid "Profile and change password options"
+msgstr "個人資料與變更密碼選項"
+
+msgid "Dashboard Tiles"
+msgstr "儀表板區塊"
+
+msgid "Horilla Dashboard Tiles"
+msgstr "Horilla 儀表板區塊"
+
+msgid "Dashboard Actions"
+msgstr "儀表板操作"
+
+msgid "Approve or Reject Options"
+msgstr "核准或拒絕選項"
+
+msgid "Add announcement"
+msgstr "新增公告"
+
+msgid "Create announcement from dashboard"
+msgstr "從儀表板建立公告"
+
+msgid "Quick Actions"
+msgstr "快速操作"
+
+msgid "Create Quick Requests"
+msgstr "建立快速申請"
+
+msgid "Company"
+msgstr "公司"
+
+msgid "Your current company access"
+msgstr "您目前的公司存取權限"
+
+msgid "App"
+msgstr "應用程式"
+
+msgid "Horilla Hr Apps. eg Dashboard"
+msgstr "Horilla HR 應用，例如儀表板"
+
+msgid "Pipeline"
+msgstr "招聘流程"
+
+msgid "Recruitment pipeline management"
+msgstr "招聘流程管理"
+
+msgid "New Recruitment"
+msgstr "新招聘"
+
+msgid "Add new recruitment"
+msgstr "新增招聘"
+
+msgid "Filter"
+msgstr "篩選"
+
+msgid "Pipeline filter option"
+msgstr "招聘流程篩選選項"
+
+msgid "Toggle View"
+msgstr "切換檢視"
+
+msgid "Toggle view type"
+msgstr "切換檢視類型"
+
+msgid "Search"
+msgstr "搜尋"
+
+msgid "Search in candidate, recruitment and stage"
+msgstr "在候選人、招聘與階段中搜尋"
+
+msgid "Filter Tag"
+msgstr "篩選標籤"
+
+msgid "Filter tag option"
+msgstr "篩選標籤選項"
+
+msgid "Quick Filters"
+msgstr "快速篩選"
+
+msgid "Recruitment"
+msgstr "招聘"
+
+msgid "Add Stage"
+msgstr "新增階段"
+
+msgid "Add new stage to recruitment"
+msgstr "為招聘新增階段"
+
+msgid "Stage"
+msgstr "階段"
+
+msgid "Recruitment stage"
+msgstr "招聘階段"
+
+msgid "Add candidate"
+msgstr "新增候選人"
+
+msgid "Add candidate to stage option"
+msgstr "將候選人新增至階段的選項"
+
+msgid "Candidate"
+msgstr "候選人"
+
+msgid "Candidate record"
+msgstr "候選人紀錄"
+
+msgid "Rating"
+msgstr "評分"
+
+msgid "Candidate rating option"
+msgstr "候選人評分選項"
+
+msgid "Change Stage"
+msgstr "變更階段"
+
+msgid "Candidate change stage option"
+msgstr "候選人變更階段選項"
+
+msgid "Options"
+msgstr "選項"
+
+msgid "Candidate management options"
+msgstr "候選人管理選項"
+
+msgid "visible"
+msgstr "可見"
+
+msgid "bgcolor"
+msgstr ""
+
+msgid "bordercolor"
+msgstr ""
+
+msgid "borderwidth"
+msgstr ""
+
+msgid "thickness"
+msgstr ""
+
+msgid "autorange"
+msgstr ""
+
+msgid "range"
+msgstr "範圍"
+
+msgid "x"
+msgstr ""
+
+msgid "y"
+msgstr ""
+
+msgid "minor"
+msgstr "次要"
+
+msgid "label"
+msgstr "標籤"
+
+msgid "arrowlen"
+msgstr ""
+
+msgid "source"
+msgstr "來源"
+
+msgid "target"
+msgstr "目標"
+
+msgid "value"
+msgstr "值"
+
+msgid "line.color"
+msgstr ""
+
+msgid "line.width"
+msgstr ""
+
+msgid "hoverinfo"
+msgstr ""
+
+msgid "hovertemplate"
+msgstr ""
+
+msgid "color"
+msgstr ""
+
+msgid "hovercolor"
+msgstr ""
+
+msgid "customdata"
+msgstr ""
+
+msgid "All your company and base configurations"
+msgstr "所有公司與基本設定"
+
+msgid "Settings Options"
+msgstr "設定選項"
+
+msgid "Settings menu bar"
+msgstr "設定選單列"
+
+msgid "Settings View"
+msgstr "設定檢視"
+
+msgid "Selected settings view"
+msgstr "所選設定檢視"
+
+msgid "Project: "
+msgstr "專案："
+
+msgid "watchFile"
+msgstr ""
+
+msgid "watchDirectory"
+msgstr ""
+
+msgid "getCompletionsAtPosition: getCompletionEntriesFromSymbols: "
+msgstr ""
+
+msgid "placeOpenBraceOnNewLineForControlBlocks"
+msgstr ""
+
+msgid "placeOpenBraceOnNewLineForFunctions"
+msgstr ""
+
+msgid "punc"
+msgstr ""
+
+msgid "name"
+msgstr "名稱"
+
+msgid "keyword"
+msgstr "關鍵字"
+
+msgid "arrow"
+msgstr ""
+
+msgid "operator"
+msgstr "運算子"
+
+msgid "Expected "
+msgstr "預期 "
+
+msgid "I"
+msgstr ""
+
+msgid "E"
+msgstr ""
+
+msgid "X"
+msgstr ""
+
+msgid "B"
+msgstr ""
+
+msgid "Invalid generatedCharacter found"
+msgstr "找到無效的 generatedCharacter"
+
+msgid "Invalid sourceIndex found"
+msgstr "找到無效的 sourceIndex"
+
+msgid "Unsupported Format: No entries after sourceIndex"
+msgstr ""
+
+msgid "Invalid sourceLine found"
+msgstr "找到無效的 sourceLine"
+
+msgid "Unsupported Format: No entries after sourceLine"
+msgstr ""
+
+msgid "Invalid sourceCharacter found"
+msgstr "找到無效的 sourceCharacter"
+
+msgid "Invalid nameIndex found"
+msgstr "找到無效的 nameIndex"
+
+msgid "Unsupported Error Format: Entries after nameIndex"
+msgstr ""
+
+msgid "collectAutoImports"
+msgstr ""
+
+msgid "continuePreviousIncompleteResponse"
+msgstr ""
+
+msgid "TypeRoots version has changed; provide new program"
+msgstr ""
+
+msgid "getIndentationAtPosition: getCurrentSourceFile: "
+msgstr ""
+
+msgid "getIndentationAtPosition: computeIndentation  : "
+msgstr ""
+
+msgid "Program"
+msgstr "計畫"
+
+msgid "BlockStatement"
+msgstr "BlockStatement"
+
+msgid "close"
+msgstr "關閉"
+
+msgid "Confirm"
+msgstr "確認"
+
+msgid "Close"
+msgstr "關閉"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Selected"
+msgstr "已選取"
+
+msgid "Uploading..."
+msgstr "正在上傳..."
+
+msgid "No Records found"
+msgstr "找不到紀錄"
+
+msgid "Ok"
+msgstr "好的"
+
+msgid "Do you want to download the excel file?"
+msgstr "要下載 Excel 檔案嗎？"
+
+msgid "Do you want to download the template?"
+msgstr "要下載範本嗎？"
+
+msgid "No rows are selected from the records."
+msgstr "未選取任何紀錄。"
+
+msgid "Do you really want to delete all the selected records?"
+msgstr "確定要刪除所有已選取的紀錄嗎？"
+
+msgid "Do you really want to archive all the selected records?"
+msgstr "確定要封存所有已選取的紀錄嗎？"
+
+msgid "Do you really want to approve all the selected requests?"
+msgstr "確定要核准所有已選取的申請嗎？"
+
+msgid "Do you really want to unarchive all the selected records?"
+msgstr "確定要取消封存所有已選取的紀錄嗎？"
+
+msgid "Total vacancy is %(vacancy)s."
+msgstr "總空位為%(vacancy)s。"
+
+msgid ""
+"Are you sure to change the candidate from %(from)s stage to %(to)s stage"
+msgstr "您確定將候選人從%(from)s階段改為%(to)s階段嗎"
+
+msgid "Retry"
+msgstr "重試"
+
+msgid "Something went wrong while loading this data."
+msgstr "載入此資料時發生錯誤。"
+
+msgid "Request failed (status %(status)s)."
+msgstr "請求失敗（狀態 %(status)s）。"
+
+msgid "The request took too long to respond."
+msgstr "請求回應時間過長。"
+
+#~ msgid "Some selected requests have already been approved."
+#~ msgstr "部分已選取的申請已獲核准。"
+
+#~ msgid "Some selected requests have already been rejected."
+#~ msgstr "部分已選取的申請已被拒絕。"
+
+#~ msgid "Do you really want to delete all the selected attendances?"
+#~ msgstr "您確實要刪除所有選定的出席嗎？"
+
+#~ msgid "Do you really want to delete this employee?"
+#~ msgstr "您真的要刪除該員工嗎？"
+
+#~ msgid "No rows are selected for deleting attendances."
+#~ msgstr "未選擇任何行來刪除出勤。"

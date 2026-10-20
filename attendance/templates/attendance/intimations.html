@@ -1,0 +1,101 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<div class="oh-wrapper">
+  <style>
+    .im-card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:16px 18px; margin-bottom:14px; }
+    .im-head { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center; }
+    .im-kind { font-weight:700; color:#132238; }
+    .im-date { color:#64748b; font-size:13px; }
+    .im-detail { margin:8px 0 12px; color:#334155; font-size:14px; line-height:1.55; }
+    .im-badge { display:inline-block; font-size:12px; font-weight:600; padding:2px 10px; border-radius:999px; }
+    .im-open { background:#fef3c7; color:#92400e; } .im-rejected { background:#fee2e2; color:#7f1d1d; }
+    .im-submitted { background:#dbeafe; color:#1e3a8a; } .im-approved { background:#dcfce7; color:#166534; }
+    .im-form textarea, .im-form input[type=time], .im-form input[type=file] { width:100%; border:1px solid #cbd5e1; border-radius:6px; padding:8px; font-size:14px; }
+    .im-form label { display:block; font-size:13px; color:#475569; margin:8px 0 3px; }
+    .im-btn { background:#017391; color:#fff; border:0; border-radius:6px; padding:8px 18px; font-weight:600; cursor:pointer; }
+    .im-btn--ghost { background:#fff; color:#b91c1c; border:1px solid #fca5a5; }
+    .im-h2 { font-size:17px; font-weight:700; color:#132238; margin:24px 0 10px; }
+    .im-empty { color:#64748b; font-size:14px; padding:6px 0 14px; }
+  </style>
+
+  <h1 style="font-size:22px;font-weight:700;color:#132238;margin-bottom:4px;">{% trans "Attendance Intimations" %}</h1>
+  <p style="color:#64748b;margin-bottom:8px;">
+    {% trans "Checking in or out more than 30 minutes away from your shift, or forgetting to sign out, needs a short explanation to your reporting manager. Respond here instead of sending an e-mail." %}
+  </p>
+
+  <div class="im-h2">{% trans "Needs your response" %}</div>
+  {% for i in open_items %}
+    <div class="im-card">
+      <div class="im-head">
+        <div><span class="im-kind">{{ i.get_kind_display }}</span>
+          <span class="im-date">&middot; {{ i.attendance_id.attendance_date|date:"d M Y" }}</span></div>
+        <span class="im-badge {% if i.status == 'rejected' %}im-rejected{% else %}im-open{% endif %}">{{ i.get_status_display }}</span>
+      </div>
+      <div class="im-detail">{{ i.detail }}</div>
+      {% if i.status == 'rejected' %}
+        <div class="im-detail" style="color:#7f1d1d;">{% trans "Manager's note:" %} {{ i.manager_comment|default:"-" }}</div>
+      {% endif %}
+      <form class="im-form" method="post" enctype="multipart/form-data" action="{% url 'attendance-intimation-submit' i.pk %}">
+        {% csrf_token %}
+        {% if i.kind == 'missed_sign_out' %}
+          <label>{% trans "Your actual sign-out time" %}</label>
+          <input type="time" name="actual_out" required style="max-width:200px;">
+        {% endif %}
+        <label>{% trans "Comment (what happened)" %}</label>
+        <textarea name="comment" rows="3" required maxlength="2000">{{ i.comment }}</textarea>
+        <label>{% trans "Proof (optional: screenshot, medical note, e-mail)" %}</label>
+        <input type="file" name="proof">
+        <div style="margin-top:12px;"><button class="im-btn" type="submit">{% trans "Send to manager" %}</button></div>
+      </form>
+    </div>
+  {% empty %}
+    <div class="im-empty">{% trans "Nothing is waiting for you." %}</div>
+  {% endfor %}
+
+  {% if waiting %}
+    <div class="im-h2">{% trans "Waiting for manager approval" %}</div>
+    {% for i in waiting %}
+      <div class="im-card">
+        <div class="im-head"><div><span class="im-kind">{{ i.get_kind_display }}</span>
+          <span class="im-date">&middot; {{ i.attendance_id.attendance_date|date:"d M Y" }}</span></div>
+          <span class="im-badge im-submitted">{{ i.get_status_display }}</span></div>
+        <div class="im-detail">{{ i.comment }}</div>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if to_review %}
+    <div class="im-h2">{% trans "Team intimations to review" %}</div>
+    {% for i in to_review %}
+      <div class="im-card">
+        <div class="im-head"><div><span class="im-kind">{{ i.employee_id.get_full_name }}</span>
+          <span class="im-date">&middot; {{ i.get_kind_display }} &middot; {{ i.attendance_id.attendance_date|date:"d M Y" }}</span></div>
+          <span class="im-badge im-submitted">{{ i.get_status_display }}</span></div>
+        <div class="im-detail">{{ i.detail }}</div>
+        <div class="im-detail"><strong>{% trans "Employee says:" %}</strong> {{ i.comment }}
+          {% if i.requested_out %}<br><strong>{% trans "Actual sign-out:" %}</strong> {{ i.requested_out|date:"d M Y, h:i A" }}{% endif %}
+          {% if i.proof %}<br><a href="{{ i.proof.url }}" target="_blank" rel="noopener noreferrer">{% trans "View proof" %}</a>{% endif %}</div>
+        <form class="im-form" method="post" action="{% url 'attendance-intimation-decide' i.pk %}">
+          {% csrf_token %}
+          <label>{% trans "Your note (optional)" %}</label>
+          <textarea name="manager_comment" rows="2" maxlength="1000"></textarea>
+          <div style="margin-top:12px;display:flex;gap:10px;">
+            <button class="im-btn" type="submit" name="decision" value="approve">{% trans "Approve" %}</button>
+            <button class="im-btn im-btn--ghost" type="submit" name="decision" value="reject">{% trans "Reject" %}</button>
+          </div>
+        </form>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if history %}
+    <div class="im-h2">{% trans "Recently approved" %}</div>
+    {% for i in history %}
+      <div class="im-card"><div class="im-head"><div><span class="im-kind">{{ i.get_kind_display }}</span>
+        <span class="im-date">&middot; {{ i.attendance_id.attendance_date|date:"d M Y" }}</span></div>
+        <span class="im-badge im-approved">{{ i.get_status_display }}</span></div></div>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

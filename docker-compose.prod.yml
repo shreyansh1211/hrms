@@ -1,0 +1,101 @@
+# Production overlay for Infisetu MIS on ONE VPS (HRMS + Infi Time Manager).
+#
+#   cp .env.production.example .env      # then fill every CHANGE_ME
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#   # or: make prod
+#
+# Network design (see deploy/DEPLOY_CHECKLIST.md):
+#   * web and scheduler use the HOST network, bound to 127.0.0.1 only, so they can reach
+#     the activity tracker on 127.0.0.1:8100 (which refuses anything but local callers).
+#   * db and redis are published on 127.0.0.1 only (never on the public interface).
+#   * The only public entrance is the host's Caddy on 80/443 (deploy/Caddyfile).
+#   * The bundled nginx is switched off: Caddy does TLS and WhiteNoise serves static files.
+#
+# Requires Docker Compose v2.24+ (!override / !reset merge).
+
+x-app-env: &app-env
+  DEBUG: "0"
+  HORILLA_ENV: production
+  DB_HOST: 127.0.0.1
+  GUNICORN_BIND_HOST: 127.0.0.1
+  # One proxy hop (Caddy): lets django-axes lock out the real client IP.
+  AXES_PROXY_COUNT: "1"
+  SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+  ALLOWED_HOSTS: ${ALLOWED_HOSTS:?Set ALLOWED_HOSTS in .env}
+  DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+  DB_INIT_PASSWORD: ${DB_INIT_PASSWORD:?Set DB_INIT_PASSWORD in .env}
+  REDIS_URL: ${REDIS_URL:?Set REDIS_URL in .env}
+
+services:
+  web:
+    network_mode: host
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment: !override
+      <<: *app-env
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:?Set CSRF_TRUSTED_ORIGINS in .env}
+      SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-1}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+      GUNICORN_LOG_LEVEL: ${GUNICORN_LOG_LEVEL:-info}
+    volumes: !override
+      - staticfiles:/app/staticfiles
+      - media:/app/media
+    ports: !reset null
+    mem_limit: 1200m
+
+  # Single replica: see the comment on this service in docker-compose.yml.
+  scheduler:
+    network_mode: host
+    env_file:
+      - .env
+    environment: !override
+      <<: *app-env
+      HORILLA_SKIP_RELEASE_TASKS: "1"
+    volumes: !override
+      - media:/app/media
+    mem_limit: 600m
+    deploy:
+      replicas: 1
+
+  db:
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-horilla_db}
+      POSTGRES_USER: ${POSTGRES_USER:-horilla_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    # Tuned for a 4 GB box shared with the app and the tracker.
+    command: >
+      postgres -c max_connections=40 -c shared_buffers=512MB
+      -c effective_cache_size=1536MB -c work_mem=8MB
+      -c maintenance_work_mem=128MB -c wal_compression=on
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    mem_limit: 900m
+
+  redis:
+    restart: unless-stopped
+    command: >
+      redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+      --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "-a",
+          "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}",
+          "ping",
+        ]
+    mem_limit: 200m
+
+  # Not used in this layout: Caddy on the host terminates TLS.
+  nginx:
+    profiles: !override ["unused"]

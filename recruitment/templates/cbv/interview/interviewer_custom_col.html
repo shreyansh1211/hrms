@@ -1,0 +1,36 @@
+{% load i18n %}
+<input type="hidden" class="d-none">
+<div data-cell-index="1" class="oh-avatar-stack">
+    <div class="oh-avatar-stack__images">
+        {% for employee in instance.employee_id.all|slice:":3" %}
+            <div class="oh-avatar-stack__img">
+                <img
+                    src="https://ui-avatars.com/api/?name={{ employee.get_full_name }}&background=random"
+                    alt="{{ employee.get_full_name }}"
+                >
+            </div>
+        {% endfor %}
+        {% with extra=instance.employee_id.all|length|add:"-3" %}
+            {% if extra > 0 %}
+                <div class="oh-avatar-stack__img oh-avatar-stack__more">+{{ extra }}</div>
+            {% endif %}
+        {% endwith %}
+        {% if not instance.employee_id.all %}
+            <span class="oh-avatar-stack__empty">{% trans "No interviewers" %}</span>
+        {% endif %}
+    </div>
+    {% if instance.employee_id.all %}
+        <div class="oh-avatar-stack__popover-content">
+            <div class="oh-avatar-stack__popover-title">{% trans "Interviewers" %}</div>
+            {% for employee in instance.employee_id.all %}
+                <div class="oh-avatar-stack__popover-row">
+                    <img
+                        src="https://ui-avatars.com/api/?name={{ employee.get_full_name }}&background=random"
+                        alt=""
+                    >
+                    <span>{{ employee.get_full_name }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>

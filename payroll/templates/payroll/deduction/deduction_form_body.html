@@ -1,0 +1,8 @@
+{% comment %}
+Both component forms are the same template.
+
+Allowance and Deduction are the same shape — a name, an amount rule, who it
+applies to, when it applies — and keeping two near-identical bodies is how they
+drifted apart: fields added to both models reached neither form.
+{% endcomment %}
+{% include "payroll/component/_component_form.html" %}
