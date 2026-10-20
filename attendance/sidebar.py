@@ -59,6 +59,11 @@ SUBMENUS = [
         "accessibility": "attendance.sidebar.team_time_accessibility",
     },
     {
+        "menu": _("Employee Track"),
+        "redirect": reverse_lazy("activity-employee-track"),
+        "accessibility": "attendance.sidebar.employee_track_accessibility",
+    },
+    {
         "menu": _("Daily Work Status"),
         "redirect": reverse_lazy("work-records"),
         "accessibility": "attendance.sidebar.work_record_accessibility",
@@ -130,6 +135,13 @@ def team_time_accessibility(request, submenu, user_perms, *args, **kwargs):
     """Active-time table for managers / HR (permission: view active time)."""
     return request.user.is_superuser or request.user.has_perm(
         "activity_tracker.view_activetimeday"
+    )
+
+
+def employee_track_accessibility(request, submenu, user_perms, *args, **kwargs):
+    """Employee Track page — admin only by default (permission: view screenshot)."""
+    return request.user.is_superuser or request.user.has_perm(
+        "activity_tracker.view_employeescreenshot"
     )
 
 

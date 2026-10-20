@@ -18,15 +18,22 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from activity_tracker import client, sync
-from activity_tracker.models import ActiveTimeDay
+from activity_tracker.models import (
+    ActiveTimeDay,
+    ActivitySegment,
+    AppUsageLog,
+    BrowserTabLog,
+    EmployeeScreenshot,
+)
 from employee.models import Employee
 
 PERMISSION = "activity_tracker.view_activetimeday"
+TRACK_PERMISSION = "activity_tracker.view_employeescreenshot"
 
 
 def fmt(seconds):
@@ -192,3 +199,116 @@ def sync_now(request):
     except client.TrackerError as exc:
         messages.error(request, str(exc))
     return redirect("activity-team")
+
+
+def _can_track(user):
+    return user.is_superuser or user.has_perm(TRACK_PERMISSION)
+
+
+@login_required
+def employee_track(request):
+    """Admin-only: all employees with today's active time, click to see detail."""
+    if not _can_track(request.user):
+        return HttpResponseForbidden("You do not have permission to view Employee Track.")
+
+    today = datetime.date.today()
+    employees = list(
+        Employee.objects.filter(is_active=True)
+        .select_related("employee_work_info__department_id")
+        .order_by("employee_first_name")
+    )
+    today_data = totals([e.pk for e in employees], today, today)
+
+    rows = []
+    for e in employees:
+        t = today_data[e.pk]
+        rows.append(
+            {
+                "employee": e,
+                "active": fmt(t["active"]),
+                "in_time": fmt(t["in"]),
+                "last_seen": t["last_seen"],
+                "status": t["status"] or "—",
+                "has_data": bool(t["active"] or t["tracked"]),
+            }
+        )
+
+    return render(
+        request,
+        "activity_tracker/employee_track.html",
+        {"rows": rows, "today": today},
+    )
+
+
+@login_required
+def employee_track_detail(request, employee_pk):
+    """Admin-only: detailed view for one employee — time, app usage, browser tabs, screenshots."""
+    if not _can_track(request.user):
+        return HttpResponseForbidden("You do not have permission to view Employee Track.")
+
+    employee = get_object_or_404(Employee, pk=employee_pk)
+    today = datetime.date.today()
+
+    try:
+        view_date = datetime.date.fromisoformat(request.GET.get("date", ""))
+    except ValueError:
+        view_date = today
+
+    # Daily totals
+    day_data = totals([employee.pk], view_date, view_date)[employee.pk]
+
+    # Hourly breakdown from segments
+    segments = (
+        ActivitySegment.objects.filter(employee=employee, start__date=view_date)
+        .order_by("start")
+    )
+    hourly = defaultdict(lambda: {"active": 0, "idle": 0})
+    for seg in segments:
+        h = seg.start.astimezone(timezone.get_current_timezone()).hour
+        dur = seg.duration_seconds()
+        if seg.active:
+            hourly[h]["active"] += dur
+        else:
+            hourly[h]["idle"] += dur
+    hourly_rows = [
+        {"hour": h, "label": f"{h:02d}:00", "active": v["active"], "idle": v["idle"]}
+        for h, v in sorted(hourly.items())
+    ]
+
+    # App usage
+    app_usage = AppUsageLog.objects.filter(
+        employee=employee, date=view_date
+    ).order_by("-seconds")
+
+    # Browser tabs
+    browser_tabs = BrowserTabLog.objects.filter(
+        employee=employee, date=view_date
+    ).order_by("-seconds")
+
+    # Screenshots (latest 50)
+    screenshots = EmployeeScreenshot.objects.filter(
+        employee=employee, captured_at__date=view_date
+    ).order_by("-captured_at")[:50]
+
+    # Calendar: last 30 days that have data
+    recent_days = (
+        ActiveTimeDay.objects.filter(employee_id=employee)
+        .order_by("-date")[:30]
+        .values("date", "active_seconds")
+    )
+
+    return render(
+        request,
+        "activity_tracker/employee_track_detail.html",
+        {
+            "employee": employee,
+            "view_date": view_date,
+            "today": today,
+            "day_data": {k: fmt(day_data[k]) for k in ("in", "active", "project")},
+            "hourly_rows": hourly_rows,
+            "app_usage": app_usage,
+            "browser_tabs": browser_tabs,
+            "screenshots": screenshots,
+            "recent_days": recent_days,
+        },
+    )

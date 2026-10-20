@@ -1,0 +1,201 @@
+{% extends 'index.html' %}
+{% load i18n tracker_filters %}
+{% block content %}
+<div class="oh-wrapper">
+  <style>
+    .et-back { font-size:13px; color:#017391; text-decoration:none; margin-bottom:12px; display:inline-block; }
+    .et-back:hover { text-decoration:underline; }
+    .et-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
+    .et-avatar { width:56px; height:56px; border-radius:50%; background:#e0f2fe; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; color:#017391; flex-shrink:0; }
+    .et-name { font-size:20px; font-weight:700; color:#132238; }
+    .et-sub  { font-size:13px; color:#64748b; }
+    .et-cards { display:flex; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
+    .et-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px 20px; flex:1; min-width:160px; }
+    .et-card-label { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#64748b; margin-bottom:4px; }
+    .et-card-value { font-size:24px; font-weight:700; color:#132238; }
+    .et-section { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:18px 20px; margin-bottom:18px; }
+    .et-section-title { font-size:14px; font-weight:700; color:#132238; margin-bottom:12px; }
+    .et-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .et-table th { color:#64748b; text-align:left; padding:6px 10px; font-size:11px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; }
+    .et-table td { padding:8px 10px; border-bottom:1px solid #f1f5f9; color:#1e293b; }
+    .et-bar-wrap { width:100%; max-width:200px; background:#e2e8f0; border-radius:6px; height:6px; display:inline-block; vertical-align:middle; }
+    .et-bar-fill { height:6px; border-radius:6px; background:#017391; max-width:100%; }
+    .et-shots { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+    .et-shot { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; background:#f8fafc; }
+    .et-shot img { width:100%; display:block; cursor:pointer; }
+    .et-shot-meta { padding:6px 10px; font-size:11px; color:#64748b; }
+    .et-date-nav { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+    .et-date-nav input[type=date] { border:1px solid #cbd5e1; border-radius:6px; padding:6px 10px; font-size:13px; }
+    .et-btn { background:#017391; color:#fff; border:0; border-radius:6px; padding:7px 16px; font-weight:600; cursor:pointer; font-size:13px; }
+    .et-muted { color:#94a3b8; }
+    .et-hour-chart { display:flex; gap:4px; align-items:flex-end; height:60px; margin-bottom:4px; }
+    .et-hour-bar { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+    .et-hour-bar-fill { width:100%; border-radius:3px 3px 0 0; background:#017391; min-height:2px; }
+    .et-hour-bar-idle { width:100%; border-radius:3px 3px 0 0; background:#e2e8f0; min-height:2px; }
+    .et-hour-label { font-size:9px; color:#94a3b8; }
+    .et-lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:9999; align-items:center; justify-content:center; }
+    .et-lightbox.open { display:flex; }
+    .et-lightbox img { max-width:90vw; max-height:90vh; border-radius:8px; }
+    .et-lightbox-close { position:absolute; top:16px; right:24px; color:#fff; font-size:32px; cursor:pointer; }
+    .et-recent { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+    .et-recent a { padding:5px 12px; border-radius:20px; border:1px solid #cbd5e1; font-size:12px; color:#132238; text-decoration:none; background:#fff; }
+    .et-recent a.active { background:#017391; color:#fff; border-color:#017391; }
+  </style>
+
+  <a class="et-back" href="{% url 'activity-employee-track' %}">← {% trans "Employee Track" %}</a>
+
+  <div class="et-header">
+    <div class="et-avatar">{{ employee.employee_first_name|first|upper }}</div>
+    <div>
+      <div class="et-name">{{ employee.get_full_name }}</div>
+      <div class="et-sub">{{ employee.employee_work_info.department_id|default:"" }} · {{ employee.email }}</div>
+    </div>
+  </div>
+
+  <!-- Date navigation -->
+  <form class="et-date-nav" method="get">
+    <label style="font-size:13px;color:#64748b;">{% trans "Date" %}:</label>
+    <input type="date" name="date" value="{{ view_date|date:'Y-m-d' }}">
+    <button class="et-btn" type="submit">{% trans "Show" %}</button>
+  </form>
+
+  <!-- Recent days quick links -->
+  {% if recent_days %}
+  <div class="et-recent">
+    {% for d in recent_days %}
+      <a href="?date={{ d.date|date:'Y-m-d' }}" {% if d.date == view_date %}class="active"{% endif %}>
+        {{ d.date|date:"d M" }}
+      </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Summary cards -->
+  <div class="et-cards">
+    <div class="et-card">
+      <div class="et-card-label">{% trans "Active Time" %}</div>
+      <div class="et-card-value">{{ day_data.active }}</div>
+    </div>
+    <div class="et-card">
+      <div class="et-card-label">{% trans "In Time" %}</div>
+      <div class="et-card-value">{{ day_data.in }}</div>
+    </div>
+    <div class="et-card">
+      <div class="et-card-label">{% trans "Project Time" %}</div>
+      <div class="et-card-value">{{ day_data.project }}</div>
+    </div>
+    <div class="et-card">
+      <div class="et-card-label">{% trans "Screenshots" %}</div>
+      <div class="et-card-value">{{ screenshots|length }}</div>
+    </div>
+  </div>
+
+  <!-- Hourly activity bar chart -->
+  {% if hourly_rows %}
+  <div class="et-section">
+    <div class="et-section-title">{% trans "Hourly Activity" %}</div>
+    {% with max_active=hourly_rows|dictsort:"active"|last %}
+    <div class="et-hour-chart">
+      {% for row in hourly_rows %}
+        {% with total=row.active|add:row.idle %}
+        <div class="et-hour-bar" title="{{ row.label }} — active: {{ row.active }}s  idle: {{ row.idle }}s">
+          <div class="et-hour-bar-fill" style="height:{% if max_active.active > 0 %}{% widthratio row.active max_active.active 52 %}{% else %}2{% endif %}px;"></div>
+          <div class="et-hour-label">{{ row.label|slice:":2" }}</div>
+        </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+    {% endwith %}
+    <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{% trans "Bar height = active seconds in that hour" %}</div>
+  </div>
+  {% endif %}
+
+  <!-- App Usage -->
+  {% if app_usage %}
+  <div class="et-section">
+    <div class="et-section-title">{% trans "App Usage" %}</div>
+    {% with max_sec=app_usage.0.seconds %}
+    <table class="et-table">
+      <thead><tr><th>{% trans "Application" %}</th><th>{% trans "Time" %}</th><th style="width:220px;"></th></tr></thead>
+      <tbody>
+        {% for app in app_usage %}
+        <tr>
+          <td>{{ app.app_name }}</td>
+          <td>{{ app.seconds|fmt_seconds }}</td>
+          <td>
+            <div class="et-bar-wrap">
+              <div class="et-bar-fill" style="width:{% if max_sec > 0 %}{% widthratio app.seconds max_sec 100 %}{% else %}0{% endif %}%;"></div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endwith %}
+  </div>
+  {% endif %}
+
+  <!-- Browser Tabs -->
+  {% if browser_tabs %}
+  <div class="et-section">
+    <div class="et-section-title">{% trans "Browser Activity" %}</div>
+    <table class="et-table">
+      <thead><tr><th>{% trans "Domain / URL" %}</th><th>{% trans "Title" %}</th><th>{% trans "Time" %}</th></tr></thead>
+      <tbody>
+        {% for tab in browser_tabs %}
+        <tr>
+          <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ tab.url }}">
+            {{ tab.domain|default:tab.url }}
+          </td>
+          <td style="color:#64748b;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ tab.title }}</td>
+          <td>{{ tab.seconds|fmt_seconds }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Screenshots -->
+  {% if screenshots %}
+  <div class="et-section">
+    <div class="et-section-title">{% trans "Screenshots" %} ({{ screenshots|length }})</div>
+    <div class="et-shots">
+      {% for shot in screenshots %}
+      <div class="et-shot">
+        <img src="{{ shot.image.url }}" alt="screenshot" loading="lazy"
+             onclick="openLightbox('{{ shot.image.url }}')">
+        <div class="et-shot-meta">
+          {{ shot.captured_at|date:"H:i:s" }}
+          {% if shot.app_name %} · {{ shot.app_name }}{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="et-section">
+    <div class="et-section-title">{% trans "Screenshots" %}</div>
+    <p class="et-muted">{% trans "No screenshots for this date." %}</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Lightbox -->
+<div class="et-lightbox" id="et-lightbox" onclick="closeLightbox()">
+  <span class="et-lightbox-close">✕</span>
+  <img id="et-lightbox-img" src="" alt="screenshot full size">
+</div>
+
+<script>
+function openLightbox(src) {
+  document.getElementById('et-lightbox-img').src = src;
+  document.getElementById('et-lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('et-lightbox').classList.remove('open');
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeLightbox(); });
+</script>
+{% endblock %}
