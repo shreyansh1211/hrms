@@ -35,7 +35,6 @@
 
     /* ── app icon chip ── */
     .et-app-chip { display:inline-flex; align-items:center; gap:6px; }
-    .et-app-dot  { width:7px; height:7px; border-radius:50%; background:#017391; flex-shrink:0; }
 
     /* ── type icon ── */
     .et-type-icon { font-size:13px; width:20px; text-align:center; }
@@ -212,8 +211,6 @@
               <div class="et-app-chip">
                 {% if seg.url %}
                   <span class="et-type-icon" title="Browser">🌐</span>
-                {% elif seg.app_name %}
-                  <span class="et-app-dot"></span>
                 {% endif %}
                 <span style="font-weight:600;font-size:13px;color:#132238;">{{ seg.app_name|default:"—" }}</span>
               </div>
@@ -266,12 +263,7 @@
       <tbody>
         {% for app in app_usage %}
         <tr>
-          <td>
-            <div class="et-app-chip">
-              <span class="et-app-dot"></span>
-              {{ app.app_name }}
-            </div>
-          </td>
+          <td>{{ app.app_name }}</td>
           <td style="text-align:right;font-variant-numeric:tabular-nums;">
             {{ app.seconds|fmt_seconds }}
           </td>

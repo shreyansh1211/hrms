@@ -189,7 +189,8 @@ class LogWindow(tk.Toplevel):
         self.after(0, self._restore)
 
     def _restore(self):
-        """Bring the log window back to front."""
+        """Bring the log window back to front and resume live logging."""
+        self._install_handler()   # re-attach so new log lines appear again
         self.deiconify()
         self.lift()
         self.focus_force()
@@ -404,6 +405,8 @@ class LogWindow(tk.Toplevel):
     # ── logging handler ──────────────────────────────────────────────────────
 
     def _install_handler(self):
+        if self._handler:
+            return  # already attached
         self._handler = _TkLogHandler(self)
         self._handler.setLevel(logging.INFO)
         logging.getLogger("horilla_agent").addHandler(self._handler)
@@ -411,7 +414,7 @@ class LogWindow(tk.Toplevel):
     def _uninstall_handler(self):
         if self._handler:
             logging.getLogger("horilla_agent").removeHandler(self._handler)
-            self._handler = None
+            self._handler = None   # cleared so _install_handler can re-add on restore
 
     # ── close ────────────────────────────────────────────────────────────────
 

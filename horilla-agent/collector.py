@@ -126,6 +126,8 @@ class Collector(threading.Thread):
         self._watcher.start()
         log.info("STARTED | Tracking active for %s", self.session.get("employee_name"))
 
+        _prev_active = True   # assume active at launch
+
         while not self.stop_event.wait(FLUSH_SECONDS):
             # Emit an event for the currently focused window (still open)
             self._watcher.flush_current()
@@ -139,10 +141,17 @@ class Collector(threading.Thread):
                 self.uploader.push_segment(seg)
                 self._segments_collected += 1
 
+            # Detect idle ↔ active transitions and log them prominently
+            current_active = self._monitor.is_active()
+            if current_active and not _prev_active:
+                log.info("ACTIVE | ↑ Back from idle — resuming active tracking")
+            elif not current_active and _prev_active:
+                log.info("IDLE   | ↓ User went idle — pausing active tracking")
+            _prev_active = current_active
+
             # Log input counts for the flush period
             counts = self._monitor.consume_counts()
-            win    = self._watcher.get_current()
-            active = self._monitor.is_active()
+            win      = self._watcher.get_current()
             app_name = win.get("app", "") or "—"
 
             if counts["keys"] + counts["clicks"] + counts["moves"] > 0:
@@ -150,7 +159,7 @@ class Collector(threading.Thread):
                     "ACTIVE | %-22s | [keys=%d clicks=%d moves=%d]",
                     app_name[:22], counts["keys"], counts["clicks"], counts["moves"],
                 )
-            elif not active:
+            elif not current_active:
                 log.info("IDLE   | %-22s", app_name[:22])
 
             # Screenshot

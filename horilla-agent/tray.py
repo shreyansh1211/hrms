@@ -31,6 +31,11 @@ if sys.platform == "win32":
     ID_SHOW   = 1000
     ID_LOGOUT = 1002
 
+    NIIF_INFO               = 0x00000001
+    NIF_INFO                = 0x00000010
+    NOTIFYICON_VERSION_4    = 4
+    NIM_SETVERSION          = 0x00000004
+
     class TrayIcon:
         def __init__(self, employee_name: str, collector, on_logout, show_window_fn=None):
             self.employee_name  = employee_name
@@ -154,6 +159,28 @@ if sys.platform == "win32":
 
         # ── run ─────────────────────────────────────────────────────────────
 
+        def _show_balloon(self, title: str, text: str):
+            """Show a balloon/toast notification from the tray icon."""
+            try:
+                import ctypes
+                # NIF_INFO flag lets Shell_NotifyIcon show a balloon
+                flags = (win32gui.NIF_ICON | win32gui.NIF_MESSAGE
+                         | win32gui.NIF_TIP | NIF_INFO)
+                win32gui.Shell_NotifyIcon(
+                    win32gui.NIM_MODIFY,
+                    (
+                        self.hwnd, 0, flags, WM_TRAY,
+                        self._icon(),
+                        self._tooltip()[:127],
+                        text[:255],      # balloon body
+                        3000,            # ms to show
+                        title[:63],      # balloon title
+                        NIIF_INFO,
+                    ),
+                )
+            except Exception:
+                pass  # balloon is informational only
+
         def _run(self):
             wc = win32gui.WNDCLASS()
             wc.hInstance       = win32api.GetModuleHandle(None)
@@ -171,7 +198,31 @@ if sys.platform == "win32":
             except Exception as exc:
                 log.error("CreateWindow failed: %s", exc)
                 return
+
+            # Add icon to tray
             self._notify(win32gui.NIM_ADD)
+
+            # NIM_SETVERSION enables modern (Vista+) notification behaviour
+            # so the icon appears reliably in the taskbar notification area
+            try:
+                win32gui.Shell_NotifyIcon(
+                    NIM_SETVERSION,
+                    (self.hwnd, 0, 0, 0, 0, "", NOTIFYICON_VERSION_4),
+                )
+            except Exception:
+                pass
+
+            # Startup balloon — draws user's attention to the icon
+            import threading as _t
+            _t.Timer(
+                1.5,
+                lambda: self._show_balloon(
+                    "Horilla Agent",
+                    f"Tracking active time for {self.employee_name}. "
+                    "Right-click this icon for options.",
+                ),
+            ).start()
+
             win32gui.SetTimer(self.hwnd, 1, 30_000, None)
             win32gui.PumpMessages()
             self._notify(win32gui.NIM_DELETE)
