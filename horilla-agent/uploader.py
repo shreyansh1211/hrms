@@ -1,5 +1,5 @@
 """
-Uploads tracked data to the Horilla server.
+Uploads tracked data to the server.
 
 Segments
     Queued by the Collector (one per 60 s of active time).
@@ -22,7 +22,7 @@ from urllib.parse import urlparse
 
 import requests
 
-log = logging.getLogger("horilla_agent.uploader")
+log = logging.getLogger("infisetu_agent.uploader")
 
 UPLOAD_INTERVAL      = 60   # segment flush interval (seconds)
 DAILY_FLUSH_INTERVAL = 60   # app/browser daily totals flush (seconds)

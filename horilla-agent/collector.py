@@ -1,5 +1,5 @@
 """
-Main tracking loop — Horilla Agent.
+Main tracking loop — Infisetu Agent.
 
 Tracking concept
 ────────────────
@@ -32,7 +32,7 @@ from tracker.browser_tracker import get_browser_url
 from tracker.input_hook import InputMonitor
 from tracker.screenshot import capture_jpeg
 
-log = logging.getLogger("horilla_agent.collector")
+log = logging.getLogger("infisetu_agent.collector")
 
 CHECK_INTERVAL   = 5     # seconds between idle/active checks
 SEGMENT_INTERVAL = 300   # flush buffer every N active seconds (5 min)

@@ -1,4 +1,4 @@
-# Horilla Agent — Windows desktop dependencies
+# Infisetu Agent — Windows desktop dependencies
 # Install with: pip install -r requirements.txt
 # Build .exe with: .\build.ps1  (requires Windows + PyInstaller)
 

@@ -1,7 +1,7 @@
 """
-Horilla agent authentication.
+Infisetu Agent authentication.
 
-Authenticates the employee with their Horilla credentials (domain + email + password)
+Authenticates the employee with their credentials (domain + email + password)
 and stores a 30-day token so the agent stays logged in across reboots.
 """
 import json
@@ -78,7 +78,7 @@ class AuthError(Exception):
 def login(domain: str, email: str, password: str,
           device_name: str = "") -> dict:
     """
-    POST /activity/agent/login/ on the Horilla server.
+    POST /activity/agent/login/ on the server.
     Returns the session dict on success; raises AuthError on failure.
     """
     url = domain.rstrip("/") + "/activity/agent/login/"
@@ -112,7 +112,7 @@ def login(domain: str, email: str, password: str,
 
 
 def fetch_policy(session: dict) -> dict:
-    """Fetch tracking policy from Horilla. Returns defaults on error."""
+    """Fetch tracking policy from server. Returns defaults on error."""
     defaults = {
         "idle_threshold_seconds": 180,
         "screenshot_interval_min": 300,
