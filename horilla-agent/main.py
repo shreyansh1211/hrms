@@ -132,7 +132,7 @@ class _FocusEntry(tk.Entry):
 
 
 class LoginWindow(tk.Tk):
-    W, H = 440, 590
+    W, H = 440, 700
 
     def __init__(self):
         super().__init__()
@@ -195,30 +195,43 @@ class LoginWindow(tk.Tk):
         self._p_entry.bind("<Return>", lambda _: self._on_login())
 
         self._status   = tk.StringVar()
-        self._btn_text = tk.StringVar(value="Sign In")
+        self._btn_text = tk.StringVar(value="Login")
+        self._loader_after = None   # stores the after() id for the dot animation
 
-        tk.Label(inner, textvariable=self._status,
-                 font=("Segoe UI", 9), bg=CARD_BG, fg=ERROR_FG,
-                 wraplength=340, justify="left", anchor="w").pack(fill="x", pady=(4, 0))
+        # ── Error box (hidden until there is an error) ────────────────────────
+        self._err_frame = tk.Frame(inner, bg="#fef2f2",
+                                   highlightthickness=1,
+                                   highlightbackground="#fca5a5")
+        self._err_lbl = tk.Label(
+            self._err_frame,
+            textvariable=self._status,
+            font=("Segoe UI", 9), bg="#fef2f2", fg=ERROR_FG,
+            wraplength=310, justify="left", anchor="w",
+            padx=10, pady=6,
+        )
+        self._err_lbl.pack(fill="x")
+        # Don't pack err_frame yet — shown only on error
 
+        # ── Login button ──────────────────────────────────────────────────────
         self._btn = tk.Button(
             inner,
             textvariable=self._btn_text,
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 12, "bold"),
             bg=ACCENT, fg="white",
             activebackground=ACCENT_H, activeforeground="white",
             relief="flat", bd=0, cursor="hand2",
             command=self._on_login,
         )
-        self._btn.pack(fill="x", ipady=10, pady=(14, 0))
-        self._btn.bind("<Enter>", lambda _: self._btn.config(bg=ACCENT_H))
+        self._btn.pack(fill="x", ipady=13, pady=(18, 0))
+        self._btn.bind("<Enter>", lambda _: self._btn.config(
+            bg=ACCENT_H if str(self._btn["state"]) != "disabled" else "#64748b"))
         self._btn.bind("<Leave>", lambda _: self._btn.config(
             bg=ACCENT if str(self._btn["state"]) != "disabled" else "#64748b"))
 
         tk.Label(inner,
-                 text="Your data is encrypted and visible\nonly to your HR administrator.",
+                 text="Your data is encrypted and visible only to your HR administrator.",
                  font=("Segoe UI", 8), bg=CARD_BG, fg=TEXT_HINT,
-                 justify="center").pack(pady=(16, 0))
+                 wraplength=340, justify="center").pack(pady=(14, 0))
 
     def _place_logo(self, parent):
         """Load infisetu_logo.png and display it; fall back to a circle."""
@@ -295,25 +308,48 @@ class LoginWindow(tk.Tk):
 
         return entry
 
+    # ── loader animation ──────────────────────────────────────────────────────
+
+    def _start_loader(self):
+        """Animate dots in the button: Logging in .  →  ..  →  ..."""
+        self._loader_dots = 0
+        self._loader_after = None
+        self._tick_loader()
+
+    def _tick_loader(self):
+        self._loader_dots = (self._loader_dots + 1) % 4
+        dots = "." * self._loader_dots or "   "
+        self._btn_text.set(f"Logging in {dots}")
+        self._loader_after = self.after(400, self._tick_loader)
+
+    def _stop_loader(self):
+        if self._loader_after:
+            self.after_cancel(self._loader_after)
+            self._loader_after = None
+
+    # ── login flow ────────────────────────────────────────────────────────────
+
     def _on_login(self):
         domain   = self._domain.get().strip().rstrip("/")
         email    = self._email.get().strip()
         password = self._password.get()
+
+        # Hide any previous error
         self._status.set("")
+        self._err_frame.pack_forget()
 
         if not domain or domain in ("http://", "https://"):
-            self._status.set("Please enter the server URL.")
+            self._show_error("Please enter the server URL.")
             self._d_entry.focus(); return
         if not email:
-            self._status.set("Please enter your email address.")
+            self._show_error("Please enter your email address.")
             self._e_entry.focus(); return
         if not password:
-            self._status.set("Please enter your password.")
+            self._show_error("Please enter your password.")
             self._p_entry.focus(); return
 
         self._btn.config(state="disabled", bg="#64748b")
-        self._btn_text.set("Signing in…")
-        self.update()
+        self._start_loader()
 
         def do_login():
             import socket
@@ -326,15 +362,21 @@ class LoginWindow(tk.Tk):
         threading.Thread(target=do_login, daemon=True).start()
 
     def _on_success(self, session: dict):
+        self._stop_loader()
         log.info("STARTED | Logged in as %s", session["employee_name"])
         self.withdraw()
         start_tracking(session)
-        # mainloop keeps running — tray icon is the only UI from here
 
     def _on_error(self, msg: str):
-        self._status.set(msg)
+        self._stop_loader()
         self._btn.config(state="normal", bg=ACCENT)
-        self._btn_text.set("Sign In")
+        self._btn_text.set("Login")
+        self._show_error(msg)
+
+    def _show_error(self, msg: str):
+        self._status.set(msg)
+        # Pack error box just above the button (before it in widget order)
+        self._err_frame.pack(fill="x", pady=(10, 0), before=self._btn)
 
 
 # --------------------------------------------------------------------------- #
