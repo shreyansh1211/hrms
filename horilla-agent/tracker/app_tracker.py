@@ -132,9 +132,18 @@ class WindowWatcher:
         with self._lock:
             return {"app": self._current_app, "title": self._current_title}
 
-    def flush_current(self):
-        """Emit an event for the elapsed time in the current window, reset start."""
-        now = time.time()
+    def flush_current(self, end_ts: float = None):
+        """
+        Emit an event for the elapsed time in the current window, reset start.
+
+        Parameters
+        ----------
+        end_ts : float, optional
+            If provided, treat this epoch timestamp as "now" (used when going
+            idle so the event ends at the exact last-input time, not at
+            detection time).
+        """
+        now = end_ts if end_ts is not None else time.time()
         with self._lock:
             app = self._current_app
             title = self._current_title
@@ -144,6 +153,20 @@ class WindowWatcher:
         duration_ms = int((now - start) * 1000)
         if app and duration_ms >= MIN_DURATION_MS:
             self._on_event(app, title, start, now, duration_ms)
+
+    def reset_start(self) -> None:
+        """
+        Reset window tracking to the current foreground window at this instant.
+
+        Call this on return from idle so the new active period starts clean —
+        any time the window was "open" while the user was idle is discarded.
+        """
+        now = time.time()
+        win = get_active_window()
+        with self._lock:
+            self._current_app   = win.get("app", "")
+            self._current_title = win.get("title", "")
+            self._current_start = now
 
     def _run(self):
         while not self._stop.wait(POLL_INTERVAL):

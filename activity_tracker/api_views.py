@@ -185,7 +185,10 @@ def agent_segments(request):
             continue
         if start is None or end is None:
             continue
-        if end <= start or (end - start).total_seconds() > 120:
+        duration_secs = (end - start).total_seconds()
+        is_active_seg = bool(s.get("active", True))
+        max_dur = 120 if is_active_seg else 86400   # idle segs can span hours
+        if end <= start or duration_secs > max_dur:
             continue
         if end > now + timedelta(minutes=5):
             continue  # too far in the future (clock drift guard)
