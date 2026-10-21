@@ -63,20 +63,10 @@ class TrayIcon:
     def start(self):
         self._thread.start()
 
-    def _active_text(self, icon=None, item=None) -> str:
-        active = self.collector.today_active if self.collector else 0
-        h, rem = divmod(active, 3600)
-        return f"Active today: {h}h {rem // 60:02d}m"
-
     def _build_menu(self) -> "pystray.Menu":
         return pystray.Menu(
             pystray.MenuItem(
                 f"Logged in: {self.employee_name}",
-                None,
-                enabled=False,
-            ),
-            pystray.MenuItem(
-                self._active_text,
                 None,
                 enabled=False,
             ),
