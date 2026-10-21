@@ -21,7 +21,7 @@ def _token_path() -> Path:
         base = Path(os.environ.get("APPDATA", Path.home()))
     else:
         base = Path.home() / ".config"
-    d = base / "HorillaAgent"
+    d = base / "InfisetuAgent"
     d.mkdir(parents=True, exist_ok=True)
     return d / "session.json"
 
