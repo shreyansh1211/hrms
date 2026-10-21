@@ -311,20 +311,23 @@ def employee_track_detail(request, employee_pk):
             for url, v in sorted(url_map.items(), key=lambda x: -x[1]["seconds"])
         ]
 
-    # Screenshots (latest 50)
-    screenshots = EmployeeScreenshot.objects.filter(
-        employee=employee, captured_at__date=view_date
-    ).order_by("-captured_at")[:50]
+    # All screenshots for this date (organized by time block in JS)
+    all_screenshots = list(
+        EmployeeScreenshot.objects.filter(
+            employee=employee, captured_at__date=view_date
+        ).order_by("captured_at")
+    )
+    screenshots_count = len(all_screenshots)
 
-    # Calendar: last 30 days that have data
-    recent_days = (
+    # Recent 5 days that have data (for date pills)
+    recent_days = list(
         ActiveTimeDay.objects.filter(employee_id=employee)
-        .order_by("-date")[:30]
+        .order_by("-date")[:5]
         .values("date", "active_seconds")
     )
 
-    # Activity feed: last 500 segments, newest last so timeline reads top→bottom
-    activity_feed = segments[-500:] if len(segments) > 500 else segments
+    # Activity feed: all segments for this date, chronological
+    activity_feed = segments[:500]
 
     first_seen = day_data.get("first_seen")
 
@@ -339,8 +342,8 @@ def employee_track_detail(request, employee_pk):
             "first_seen": first_seen,
             "hourly_rows": hourly_rows,
             "app_usage": app_usage,
-            "browser_tabs": browser_tabs,
-            "screenshots": screenshots,
+            "screenshots_count": screenshots_count,
+            "all_screenshots": all_screenshots,
             "recent_days": recent_days,
             "activity_feed": activity_feed,
         },

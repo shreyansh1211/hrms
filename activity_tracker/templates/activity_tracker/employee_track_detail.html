@@ -2,264 +2,270 @@
 {% load i18n tracker_filters %}
 {% block content %}
 <div class="oh-wrapper">
-  <style>
-    /* ── brand token — change here to retheme this page ── */
-    :root { --et-brand: #017391; }
+<style>
+:root { --et-brand: #017391; }
 
-    /* ── base ── */
-    .et-back   { font-size:13px; color:var(--et-brand); text-decoration:none; margin-bottom:12px; display:inline-block; }
-    .et-back:hover { text-decoration:underline; }
-    .et-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
-    .et-avatar { width:56px; height:56px; border-radius:50%; background:#e0f2fe; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; color:var(--et-brand); flex-shrink:0; }
-    .et-name   { font-size:20px; font-weight:700; color:#132238; }
-    .et-sub    { font-size:13px; color:#64748b; }
+/* ─── Back link ─── */
+.etd-back { font-size:13px; color:var(--et-brand); text-decoration:none;
+  display:inline-flex; align-items:center; gap:4px; margin-bottom:14px; }
+.etd-back:hover { text-decoration:underline; }
 
-    /* ── summary cards ── */
-    .et-cards      { display:flex; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
-    .et-card       { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px 20px; flex:1; min-width:160px; }
-    .et-card-label { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#64748b; margin-bottom:4px; }
-    .et-card-value { font-size:24px; font-weight:700; color:#132238; }
+/* ─── Header card ─── */
+.etd-header-card {
+  background:#fff; border:1px solid #e2e8f0; border-radius:12px;
+  padding:20px 24px; margin-bottom:14px;
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:20px; flex-wrap:wrap;
+}
+.etd-emp-row { display:flex; align-items:center; gap:14px; margin-bottom:10px; }
+.etd-avatar  { width:52px; height:52px; border-radius:50%;
+  background:var(--primary-200,#e0f4f7);
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; font-weight:700; color:var(--et-brand); flex-shrink:0; }
+.etd-name  { font-size:17px; font-weight:700; color:#132238; }
+.etd-email { font-size:12px; color:#64748b; display:flex; align-items:center; gap:5px; margin-top:3px; }
+.etd-live-row { display:flex; align-items:center; gap:10px; font-size:12px; margin-top:2px; }
+.etd-live-dot { width:8px; height:8px; border-radius:50%; background:#22c55e;
+  display:inline-block; animation:etd-pulse 2s infinite; }
+.etd-live-label { color:#22c55e; font-weight:600; }
+.etd-refresh-btn {
+  display:inline-flex; align-items:center; gap:5px; font-size:12px;
+  color:#64748b; background:none; border:1px solid #e2e8f0; border-radius:6px;
+  padding:3px 10px; cursor:pointer; transition:.15s;
+}
+.etd-refresh-btn:hover { border-color:var(--et-brand); color:var(--et-brand); }
 
-    /* ── section shell ── */
-    .et-section       { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:18px 20px; margin-bottom:18px; }
-    .et-section-title { font-size:14px; font-weight:700; color:#132238; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
-    .et-section-count { font-size:11px; font-weight:400; color:#94a3b8; }
+/* ─── Date controls ─── */
+.etd-date-ctrl { display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
+.etd-date-form { display:flex; align-items:center; gap:8px; font-size:13px; color:#64748b; }
+.etd-date-form input[type=date] { border:1px solid #cbd5e1; border-radius:6px; padding:6px 10px; font-size:13px; }
+.etd-show-btn { background:var(--et-brand); color:#fff; border:0; border-radius:6px;
+  padding:7px 20px; font-weight:600; cursor:pointer; font-size:13px; }
+.etd-pills { display:flex; gap:6px; flex-wrap:wrap; }
+.etd-pill { padding:6px 14px; border-radius:20px; border:1px solid #cbd5e1;
+  font-size:12px; color:#132238; text-decoration:none; background:#fff; transition:.12s; }
+.etd-pill.active, .etd-pill:hover { background:var(--et-brand); color:#fff; border-color:var(--et-brand); }
 
-    /* ── tables (no bar columns) ── */
-    .et-table    { width:100%; border-collapse:collapse; font-size:13px; }
-    .et-table th { color:#64748b; text-align:left; padding:6px 10px; font-size:11px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; }
-    .et-table td { padding:8px 10px; border-bottom:1px solid #f1f5f9; color:#1e293b; vertical-align:middle; }
-    .et-table tr:last-child td { border-bottom:none; }
+/* ─── Summary cards ─── */
+.etd-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
+@media(max-width:880px){ .etd-cards { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:480px){ .etd-cards { grid-template-columns:1fr; } }
+.etd-card {
+  background:#fff; border:1px solid #e2e8f0; border-radius:12px;
+  padding:16px 18px; display:flex; align-items:center; gap:14px;
+}
+.etd-card-icon { width:46px; height:46px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.etd-card-icon--teal   { background:#e0f4f7; color:var(--et-brand); }
+.etd-card-icon--blue   { background:#dbeafe; color:#3b82f6; }
+.etd-card-icon--purple { background:#ede9fe; color:#7c3aed; }
+.etd-card-icon--orange { background:#fef3c7; color:#f59e0b; }
+.etd-card-icon svg { width:22px; height:22px; }
+.etd-card-label { font-size:11px; color:#64748b; text-transform:uppercase;
+  letter-spacing:.06em; margin-bottom:4px; }
+.etd-card-value { font-size:21px; font-weight:700; color:#132238; line-height:1; }
 
-    /* ── activity badges ── */
-    .et-badge       { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:600; letter-spacing:.03em; }
-    .et-badge-active { background:#dcfce7; color:#166534; }
-    .et-badge-idle   { background:#f1f5f9; color:#64748b; }
+/* ─── Chart + Tabs container ─── */
+.etd-main { background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; }
 
-    /* ── app icon chip ── */
-    .et-app-chip { display:inline-flex; align-items:center; gap:6px; }
+/* ─── Chart ─── */
+.etd-chart-section { padding:20px 24px 16px; border-bottom:1px solid #e2e8f0; }
+.etd-chart-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.etd-chart-title  { font-size:14px; font-weight:700; color:#132238; }
+.etd-chart-legend { display:flex; align-items:center; gap:14px; font-size:12px; color:#64748b; }
+.etd-legend-dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:4px; vertical-align:middle; }
 
-    /* ── type icon ── */
-    .et-type-icon { font-size:13px; width:20px; text-align:center; }
+/* ─── Tabs ─── */
+.etd-tabs { display:flex; padding:0 20px; background:#fff; border-bottom:1px solid #e2e8f0; }
+.etd-tab-btn {
+  padding:11px 20px; font-size:13px; font-weight:600; color:#64748b;
+  background:none; border:none; border-bottom:2px solid transparent;
+  cursor:pointer; transition:.15s; margin-bottom:-1px;
+}
+.etd-tab-btn.active { color:var(--et-brand); border-bottom-color:var(--et-brand); }
+.etd-tab-btn:hover  { color:var(--et-brand); }
+.etd-tab-panel { padding:20px 24px; display:none; }
+.etd-tab-panel.active { display:block; }
 
-    /* ── detail cell ── */
-    .et-detail { max-width:380px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#475569; font-size:12px; }
-    .et-url    { color:var(--et-brand); font-size:12px; }
+/* ─── Time blocks ─── */
+.etd-block-list { display:flex; flex-direction:column; gap:6px; }
+.etd-block-item {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px; border:1px solid #e2e8f0; border-radius:8px;
+  cursor:pointer; background:#fff; transition:.12s; user-select:none;
+}
+.etd-block-item:hover  { border-color:var(--et-brand); background:#f0fafb; }
+.etd-block-item.active { border-color:var(--et-brand); background:#e0f4f7; }
+.etd-block-label { font-size:13px; font-weight:600; color:#132238; }
+.etd-block-meta  { display:flex; align-items:center; gap:10px; }
+.etd-block-count { font-size:12px; color:#64748b; }
+.etd-block-arrow { color:#94a3b8; font-size:18px; line-height:1; }
 
-    /* ── duration chip ── */
-    .et-dur { font-size:12px; color:#64748b; white-space:nowrap; font-variant-numeric:tabular-nums; }
+/* ─── Activity table ─── */
+.etd-act-wrap { margin-top:14px; overflow-x:auto; }
+.etd-act-table { width:100%; border-collapse:collapse; font-size:13px; }
+.etd-act-table th {
+  color:#64748b; text-align:left; padding:8px 12px;
+  font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+  border-bottom:1px solid #e2e8f0; white-space:nowrap;
+}
+.etd-act-table td { padding:9px 12px; border-bottom:1px solid #f1f5f9; color:#1e293b; vertical-align:middle; }
+.etd-act-table tr:last-child td { border-bottom:none; }
+.etd-act-table tbody tr:hover td { background:#f8fafc; }
+.etd-badge-a { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:600; background:#dcfce7; color:#166534; }
+.etd-badge-i { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:600; background:#f1f5f9; color:#64748b; }
+.etd-url-cell { color:var(--et-brand); font-size:12px; }
+.etd-detail-cell { max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#475569; font-size:12px; }
+.etd-dur { font-size:12px; color:#64748b; white-space:nowrap; font-variant-numeric:tabular-nums; }
 
-    /* ── screenshots ── */
-    .et-shots    { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
-    .et-shot     { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; background:#f8fafc; }
-    .et-shot img { width:100%; display:block; cursor:pointer; }
-    .et-shot-meta { padding:6px 10px; font-size:11px; color:#64748b; }
+/* ─── App table ─── */
+.etd-app-table { width:100%; border-collapse:collapse; font-size:13px; }
+.etd-app-table th { color:#64748b; text-align:left; padding:8px 12px; font-size:11px; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid #e2e8f0; }
+.etd-app-table td { padding:10px 12px; border-bottom:1px solid #f1f5f9; color:#1e293b; }
+.etd-app-table tr:last-child td { border-bottom:none; }
 
-    /* ── date nav ── */
-    .et-date-nav { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
-    .et-date-nav input[type=date] { border:1px solid #cbd5e1; border-radius:6px; padding:6px 10px; font-size:13px; }
-    .et-btn  { background:var(--et-brand); color:#fff; border:0; border-radius:6px; padding:7px 16px; font-weight:600; cursor:pointer; font-size:13px; }
-    .et-muted { color:#94a3b8; }
+/* ─── Screenshots grid ─── */
+.etd-shots-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; margin-top:14px; }
+.etd-shot { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; background:#f8fafc; }
+.etd-shot img { width:100%; display:block; cursor:pointer; }
+.etd-shot-meta { padding:7px 10px; font-size:11px; color:#64748b; }
 
-    /* ── recent day pills ── */
-    .et-recent   { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
-    .et-recent a { padding:5px 12px; border-radius:20px; border:1px solid #cbd5e1; font-size:12px; color:#132238; text-decoration:none; background:#fff; }
-    .et-recent a.active { background:var(--et-brand); color:#fff; border-color:var(--et-brand); }
+/* ─── Pagination ─── */
+.etd-pager { display:flex; align-items:center; justify-content:center; gap:4px; margin-top:14px; flex-wrap:wrap; }
+.etd-pg-btn {
+  padding:5px 12px; border:1px solid #e2e8f0; border-radius:6px;
+  background:#fff; cursor:pointer; font-size:12px; color:#132238; transition:.12s;
+}
+.etd-pg-btn:hover  { border-color:var(--et-brand); color:var(--et-brand); }
+.etd-pg-btn.active { background:var(--et-brand); color:#fff; border-color:var(--et-brand); }
+.etd-pg-btn:disabled { opacity:.4; cursor:not-allowed; }
 
-    /* ── lightbox ── */
-    .et-lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:9999; align-items:center; justify-content:center; }
-    .et-lightbox.open { display:flex; }
-    .et-lightbox img  { max-width:90vw; max-height:90vh; border-radius:8px; }
-    .et-lightbox-close { position:absolute; top:16px; right:24px; color:#fff; font-size:32px; cursor:pointer; }
+/* ─── Lightbox ─── */
+.etd-lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85);
+  z-index:9999; align-items:center; justify-content:center; }
+.etd-lightbox.open { display:flex; }
+.etd-lightbox img { max-width:90vw; max-height:90vh; border-radius:8px; }
+.etd-lightbox-close { position:absolute; top:16px; right:24px; color:#fff; font-size:32px; cursor:pointer; }
 
-    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
-  </style>
+/* ─── Empty ─── */
+.etd-empty { text-align:center; padding:32px 0; color:#94a3b8; font-size:13px; }
 
-  <a class="et-back" href="{% url 'activity-employee-track' %}">← {% trans "Employee Track" %}</a>
+@keyframes etd-pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+</style>
 
-  <!-- Employee header -->
-  <div class="et-header">
-    <div class="et-avatar">{{ employee.employee_first_name|first|upper }}</div>
-    <div>
-      <div class="et-name">{{ employee.get_full_name }}</div>
-      <div class="et-sub">{{ employee.employee_work_info.department_id|default:"" }} · {{ employee.email }}</div>
-    </div>
-  </div>
-
-  <!-- Live badge (today only) -->
-  {% if view_date == today %}
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-    <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulse 2s infinite;"></span>
-    <span style="font-size:12px;color:#64748b;" id="et-refresh-badge">Live — refreshes every 60s</span>
-  </div>
-  {% endif %}
-
-  <!-- Date navigation -->
-  <form class="et-date-nav" method="get">
-    <label style="font-size:13px;color:#64748b;">{% trans "Date" %}:</label>
-    <input type="date" name="date" value="{{ view_date|date:'Y-m-d' }}">
-    <button class="et-btn" type="submit">{% trans "Show" %}</button>
-  </form>
-
-  <!-- Recent day pills -->
-  {% if recent_days %}
-  <div class="et-recent">
-    {% for d in recent_days %}
-      <a href="?date={{ d.date|date:'Y-m-d' }}" {% if d.date == view_date %}class="active"{% endif %}>
-        {{ d.date|date:"d M" }}
-      </a>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <!-- Summary cards -->
-  <div class="et-cards">
-    <div class="et-card">
-      <div class="et-card-label">{% trans "Active Time" %}</div>
-      <div class="et-card-value">{{ day_data.active }}</div>
-    </div>
-    <div class="et-card">
-      <div class="et-card-label">{% trans "Today In Time" %}</div>
-      <div class="et-card-value">
-        {% if first_seen %}{{ first_seen|date:"h:i A" }}{% else %}—{% endif %}
+<!-- ══════════════════════ HEADER CARD ══════════════════════ -->
+<div class="etd-header-card">
+  <div>
+    <div class="etd-emp-row">
+      <div class="etd-avatar">{{ employee.employee_first_name|first|upper }}</div>
+      <div>
+        <div class="etd-name">{{ employee.get_full_name }}</div>
+        <div class="etd-email">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          {{ employee.email }}
+        </div>
       </div>
     </div>
-    <div class="et-card">
-      <div class="et-card-label">{% trans "Project Time" %}</div>
-      <div class="et-card-value">{{ day_data.project }}</div>
+    {% if view_date == today %}
+    <div class="etd-live-row">
+      <span class="etd-live-label">{% trans "Currently Active" %}</span>
+      <button class="etd-refresh-btn" onclick="location.reload()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        {% trans "Refresh" %}
+      </button>
     </div>
-    <div class="et-card">
-      <div class="et-card-label">{% trans "Screenshots" %}</div>
-      <div class="et-card-value">{{ screenshots|length }}</div>
-    </div>
-  </div>
-
-  <!-- Hourly Activity chart -->
-  {% if hourly_rows %}
-  <div class="et-section">
-    <div class="et-section-title">{% trans "Hourly Activity" %}</div>
-    <canvas id="hourlyChart" height="80" style="width:100%;display:block;"></canvas>
-    <div style="display:flex;gap:18px;margin-top:8px;font-size:11px;color:#94a3b8;">
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--et-brand);margin-right:4px;vertical-align:middle;"></span>{% trans "Active" %}</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#e2e8f0;margin-right:4px;vertical-align:middle;"></span>{% trans "Idle" %}</span>
-    </div>
-  </div>
-  <script>
-  (function(){
-    var data = [{% for row in hourly_rows %}{"h":{{ row.hour }},"label":"{{ row.label }}","active":{{ row.active }},"idle":{{ row.idle }}},{% endfor %}];
-    var canvas = document.getElementById('hourlyChart');
-    if(!canvas) return;
-    canvas.width = canvas.parentElement.clientWidth - 40;
-    var ctx = canvas.getContext('2d');
-    var W = canvas.width, H = canvas.height;
-    var max = Math.max.apply(null, data.map(function(d){return d.active+d.idle;})) || 1;
-    var bw = Math.floor(W / data.length) - 2;
-    var brandColor = getComputedStyle(document.documentElement).getPropertyValue('--et-brand').trim() || '#017391';
-    data.forEach(function(d, i){
-      var x = i * (bw + 2);
-      var ah = Math.max(2, Math.round((d.active / max) * (H - 16)));
-      var ih = Math.max(0, Math.round((d.idle   / max) * (H - 16)));
-      if(ih > 0){ ctx.fillStyle='#e2e8f0'; ctx.fillRect(x, H-16-ah-ih, bw, ih); }
-      ctx.fillStyle=brandColor; ctx.fillRect(x, H-16-ah, bw, ah);
-      ctx.fillStyle='#94a3b8'; ctx.font='9px sans-serif'; ctx.fillText(d.label.slice(0,2), x, H-2);
-    });
-    canvas.addEventListener('mousemove', function(e){
-      var r  = canvas.getBoundingClientRect();
-      var idx = Math.floor((e.clientX - r.left) / (bw + 2));
-      if(idx >= 0 && idx < data.length)
-        canvas.title = data[idx].label + ' — Active: ' + fmt(data[idx].active) + ' / Idle: ' + fmt(data[idx].idle);
-    });
-    function fmt(s){ return Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m'; }
-  })();
-  </script>
-  {% endif %}
-
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       ACTIVITY FEED — all segments: apps + browser tabs + PC events
-       ═══════════════════════════════════════════════════════════════════════ -->
-  <div class="et-section">
-    <div class="et-section-title">
-      {% trans "Activity" %}
-      <span class="et-section-count">{% if activity_feed %}{{ activity_feed|length }} event{{ activity_feed|length|pluralize }}{% endif %}</span>
-    </div>
-
-    {% if activity_feed %}
-    <div style="overflow-x:auto;">
-      <table class="et-table">
-        <thead>
-          <tr>
-            <th style="width:70px;">{% trans "Time" %}</th>
-            <th style="width:72px;">{% trans "Status" %}</th>
-            <th style="width:160px;">{% trans "Application" %}</th>
-            <th>{% trans "Details" %}</th>
-            <th style="width:70px;text-align:right;">{% trans "Duration" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for seg in activity_feed %}
-          <tr>
-            {# Time #}
-            <td style="font-size:12px;color:#94a3b8;font-variant-numeric:tabular-nums;white-space:nowrap;">
-              {{ seg.start|date:"H:i:s" }}
-            </td>
-
-            {# Active / Idle badge #}
-            <td>
-              {% if seg.active %}
-                <span class="et-badge et-badge-active">Active</span>
-              {% else %}
-                <span class="et-badge et-badge-idle">Idle</span>
-              {% endif %}
-            </td>
-
-            {# App name with type icon #}
-            <td>
-              <div class="et-app-chip">
-                {% if seg.url %}
-                  <span class="et-type-icon" title="Browser">🌐</span>
-                {% endif %}
-                <span style="font-weight:600;font-size:13px;color:#132238;">{{ seg.app_name|default:"—" }}</span>
-              </div>
-            </td>
-
-            {# Details: URL takes priority, then window title #}
-            <td>
-              {% if seg.url %}
-                <span class="et-url" title="{{ seg.url }}">{{ seg.url|truncatechars:80 }}</span>
-                {% if seg.window_title %}
-                  <div style="font-size:11px;color:#94a3b8;margin-top:1px;">{{ seg.window_title|truncatechars:70 }}</div>
-                {% endif %}
-              {% elif seg.window_title %}
-                <span class="et-detail" title="{{ seg.window_title }}">{{ seg.window_title|truncatechars:80 }}</span>
-              {% else %}
-                <span class="et-muted">—</span>
-              {% endif %}
-            </td>
-
-            {# Duration #}
-            <td style="text-align:right;">
-              <span class="et-dur">{{ seg.duration_seconds|fmt_seconds }}</span>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="et-muted">{% trans "No activity recorded for this date." %}</p>
     {% endif %}
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       APPS — total time per application (no bars)
-       ═══════════════════════════════════════════════════════════════════════ -->
-  {% if app_usage %}
-  <div class="et-section">
-    <div class="et-section-title">
-      {% trans "App Usage" %}
-      <span class="et-section-count">{{ app_usage|length }} app{{ app_usage|length|pluralize }}</span>
+  <div class="etd-date-ctrl">
+    <form class="etd-date-form" method="get">
+      <label style="font-weight:500;">{% trans "Date" %}</label>
+      <input type="date" name="date" value="{{ view_date|date:'Y-m-d' }}">
+      <button class="etd-show-btn" type="submit">{% trans "Show" %}</button>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════════════ SUMMARY CARDS ══════════════════════ -->
+<div class="etd-cards">
+  <div class="etd-card">
+    <div class="etd-card-icon etd-card-icon--teal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     </div>
-    <table class="et-table">
+    <div><div class="etd-card-label">{% trans "Active Time" %}</div><div class="etd-card-value">{{ day_data.active }}</div></div>
+  </div>
+  <div class="etd-card">
+    <div class="etd-card-icon etd-card-icon--blue">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div>
+      <div class="etd-card-label">{% trans "Today In Time" %}</div>
+      <div class="etd-card-value">{% if first_seen %}{{ first_seen|date:"h:i A" }}{% else %}—{% endif %}</div>
+    </div>
+  </div>
+  <div class="etd-card">
+    <div class="etd-card-icon etd-card-icon--purple">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </div>
+    <div><div class="etd-card-label">{% trans "Project Time" %}</div><div class="etd-card-value">{{ day_data.project }}</div></div>
+  </div>
+  <div class="etd-card">
+    <div class="etd-card-icon etd-card-icon--orange">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    </div>
+    <div><div class="etd-card-label">{% trans "Screenshots" %}</div><div class="etd-card-value">{{ screenshots_count }}</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ CHART + TABS ══════════════════════ -->
+<div class="etd-main">
+
+  <!-- 24-hour Hourly Activity chart -->
+  <div class="etd-chart-section">
+    <div class="etd-chart-header">
+      <div class="etd-chart-title">{% trans "Hourly Activity" %}</div>
+      <div class="etd-chart-legend">
+        <span><span class="etd-legend-dot" style="background:var(--et-brand);"></span>{% trans "Active" %}</span>
+        <span><span class="etd-legend-dot" style="background:#e2e8f0;border:1px solid #cbd5e1;"></span>{% trans "Idle" %}</span>
+      </div>
+    </div>
+    <canvas id="etd-chart" height="120" style="width:100%;display:block;"></canvas>
+  </div>
+
+  <!-- Tab buttons -->
+  <div class="etd-tabs">
+    <button type="button" class="etd-tab-btn active" onclick="etdTab('activity',this)">{% trans "Activity" %}</button>
+    <button type="button" class="etd-tab-btn" onclick="etdTab('apps',this)">{% trans "App Activity" %}</button>
+    <button type="button" class="etd-tab-btn" onclick="etdTab('screenshots',this)">{% trans "Screenshots" %}</button>
+  </div>
+
+  <!-- ── Activity panel ── -->
+  <div id="panel-activity" class="etd-tab-panel active">
+    <div class="etd-block-list" id="act-blocks"></div>
+    <div id="act-content" style="display:none;">
+      <div class="etd-act-wrap">
+        <table class="etd-act-table">
+          <thead>
+            <tr>
+              <th style="width:72px;">{% trans "Time" %}</th>
+              <th style="width:68px;">{% trans "Status" %}</th>
+              <th style="width:155px;">{% trans "Application" %}</th>
+              <th>{% trans "Details" %}</th>
+              <th style="width:68px;text-align:right;">{% trans "Duration" %}</th>
+            </tr>
+          </thead>
+          <tbody id="act-tbody"></tbody>
+        </table>
+      </div>
+      <div class="etd-pager" id="act-pager"></div>
+    </div>
+    <div class="etd-empty" id="act-empty" style="display:none;">{% trans "No activity in this time range." %}</div>
+  </div>
+
+  <!-- ── App Activity panel ── -->
+  <div id="panel-apps" class="etd-tab-panel">
+    {% if app_usage %}
+    <table class="etd-app-table">
       <thead>
         <tr>
           <th>{% trans "Application" %}</th>
@@ -269,72 +275,228 @@
       <tbody>
         {% for app in app_usage %}
         <tr>
-          <td>{{ app.app_name }}</td>
-          <td style="text-align:right;font-variant-numeric:tabular-nums;">
-            {{ app.seconds|fmt_seconds }}
-          </td>
+          <td style="font-weight:500;">{{ app.app_name }}</td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums;">{{ app.seconds|fmt_seconds }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+    {% else %}
+    <div class="etd-empty">{% trans "No app usage recorded for this date." %}</div>
+    {% endif %}
   </div>
-  {% endif %}
 
-  <!-- Screenshots -->
-  {% if screenshots %}
-  <div class="et-section">
-    <div class="et-section-title">
-      {% trans "Screenshots" %}
-      <span class="et-section-count">{{ screenshots|length }}</span>
+  <!-- ── Screenshots panel ── -->
+  <div id="panel-screenshots" class="etd-tab-panel">
+    <div class="etd-block-list" id="shot-blocks"></div>
+    <div id="shot-content" style="display:none;">
+      <div class="etd-shots-grid" id="shot-grid"></div>
+      <div class="etd-pager" id="shot-pager"></div>
     </div>
-    <div class="et-shots">
-      {% for shot in screenshots %}
-      <div class="et-shot">
-        <img src="{{ shot.image.url }}" alt="screenshot" loading="lazy"
-             onclick="openLightbox('{{ shot.image.url }}')">
-        <div class="et-shot-meta">
-          {{ shot.captured_at|date:"H:i:s" }}
-          {% if shot.app_name %} · {{ shot.app_name }}{% endif %}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
+    <div class="etd-empty" id="shot-empty" style="display:none;">{% trans "No screenshots in this time range." %}</div>
   </div>
-  {% else %}
-  <div class="et-section">
-    <div class="et-section-title">{% trans "Screenshots" %}</div>
-    <p class="et-muted">{% trans "No screenshots for this date." %}</p>
-  </div>
-  {% endif %}
+
+</div><!-- .etd-main -->
+
+<script>
+/* ── Server data ── */
+var BRAND = getComputedStyle(document.documentElement).getPropertyValue('--et-brand').trim() || '#017391';
+
+var SEG_DATA = [{% for seg in activity_feed %}{"t":"{{ seg.start|date:'H:i:s' }}","h":{{ seg.start|date:'G' }},"active":{{ seg.active|yesno:"true,false" }},"app":"{{ seg.app_name|escapejs }}","title":"{{ seg.window_title|escapejs }}","url":"{{ seg.url|escapejs }}","dur":{{ seg.duration_seconds|default:0 }}},{% endfor %}];
+
+var SHOT_DATA = [{% for s in all_screenshots %}{"url":"{{ s.image.url|escapejs }}","t":"{{ s.captured_at|date:'H:i:s' }}","h":{{ s.captured_at|date:'G' }},"app":"{{ s.app_name|escapejs }}"},{% endfor %}];
+
+var HOURLY = {};
+{% for row in hourly_rows %}HOURLY[{{ row.hour }}] = {a:{{ row.active }}, i:{{ row.idle }}};{% endfor %}
+
+/* ── 24-hour chart ── */
+(function(){
+  var cv = document.getElementById('etd-chart');
+  if(!cv) return;
+  var dpr = window.devicePixelRatio || 1;
+  var cssW = cv.parentElement.clientWidth;
+  var cssH = 120;
+  cv.style.width  = cssW + 'px';
+  cv.style.height = cssH + 'px';
+  cv.width  = Math.round(cssW * dpr);
+  cv.height = Math.round(cssH * dpr);
+  var ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  var W = cssW, H = cssH;
+  var PL = 34, PB = 22, PT = 6;
+  var drawW = W - PL, drawH = H - PB - PT;
+  var N = 24, bw = Math.floor(drawW / N) - 2;
+  var MAX = 3600;
+
+  /* Y-axis labels */
+  ctx.fillStyle = '#94a3b8'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('60m', PL - 4, PT + 5);
+  ctx.fillText('30m', PL - 4, PT + drawH / 2 + 4);
+  ctx.fillText('0m',  PL - 4, PT + drawH + 4);
+
+  /* Guide lines */
+  ctx.strokeStyle = '#f1f5f9'; ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(function(frac){
+    var y = PT + drawH - frac * drawH;
+    ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W, y); ctx.stroke();
+  });
+
+  /* Bars */
+  for(var i = 0; i < N; i++){
+    var d = HOURLY[i] || {a:0, i:0};
+    var x = PL + i * (bw + 2);
+    var ah = Math.min(drawH, Math.round((d.a / MAX) * drawH));
+    var ih = Math.min(drawH - ah, Math.round((d.i / MAX) * drawH));
+    if(ih > 0){ ctx.fillStyle = '#e2e8f0'; ctx.fillRect(x, PT + drawH - ah - ih, bw, ih); }
+    if(ah > 0){ ctx.fillStyle = BRAND;     ctx.fillRect(x, PT + drawH - ah,      bw, ah); }
+    /* Hour label */
+    ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center'; ctx.font = '9px sans-serif';
+    ctx.fillText((i < 10 ? '0' : '') + i, x + bw / 2, H - 5);
+  }
+})();
+
+/* ── Time blocks definition ── */
+var BLOCKS = [
+  {l:'12am – 3am', f:0,  t:3},
+  {l:'3am – 6am',  f:3,  t:6},
+  {l:'6am – 9am',  f:6,  t:9},
+  {l:'9am – 12pm', f:9,  t:12},
+  {l:'12pm – 3pm', f:12, t:15},
+  {l:'3pm – 6pm',  f:15, t:18},
+  {l:'6pm – 9pm',  f:18, t:21},
+  {l:'9pm – 12am', f:21, t:24},
+];
+
+/* ── Activity state ── */
+var actPage = 0, actSegs = [], ACT_PP = 100;
+
+function buildActBlocks(){
+  var el = document.getElementById('act-blocks');
+  BLOCKS.forEach(function(b){
+    var segs = SEG_DATA.filter(function(s){ return s.h >= b.f && s.h < b.t; });
+    var div = document.createElement('div');
+    div.className = 'etd-block-item';
+    div.innerHTML = '<span class="etd-block-label">'+b.l+'</span>'
+      +'<span class="etd-block-meta"><span class="etd-block-count">'+segs.length+' event'+(segs.length!==1?'s':'')+'</span>'
+      +'<span class="etd-block-arrow">›</span></span>';
+    div.onclick = function(){
+      el.querySelectorAll('.etd-block-item').forEach(function(x){x.classList.remove('active');});
+      div.classList.add('active');
+      actSegs = segs; actPage = 0;
+      renderActPage();
+      document.getElementById('act-content').style.display = segs.length ? '' : 'none';
+      document.getElementById('act-empty').style.display   = segs.length ? 'none' : '';
+    };
+    el.appendChild(div);
+  });
+}
+
+function renderActPage(){
+  var slice = actSegs.slice(actPage * ACT_PP, (actPage + 1) * ACT_PP);
+  document.getElementById('act-tbody').innerHTML = slice.map(function(s){
+    var badge = s.active ? '<span class="etd-badge-a">Active</span>' : '<span class="etd-badge-i">Idle</span>';
+    var detail = s.url
+      ? '<span class="etd-url-cell" title="'+esc(s.url)+'">'+trunc(s.url, 70)+'</span>'
+        + (s.title ? '<div style="font-size:11px;color:#94a3b8;">'+trunc(s.title,60)+'</div>' : '')
+      : (s.title ? '<span class="etd-detail-cell" title="'+esc(s.title)+'">'+trunc(s.title,70)+'</span>'
+                 : '<span style="color:#94a3b8;">—</span>');
+    return '<tr><td style="font-size:12px;color:#94a3b8;white-space:nowrap;">'+esc(s.t)+'</td>'
+      +'<td>'+badge+'</td>'
+      +'<td style="font-weight:600;">'+(s.url?'🌐 ':'')+esc(s.app||'—')+'</td>'
+      +'<td>'+detail+'</td>'
+      +'<td style="text-align:right;" class="etd-dur">'+fmtS(s.dur)+'</td></tr>';
+  }).join('');
+  renderPager('act-pager', actSegs.length, ACT_PP, actPage, 'actGo');
+}
+function actGo(p){ actPage=p; renderActPage(); }
+
+/* ── Screenshot state ── */
+var shotPage = 0, shotItems = [], SHOT_PP = 10;
+
+function buildShotBlocks(){
+  var el = document.getElementById('shot-blocks');
+  BLOCKS.forEach(function(b){
+    var shots = SHOT_DATA.filter(function(s){ return s.h >= b.f && s.h < b.t; });
+    var div = document.createElement('div');
+    div.className = 'etd-block-item';
+    div.innerHTML = '<span class="etd-block-label">'+b.l+'</span>'
+      +'<span class="etd-block-meta"><span class="etd-block-count">'+shots.length+' screenshot'+(shots.length!==1?'s':'')+'</span>'
+      +'<span class="etd-block-arrow">›</span></span>';
+    div.onclick = function(){
+      el.querySelectorAll('.etd-block-item').forEach(function(x){x.classList.remove('active');});
+      div.classList.add('active');
+      shotItems = shots; shotPage = 0;
+      renderShotPage();
+      document.getElementById('shot-content').style.display = shots.length ? '' : 'none';
+      document.getElementById('shot-empty').style.display   = shots.length ? 'none' : '';
+    };
+    el.appendChild(div);
+  });
+}
+
+function renderShotPage(){
+  var slice = shotItems.slice(shotPage * SHOT_PP, (shotPage + 1) * SHOT_PP);
+  document.getElementById('shot-grid').innerHTML = slice.map(function(s){
+    return '<div class="etd-shot"><img src="'+esc(s.url)+'" loading="lazy" onclick="openLightbox(\''+esc(s.url)+'\')">'
+      +'<div class="etd-shot-meta">'+esc(s.t)+(s.app?' · '+esc(s.app):'')+'</div></div>';
+  }).join('');
+  renderPager('shot-pager', shotItems.length, SHOT_PP, shotPage, 'shotGo');
+}
+function shotGo(p){ shotPage=p; renderShotPage(); }
+
+/* ── Pagination ── */
+function renderPager(id, total, pp, cur, cbName){
+  var pages = Math.ceil(total / pp);
+  var el = document.getElementById(id);
+  if(pages <= 1){ el.innerHTML=''; return; }
+  var h = '<button class="etd-pg-btn" '+(cur===0?'disabled':'')+' onclick="'+cbName+'('+Math.max(0,cur-1)+')">‹</button>';
+  for(var i=0;i<pages;i++){
+    if(pages > 9 && i !== 0 && i !== pages-1 && Math.abs(i-cur) > 2){
+      if(i === 1 || i === pages-2) h += '<span style="padding:4px;color:#94a3b8">…</span>';
+      continue;
+    }
+    h += '<button class="etd-pg-btn'+(i===cur?' active':'')+'" onclick="'+cbName+'('+i+')">'+(i+1)+'</button>';
+  }
+  h += '<button class="etd-pg-btn" '+(cur===pages-1?'disabled':'')+' onclick="'+cbName+'('+Math.min(pages-1,cur+1)+')">›</button>';
+  el.innerHTML = h;
+}
+
+/* ── Tabs ── */
+function etdTab(name, btn){
+  ['activity','apps','screenshots'].forEach(function(n){
+    var p = document.getElementById('panel-'+n);
+    if(p) p.classList.toggle('active', n===name);
+  });
+  document.querySelectorAll('.etd-tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+}
+
+/* ── Lightbox ── */
+function openLightbox(src){ document.getElementById('etd-lightbox-img').src=src; document.getElementById('etd-lightbox').classList.add('open'); }
+function closeLightbox(){ document.getElementById('etd-lightbox').classList.remove('open'); }
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeLightbox(); });
+
+/* ── Helpers ── */
+function esc(s){ var d=document.createElement('div'); d.textContent=String(s||''); return d.innerHTML; }
+function trunc(s,n){ return s&&s.length>n ? s.slice(0,n-1)+'…' : (s||''); }
+function fmtS(s){
+  s=s|0;
+  if(s<60) return s+'s';
+  if(s<3600){ var m=s/60|0,r=s%60; return r?m+'m '+r.toString().padStart(2,'0')+'s':m+'m'; }
+  return (s/3600|0)+'h '+((s%3600)/60|0).toString().padStart(2,'0')+'m';
+}
+
+/* ── Init ── */
+buildActBlocks();
+buildShotBlocks();
+</script>
 
 </div><!-- .oh-wrapper -->
 
-<!-- Lightbox -->
-<div class="et-lightbox" id="et-lightbox" onclick="closeLightbox()">
-  <span class="et-lightbox-close">✕</span>
-  <img id="et-lightbox-img" src="" alt="screenshot full size">
+<!-- Lightbox (outside wrapper so z-index works) -->
+<div class="etd-lightbox" id="etd-lightbox" onclick="closeLightbox()">
+  <span class="etd-lightbox-close">✕</span>
+  <img id="etd-lightbox-img" src="" alt="screenshot">
 </div>
-
-<script>
-function openLightbox(src) {
-  document.getElementById('et-lightbox-img').src = src;
-  document.getElementById('et-lightbox').classList.add('open');
-}
-function closeLightbox() {
-  document.getElementById('et-lightbox').classList.remove('open');
-}
-document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeLightbox(); });
-
-{% if view_date == today %}
-var _countdown = 60;
-var _badge = document.getElementById('et-refresh-badge');
-function _tick(){
-  _countdown--;
-  if(_badge) _badge.textContent = 'Refreshing in ' + _countdown + 's';
-  if(_countdown <= 0){ location.reload(); }
-  else { setTimeout(_tick, 1000); }
-}
-setTimeout(_tick, 1000);
-{% endif %}
-</script>
 {% endblock %}
