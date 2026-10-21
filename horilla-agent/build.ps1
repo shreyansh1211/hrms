@@ -17,9 +17,9 @@ python -c "
 from pathlib import Path
 ico = Path('assets/infisetu_agent.ico')
 if ico.exists():
-    print('Icon found:', ico)
+    print('Icon found: ' + str(ico))
 else:
-    print('WARNING: assets/infisetu_agent.ico not found — place it before building.')
+    print('WARNING: assets/infisetu_agent.ico not found - place it before building.')
 "
 
 Write-Host "==> Building InfisetuAgent.exe with PyInstaller..." -ForegroundColor Cyan
