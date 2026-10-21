@@ -3,82 +3,179 @@
 {% block content %}
 <div class="oh-wrapper">
   <style>
-    .et-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
-    .et-title { font-size:22px; font-weight:700; color:#132238; }
-    .et-date  { font-size:13px; color:#64748b; }
-    .et-table { width:100%; border-collapse:collapse; background:#fff; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; font-size:14px; }
-    .et-table th { background:#f4fafc; color:#132238; text-align:left; padding:10px 14px; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
-    .et-table td { padding:10px 14px; border-top:1px solid #e2e8f0; color:#1e293b; vertical-align:middle; }
-    .et-table tr:hover td { background:#f8fafc; }
-    .et-badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600; }
-    .et-badge--online  { background:#d1fae5; color:#065f46; }
-    .et-badge--offline { background:#fee2e2; color:#991b1b; }
-    .et-badge--none    { background:#f1f5f9; color:#64748b; }
-    .et-link { color:#017391; font-weight:600; text-decoration:none; }
-    .et-link:hover { text-decoration:underline; }
-    .et-avatar { width:36px; height:36px; border-radius:50%; background:#e0f2fe; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#017391; margin-right:8px; vertical-align:middle; }
-    .et-muted { color:#94a3b8; }
-    .et-bar-wrap { width:90px; background:#e2e8f0; border-radius:6px; height:7px; display:inline-block; vertical-align:middle; }
-    .et-bar-fill { height:7px; border-radius:6px; background:#017391; }
+    /* ─── page header ─── */
+    .ept-header   { margin-bottom: 20px; }
+    .ept-title    { font-size: 22px; font-weight: 700; color: #132238; }
+    .ept-subtitle { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+    /* ─── card wrapper matching Horilla list pages ─── */
+    .ept-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    /* ─── table ─── */
+    .ept-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .ept-table thead tr {
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .ept-table th {
+      background: #fff;
+      color: #64748b;
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      white-space: nowrap;
+    }
+    .ept-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #1e293b;
+      vertical-align: middle;
+    }
+    .ept-table tbody tr:last-child td { border-bottom: none; }
+    .ept-table tbody tr:hover td     { background: #f8fafc; }
+
+    /* ─── avatar ─── */
+    .ept-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--primary-200, #e0f4f7);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px;
+      color: var(--primary-600, #017391);
+      flex-shrink: 0;
+    }
+    .ept-emp { display: flex; align-items: center; gap: 10px; }
+    .ept-emp-name { font-weight: 600; color: #132238; }
+
+    /* ─── status badges ─── */
+    .ept-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .ept-badge--online  { background: #d1fae5; color: #065f46; }
+    .ept-badge--offline { background: #fee2e2; color: #991b1b; }
+    .ept-badge--none    { background: #f1f5f9; color: #64748b; }
+
+    /* ─── muted text ─── */
+    .ept-muted { color: #94a3b8; }
+
+    /* ─── action icon button ─── */
+    .ept-action-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 6px;
+      background: var(--primary-200, #e0f4f7);
+      color: var(--primary-600, #017391);
+      text-decoration: none; border: none; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .ept-action-btn:hover {
+      background: var(--primary-600, #017391);
+      color: #fff;
+    }
+    .ept-action-btn svg { width: 16px; height: 16px; }
   </style>
 
-  <div class="et-header">
-    <div>
-      <div class="et-title">{% trans "Employee Track" %}</div>
-      <div class="et-date">{% trans "Today" %}: {{ today }}</div>
-    </div>
+  <div class="ept-header">
+    <div class="ept-title">{% trans "Employee Track" %}</div>
+    <div class="ept-subtitle">{% trans "Today" %}: {{ today }}</div>
   </div>
 
-  <table class="et-table">
-    <thead>
-      <tr>
-        <th>{% trans "Employee" %}</th>
-        <th>{% trans "Department" %}</th>
-        <th>{% trans "Active Today" %}</th>
-        <th>{% trans "In Time" %}</th>
-        <th>{% trans "Last Seen" %}</th>
-        <th>{% trans "Status" %}</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in rows %}
-      <tr>
-        <td>
-          <span class="et-avatar">{{ r.employee.employee_first_name|first|upper }}</span>
-          <strong>{{ r.employee.get_full_name }}</strong>
-        </td>
-        <td class="et-muted">{{ r.employee.employee_work_info.department_id|default:"—" }}</td>
-        <td>
-          {% if r.has_data %}
-            <strong>{{ r.active }}</strong>
-          {% else %}
-            <span class="et-muted">—</span>
-          {% endif %}
-        </td>
-        <td>{{ r.in_time }}</td>
-        <td class="et-muted" style="font-size:12px;">
-          {% if r.last_seen %}{{ r.last_seen|date:"d M, h:i A" }}{% else %}—{% endif %}
-        </td>
-        <td>
-          {% if r.status == "online" %}
-            <span class="et-badge et-badge--online">{% trans "Online" %}</span>
-          {% elif r.has_data %}
-            <span class="et-badge et-badge--offline">{% trans "Offline" %}</span>
-          {% else %}
-            <span class="et-badge et-badge--none">{% trans "No agent" %}</span>
-          {% endif %}
-        </td>
-        <td>
-          <a class="et-link" href="{% url 'activity-employee-track-detail' r.employee.pk %}">
-            {% trans "View Details" %} →
-          </a>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="7" class="et-muted" style="text-align:center;padding:24px;">{% trans "No active employees found." %}</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="ept-card">
+    <table class="ept-table">
+      <thead>
+        <tr>
+          <th>{% trans "Employee" %}</th>
+          <th>{% trans "Department" %}</th>
+          <th>{% trans "Active Today" %}</th>
+          <th>{% trans "Today In Time" %}</th>
+          <th>{% trans "Last Seen" %}</th>
+          <th>{% trans "Status" %}</th>
+          <th style="text-align:right;">{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+
+          {# Employee #}
+          <td>
+            <div class="ept-emp">
+              <div class="ept-avatar">{{ r.employee.employee_first_name|first|upper }}</div>
+              <span class="ept-emp-name">{{ r.employee.get_full_name }}</span>
+            </div>
+          </td>
+
+          {# Department #}
+          <td class="ept-muted">
+            {{ r.employee.employee_work_info.department_id|default:"—" }}
+          </td>
+
+          {# Active Today #}
+          <td>
+            {% if r.has_data %}
+              <strong>{{ r.active }}</strong>
+            {% else %}
+              <span class="ept-muted">—</span>
+            {% endif %}
+          </td>
+
+          {# Today In Time — first-seen timestamp #}
+          <td>
+            {% if r.first_seen %}
+              {{ r.first_seen|date:"h:i A" }}
+            {% else %}
+              <span class="ept-muted">—</span>
+            {% endif %}
+          </td>
+
+          {# Last Seen #}
+          <td class="ept-muted" style="font-size:12px;">
+            {% if r.last_seen %}{{ r.last_seen|date:"d M, h:i A" }}{% else %}—{% endif %}
+          </td>
+
+          {# Status #}
+          <td>
+            {% if r.status == "online" %}
+              <span class="ept-badge ept-badge--online">{% trans "Online" %}</span>
+            {% elif r.has_data %}
+              <span class="ept-badge ept-badge--offline">{% trans "Offline" %}</span>
+            {% else %}
+              <span class="ept-badge ept-badge--none">{% trans "No agent" %}</span>
+            {% endif %}
+          </td>
+
+          {# Action: go to detail page #}
+          <td style="text-align:right;">
+            <a class="ept-action-btn"
+               href="{% url 'activity-employee-track-detail' r.employee.pk %}"
+               title="{% trans 'View Details' %}">
+              {# eye / open icon #}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </a>
+          </td>
+
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="ept-muted" style="text-align:center;padding:32px;">
+            {% trans "No active employees found." %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
 </div>
 {% endblock %}

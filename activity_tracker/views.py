@@ -226,7 +226,7 @@ def employee_track(request):
             {
                 "employee": e,
                 "active": fmt(t["active"]),
-                "in_time": fmt(t["in"]),
+                "first_seen": t["first_seen"],   # first active timestamp today
                 "last_seen": t["last_seen"],
                 "status": t["status"] or "—",
                 "has_data": bool(t["active"] or t["tracked"]),
@@ -326,6 +326,8 @@ def employee_track_detail(request, employee_pk):
     # Activity feed: last 500 segments, newest last so timeline reads top→bottom
     activity_feed = segments[-500:] if len(segments) > 500 else segments
 
+    first_seen = day_data.get("first_seen")
+
     return render(
         request,
         "activity_tracker/employee_track_detail.html",
@@ -334,6 +336,7 @@ def employee_track_detail(request, employee_pk):
             "view_date": view_date,
             "today": today,
             "day_data": {k: fmt(day_data[k]) for k in ("in", "active", "project")},
+            "first_seen": first_seen,
             "hourly_rows": hourly_rows,
             "app_usage": app_usage,
             "browser_tabs": browser_tabs,

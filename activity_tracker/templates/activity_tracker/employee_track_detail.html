@@ -119,8 +119,10 @@
       <div class="et-card-value">{{ day_data.active }}</div>
     </div>
     <div class="et-card">
-      <div class="et-card-label">{% trans "In Time" %}</div>
-      <div class="et-card-value">{{ day_data.in }}</div>
+      <div class="et-card-label">{% trans "Today In Time" %}</div>
+      <div class="et-card-value">
+        {% if first_seen %}{{ first_seen|date:"h:i A" }}{% else %}—{% endif %}
+      </div>
     </div>
     <div class="et-card">
       <div class="et-card-label">{% trans "Project Time" %}</div>
