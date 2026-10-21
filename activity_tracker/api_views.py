@@ -187,8 +187,8 @@ def agent_segments(request):
             continue
         if end <= start or (end - start).total_seconds() > 120:
             continue
-        if end > now + timedelta(seconds=30):
-            continue  # future
+        if end > now + timedelta(minutes=5):
+            continue  # too far in the future (clock drift guard)
         ActivitySegment.objects.create(
             employee=tok.employee,
             start=start,

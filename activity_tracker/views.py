@@ -257,8 +257,8 @@ def employee_track_detail(request, employee_pk):
     # Daily totals
     day_data = totals([employee.pk], view_date, view_date)[employee.pk]
 
-    # Hourly breakdown from segments
-    segments = (
+    # Hourly breakdown from segments (also used for the activity feed)
+    segments = list(
         ActivitySegment.objects.filter(employee=employee, start__date=view_date)
         .order_by("start")
     )
@@ -275,15 +275,41 @@ def employee_track_detail(request, employee_pk):
         for h, v in sorted(hourly.items())
     ]
 
-    # App usage
-    app_usage = AppUsageLog.objects.filter(
+    # App usage — prefer aggregated AppUsageLog, fall back to live segment data
+    app_usage = list(AppUsageLog.objects.filter(
         employee=employee, date=view_date
-    ).order_by("-seconds")
+    ).order_by("-seconds"))
+    if not app_usage:
+        # Build from raw segments (available immediately, no hourly wait)
+        app_map = defaultdict(int)
+        for seg in segments:
+            if seg.app_name:
+                app_map[seg.app_name] += seg.duration_seconds()
+        app_usage = [
+            {"app_name": app, "seconds": secs}
+            for app, secs in sorted(app_map.items(), key=lambda x: -x[1])
+        ]
 
-    # Browser tabs
-    browser_tabs = BrowserTabLog.objects.filter(
+    # Browser tabs — prefer aggregated BrowserTabLog, fall back to live segment data
+    browser_tabs = list(BrowserTabLog.objects.filter(
         employee=employee, date=view_date
-    ).order_by("-seconds")
+    ).order_by("-seconds"))
+    if not browser_tabs:
+        # Build from raw segments
+        url_map = defaultdict(lambda: {"title": "", "domain": "", "seconds": 0})
+        for seg in segments:
+            if seg.url:
+                url_map[seg.url]["seconds"] += seg.duration_seconds()
+                url_map[seg.url]["title"] = seg.window_title or ""
+                try:
+                    from urllib.parse import urlparse
+                    url_map[seg.url]["domain"] = urlparse(seg.url).netloc or seg.url
+                except Exception:
+                    url_map[seg.url]["domain"] = seg.url
+        browser_tabs = [
+            {"url": url, "domain": v["domain"], "title": v["title"], "seconds": v["seconds"]}
+            for url, v in sorted(url_map.items(), key=lambda x: -x[1]["seconds"])
+        ]
 
     # Screenshots (latest 50)
     screenshots = EmployeeScreenshot.objects.filter(
@@ -296,6 +322,9 @@ def employee_track_detail(request, employee_pk):
         .order_by("-date")[:30]
         .values("date", "active_seconds")
     )
+
+    # Activity feed: last 500 segments, newest last so timeline reads top→bottom
+    activity_feed = segments[-500:] if len(segments) > 500 else segments
 
     return render(
         request,
@@ -310,5 +339,6 @@ def employee_track_detail(request, employee_pk):
             "browser_tabs": browser_tabs,
             "screenshots": screenshots,
             "recent_days": recent_days,
+            "activity_feed": activity_feed,
         },
     )

@@ -3,47 +3,79 @@
 {% block content %}
 <div class="oh-wrapper">
   <style>
-    .et-back { font-size:13px; color:#017391; text-decoration:none; margin-bottom:12px; display:inline-block; }
+    /* ── base ── */
+    .et-back   { font-size:13px; color:#017391; text-decoration:none; margin-bottom:12px; display:inline-block; }
     .et-back:hover { text-decoration:underline; }
     .et-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
     .et-avatar { width:56px; height:56px; border-radius:50%; background:#e0f2fe; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; color:#017391; flex-shrink:0; }
-    .et-name { font-size:20px; font-weight:700; color:#132238; }
-    .et-sub  { font-size:13px; color:#64748b; }
-    .et-cards { display:flex; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
-    .et-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px 20px; flex:1; min-width:160px; }
+    .et-name   { font-size:20px; font-weight:700; color:#132238; }
+    .et-sub    { font-size:13px; color:#64748b; }
+
+    /* ── summary cards ── */
+    .et-cards      { display:flex; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
+    .et-card       { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px 20px; flex:1; min-width:160px; }
     .et-card-label { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#64748b; margin-bottom:4px; }
     .et-card-value { font-size:24px; font-weight:700; color:#132238; }
-    .et-section { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:18px 20px; margin-bottom:18px; }
-    .et-section-title { font-size:14px; font-weight:700; color:#132238; margin-bottom:12px; }
-    .et-table { width:100%; border-collapse:collapse; font-size:13px; }
+
+    /* ── section shell ── */
+    .et-section       { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:18px 20px; margin-bottom:18px; }
+    .et-section-title { font-size:14px; font-weight:700; color:#132238; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+    .et-section-count { font-size:11px; font-weight:400; color:#94a3b8; }
+
+    /* ── tables (no bar columns) ── */
+    .et-table    { width:100%; border-collapse:collapse; font-size:13px; }
     .et-table th { color:#64748b; text-align:left; padding:6px 10px; font-size:11px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; }
-    .et-table td { padding:8px 10px; border-bottom:1px solid #f1f5f9; color:#1e293b; }
-    .et-bar-wrap { width:100%; max-width:200px; background:#e2e8f0; border-radius:6px; height:6px; display:inline-block; vertical-align:middle; }
-    .et-bar-fill { height:6px; border-radius:6px; background:#017391; max-width:100%; }
-    .et-shots { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
-    .et-shot { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; background:#f8fafc; }
+    .et-table td { padding:8px 10px; border-bottom:1px solid #f1f5f9; color:#1e293b; vertical-align:middle; }
+    .et-table tr:last-child td { border-bottom:none; }
+
+    /* ── activity badges ── */
+    .et-badge       { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:600; letter-spacing:.03em; }
+    .et-badge-active { background:#dcfce7; color:#166534; }
+    .et-badge-idle   { background:#f1f5f9; color:#64748b; }
+
+    /* ── app icon chip ── */
+    .et-app-chip { display:inline-flex; align-items:center; gap:6px; }
+    .et-app-dot  { width:7px; height:7px; border-radius:50%; background:#017391; flex-shrink:0; }
+
+    /* ── type icon ── */
+    .et-type-icon { font-size:13px; width:20px; text-align:center; }
+
+    /* ── detail cell ── */
+    .et-detail { max-width:380px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#475569; font-size:12px; }
+    .et-url    { color:#017391; font-size:12px; }
+
+    /* ── duration chip ── */
+    .et-dur { font-size:12px; color:#64748b; white-space:nowrap; font-variant-numeric:tabular-nums; }
+
+    /* ── screenshots ── */
+    .et-shots    { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+    .et-shot     { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; background:#f8fafc; }
     .et-shot img { width:100%; display:block; cursor:pointer; }
     .et-shot-meta { padding:6px 10px; font-size:11px; color:#64748b; }
+
+    /* ── date nav ── */
     .et-date-nav { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
     .et-date-nav input[type=date] { border:1px solid #cbd5e1; border-radius:6px; padding:6px 10px; font-size:13px; }
-    .et-btn { background:#017391; color:#fff; border:0; border-radius:6px; padding:7px 16px; font-weight:600; cursor:pointer; font-size:13px; }
+    .et-btn  { background:#017391; color:#fff; border:0; border-radius:6px; padding:7px 16px; font-weight:600; cursor:pointer; font-size:13px; }
     .et-muted { color:#94a3b8; }
-    .et-hour-chart { display:flex; gap:4px; align-items:flex-end; height:60px; margin-bottom:4px; }
-    .et-hour-bar { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
-    .et-hour-bar-fill { width:100%; border-radius:3px 3px 0 0; background:#017391; min-height:2px; }
-    .et-hour-bar-idle { width:100%; border-radius:3px 3px 0 0; background:#e2e8f0; min-height:2px; }
-    .et-hour-label { font-size:9px; color:#94a3b8; }
-    .et-lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:9999; align-items:center; justify-content:center; }
-    .et-lightbox.open { display:flex; }
-    .et-lightbox img { max-width:90vw; max-height:90vh; border-radius:8px; }
-    .et-lightbox-close { position:absolute; top:16px; right:24px; color:#fff; font-size:32px; cursor:pointer; }
-    .et-recent { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+
+    /* ── recent day pills ── */
+    .et-recent   { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
     .et-recent a { padding:5px 12px; border-radius:20px; border:1px solid #cbd5e1; font-size:12px; color:#132238; text-decoration:none; background:#fff; }
     .et-recent a.active { background:#017391; color:#fff; border-color:#017391; }
+
+    /* ── lightbox ── */
+    .et-lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:9999; align-items:center; justify-content:center; }
+    .et-lightbox.open { display:flex; }
+    .et-lightbox img  { max-width:90vw; max-height:90vh; border-radius:8px; }
+    .et-lightbox-close { position:absolute; top:16px; right:24px; color:#fff; font-size:32px; cursor:pointer; }
+
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
   </style>
 
   <a class="et-back" href="{% url 'activity-employee-track' %}">← {% trans "Employee Track" %}</a>
 
+  <!-- Employee header -->
   <div class="et-header">
     <div class="et-avatar">{{ employee.employee_first_name|first|upper }}</div>
     <div>
@@ -52,6 +84,14 @@
     </div>
   </div>
 
+  <!-- Live badge (today only) -->
+  {% if view_date == today %}
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+    <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulse 2s infinite;"></span>
+    <span style="font-size:12px;color:#64748b;" id="et-refresh-badge">Live — refreshes every 60s</span>
+  </div>
+  {% endif %}
+
   <!-- Date navigation -->
   <form class="et-date-nav" method="get">
     <label style="font-size:13px;color:#64748b;">{% trans "Date" %}:</label>
@@ -59,7 +99,7 @@
     <button class="et-btn" type="submit">{% trans "Show" %}</button>
   </form>
 
-  <!-- Recent days quick links -->
+  <!-- Recent day pills -->
   {% if recent_days %}
   <div class="et-recent">
     {% for d in recent_days %}
@@ -90,65 +130,151 @@
     </div>
   </div>
 
-  <!-- Hourly activity bar chart -->
+  <!-- Hourly Activity chart -->
   {% if hourly_rows %}
   <div class="et-section">
     <div class="et-section-title">{% trans "Hourly Activity" %}</div>
-    {% with max_active=hourly_rows|dictsort:"active"|last %}
-    <div class="et-hour-chart">
-      {% for row in hourly_rows %}
-        {% with total=row.active|add:row.idle %}
-        <div class="et-hour-bar" title="{{ row.label }} — active: {{ row.active }}s  idle: {{ row.idle }}s">
-          <div class="et-hour-bar-fill" style="height:{% if max_active.active > 0 %}{% widthratio row.active max_active.active 52 %}{% else %}2{% endif %}px;"></div>
-          <div class="et-hour-label">{{ row.label|slice:":2" }}</div>
-        </div>
-        {% endwith %}
-      {% endfor %}
+    <canvas id="hourlyChart" height="80" style="width:100%;display:block;"></canvas>
+    <div style="display:flex;gap:18px;margin-top:8px;font-size:11px;color:#94a3b8;">
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#017391;margin-right:4px;vertical-align:middle;"></span>{% trans "Active" %}</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#e2e8f0;margin-right:4px;vertical-align:middle;"></span>{% trans "Idle" %}</span>
     </div>
-    {% endwith %}
-    <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{% trans "Bar height = active seconds in that hour" %}</div>
   </div>
+  <script>
+  (function(){
+    var data = [{% for row in hourly_rows %}{"h":{{ row.hour }},"label":"{{ row.label }}","active":{{ row.active }},"idle":{{ row.idle }}},{% endfor %}];
+    var canvas = document.getElementById('hourlyChart');
+    if(!canvas) return;
+    canvas.width = canvas.parentElement.clientWidth - 40;
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width, H = canvas.height;
+    var max = Math.max.apply(null, data.map(function(d){return d.active+d.idle;})) || 1;
+    var bw = Math.floor(W / data.length) - 2;
+    data.forEach(function(d, i){
+      var x = i * (bw + 2);
+      var ah = Math.max(2, Math.round((d.active / max) * (H - 16)));
+      var ih = Math.max(0, Math.round((d.idle   / max) * (H - 16)));
+      if(ih > 0){ ctx.fillStyle='#e2e8f0'; ctx.fillRect(x, H-16-ah-ih, bw, ih); }
+      ctx.fillStyle='#017391'; ctx.fillRect(x, H-16-ah, bw, ah);
+      ctx.fillStyle='#94a3b8'; ctx.font='9px sans-serif'; ctx.fillText(d.label.slice(0,2), x, H-2);
+    });
+    canvas.addEventListener('mousemove', function(e){
+      var r  = canvas.getBoundingClientRect();
+      var idx = Math.floor((e.clientX - r.left) / (bw + 2));
+      if(idx >= 0 && idx < data.length)
+        canvas.title = data[idx].label + ' — Active: ' + fmt(data[idx].active) + ' / Idle: ' + fmt(data[idx].idle);
+    });
+    function fmt(s){ return Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m'; }
+  })();
+  </script>
   {% endif %}
 
-  <!-- App Usage -->
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       ACTIVITY FEED — all segments: apps + browser tabs + PC events
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="et-section">
+    <div class="et-section-title">
+      {% trans "Activity" %}
+      <span class="et-section-count">{% if activity_feed %}{{ activity_feed|length }} event{{ activity_feed|length|pluralize }}{% endif %}</span>
+    </div>
+
+    {% if activity_feed %}
+    <div style="overflow-x:auto;">
+      <table class="et-table">
+        <thead>
+          <tr>
+            <th style="width:70px;">{% trans "Time" %}</th>
+            <th style="width:72px;">{% trans "Status" %}</th>
+            <th style="width:160px;">{% trans "Application" %}</th>
+            <th>{% trans "Details" %}</th>
+            <th style="width:70px;text-align:right;">{% trans "Duration" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for seg in activity_feed %}
+          <tr>
+            {# Time #}
+            <td style="font-size:12px;color:#94a3b8;font-variant-numeric:tabular-nums;white-space:nowrap;">
+              {{ seg.start|date:"H:i:s" }}
+            </td>
+
+            {# Active / Idle badge #}
+            <td>
+              {% if seg.active %}
+                <span class="et-badge et-badge-active">Active</span>
+              {% else %}
+                <span class="et-badge et-badge-idle">Idle</span>
+              {% endif %}
+            </td>
+
+            {# App name with type icon #}
+            <td>
+              <div class="et-app-chip">
+                {% if seg.url %}
+                  <span class="et-type-icon" title="Browser">🌐</span>
+                {% elif seg.app_name %}
+                  <span class="et-app-dot"></span>
+                {% endif %}
+                <span style="font-weight:600;font-size:13px;color:#132238;">{{ seg.app_name|default:"—" }}</span>
+              </div>
+            </td>
+
+            {# Details: URL takes priority, then window title #}
+            <td>
+              {% if seg.url %}
+                <span class="et-url" title="{{ seg.url }}">{{ seg.url|truncatechars:80 }}</span>
+                {% if seg.window_title %}
+                  <div style="font-size:11px;color:#94a3b8;margin-top:1px;">{{ seg.window_title|truncatechars:70 }}</div>
+                {% endif %}
+              {% elif seg.window_title %}
+                <span class="et-detail" title="{{ seg.window_title }}">{{ seg.window_title|truncatechars:80 }}</span>
+              {% else %}
+                <span class="et-muted">—</span>
+              {% endif %}
+            </td>
+
+            {# Duration #}
+            <td style="text-align:right;">
+              <span class="et-dur">{{ seg.duration_seconds|fmt_seconds }}</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="et-muted">{% trans "No activity recorded for this date." %}</p>
+    {% endif %}
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       APPS — total time per application (no bars)
+       ═══════════════════════════════════════════════════════════════════════ -->
   {% if app_usage %}
   <div class="et-section">
-    <div class="et-section-title">{% trans "App Usage" %}</div>
-    {% with max_sec=app_usage.0.seconds %}
+    <div class="et-section-title">
+      {% trans "App Usage" %}
+      <span class="et-section-count">{{ app_usage|length }} app{{ app_usage|length|pluralize }}</span>
+    </div>
     <table class="et-table">
-      <thead><tr><th>{% trans "Application" %}</th><th>{% trans "Time" %}</th><th style="width:220px;"></th></tr></thead>
+      <thead>
+        <tr>
+          <th>{% trans "Application" %}</th>
+          <th style="text-align:right;">{% trans "Total Time" %}</th>
+        </tr>
+      </thead>
       <tbody>
         {% for app in app_usage %}
         <tr>
-          <td>{{ app.app_name }}</td>
-          <td>{{ app.seconds|fmt_seconds }}</td>
           <td>
-            <div class="et-bar-wrap">
-              <div class="et-bar-fill" style="width:{% if max_sec > 0 %}{% widthratio app.seconds max_sec 100 %}{% else %}0{% endif %}%;"></div>
+            <div class="et-app-chip">
+              <span class="et-app-dot"></span>
+              {{ app.app_name }}
             </div>
           </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% endwith %}
-  </div>
-  {% endif %}
-
-  <!-- Browser Tabs -->
-  {% if browser_tabs %}
-  <div class="et-section">
-    <div class="et-section-title">{% trans "Browser Activity" %}</div>
-    <table class="et-table">
-      <thead><tr><th>{% trans "Domain / URL" %}</th><th>{% trans "Title" %}</th><th>{% trans "Time" %}</th></tr></thead>
-      <tbody>
-        {% for tab in browser_tabs %}
-        <tr>
-          <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ tab.url }}">
-            {{ tab.domain|default:tab.url }}
+          <td style="text-align:right;font-variant-numeric:tabular-nums;">
+            {{ app.seconds|fmt_seconds }}
           </td>
-          <td style="color:#64748b;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ tab.title }}</td>
-          <td>{{ tab.seconds|fmt_seconds }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -159,7 +285,10 @@
   <!-- Screenshots -->
   {% if screenshots %}
   <div class="et-section">
-    <div class="et-section-title">{% trans "Screenshots" %} ({{ screenshots|length }})</div>
+    <div class="et-section-title">
+      {% trans "Screenshots" %}
+      <span class="et-section-count">{{ screenshots|length }}</span>
+    </div>
     <div class="et-shots">
       {% for shot in screenshots %}
       <div class="et-shot">
@@ -180,7 +309,7 @@
   </div>
   {% endif %}
 
-</div>
+</div><!-- .oh-wrapper -->
 
 <!-- Lightbox -->
 <div class="et-lightbox" id="et-lightbox" onclick="closeLightbox()">
@@ -197,5 +326,17 @@ function closeLightbox() {
   document.getElementById('et-lightbox').classList.remove('open');
 }
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeLightbox(); });
+
+{% if view_date == today %}
+var _countdown = 60;
+var _badge = document.getElementById('et-refresh-badge');
+function _tick(){
+  _countdown--;
+  if(_badge) _badge.textContent = 'Refreshing in ' + _countdown + 's';
+  if(_countdown <= 0){ location.reload(); }
+  else { setTimeout(_tick, 1000); }
+}
+setTimeout(_tick, 1000);
+{% endif %}
 </script>
 {% endblock %}
