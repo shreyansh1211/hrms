@@ -132,7 +132,7 @@ class _FocusEntry(tk.Entry):
 
 
 class LoginWindow(tk.Tk):
-    W, H = 440, 510
+    W, H = 440, 560
 
     def __init__(self):
         super().__init__()
@@ -186,9 +186,9 @@ class LoginWindow(tk.Tk):
         self._email    = tk.StringVar()
         self._password = tk.StringVar()
 
-        self._d_entry = self._field(inner, "Server URL",     self._domain)
-        self._e_entry = self._field(inner, "Email Address",  self._email)
-        self._p_entry = self._field(inner, "Password",       self._password, show="●")
+        self._d_entry = self._field(inner, "Server URL",    self._domain)
+        self._e_entry = self._field(inner, "Email Address", self._email)
+        self._p_entry = self._password_field(inner)
 
         self._d_entry.bind("<Tab>",    lambda _: (self._e_entry.focus(), "break"))
         self._e_entry.bind("<Tab>",    lambda _: (self._p_entry.focus(), "break"))
@@ -250,6 +250,50 @@ class LoginWindow(tk.Tk):
                         font=("Segoe UI", 10), show=show or "")
         e.pack(fill="x", ipady=7, pady=(0, 14))
         return e
+
+    def _password_field(self, parent):
+        """Password field with show/hide toggle button."""
+        tk.Label(parent, text="Password",
+                 font=("Segoe UI", 9, "bold"),
+                 bg=CARD_BG, fg=TEXT_MID,
+                 anchor="w").pack(fill="x", pady=(0, 3))
+
+        # Outer border frame (same look as _FocusEntry)
+        border = tk.Frame(parent, bg=BORDER, bd=0, highlightthickness=0)
+        border.pack(fill="x", pady=(0, 14))
+
+        entry = tk.Entry(
+            border,
+            textvariable=self._password,
+            font=("Segoe UI", 10),
+            show="●",
+            relief="flat", bd=0, highlightthickness=0,
+            bg=CARD_BG, fg=TEXT_DARK,
+            insertbackground=ACCENT,
+        )
+        entry.pack(side="left", fill="both", expand=True, padx=(1, 0), ipady=7, pady=1)
+        entry.bind("<FocusIn>",  lambda _: border.config(bg=ACCENT))
+        entry.bind("<FocusOut>", lambda _: border.config(bg=BORDER))
+
+        self._pw_visible = False
+
+        def toggle():
+            self._pw_visible = not self._pw_visible
+            entry.config(show="" if self._pw_visible else "●")
+            toggle_btn.config(text="Hide" if self._pw_visible else "Show")
+
+        toggle_btn = tk.Button(
+            border,
+            text="Show",
+            font=("Segoe UI", 8),
+            bg=CARD_BG, fg=TEXT_MID,
+            activebackground=CARD_BG, activeforeground=ACCENT,
+            relief="flat", bd=0, cursor="hand2",
+            command=toggle,
+        )
+        toggle_btn.pack(side="right", padx=(0, 6), pady=1)
+
+        return entry
 
     def _on_login(self):
         domain   = self._domain.get().strip().rstrip("/")

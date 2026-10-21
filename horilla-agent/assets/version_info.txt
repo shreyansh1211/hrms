@@ -15,12 +15,12 @@ VSVersionInfo(
       StringTable(
         u'040904B0',
         [StringStruct(u'CompanyName', u'Infisetu Technologies'),
-         StringStruct(u'FileDescription', u'Horilla Agent — Active time tracker'),
+         StringStruct(u'FileDescription', u'Infisetu Agent — Active time tracker'),
          StringStruct(u'FileVersion', u'1.0.0.0'),
-         StringStruct(u'InternalName', u'HorillaAgent'),
+         StringStruct(u'InternalName', u'InfisetuAgent'),
          StringStruct(u'LegalCopyright', u'© Infisetu Technologies'),
-         StringStruct(u'OriginalFilename', u'HorillaAgent.exe'),
-         StringStruct(u'ProductName', u'Horilla Agent'),
+         StringStruct(u'OriginalFilename', u'InfisetuAgent.exe'),
+         StringStruct(u'ProductName', u'Infisetu Agent'),
          StringStruct(u'ProductVersion', u'1.0.0.0')])
     ]),
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
