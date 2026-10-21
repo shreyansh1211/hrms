@@ -132,7 +132,7 @@ class _FocusEntry(tk.Entry):
 
 
 class LoginWindow(tk.Tk):
-    W, H = 440, 560
+    W, H = 440, 590
 
     def __init__(self):
         super().__init__()
@@ -258,9 +258,9 @@ class LoginWindow(tk.Tk):
                  bg=CARD_BG, fg=TEXT_MID,
                  anchor="w").pack(fill="x", pady=(0, 3))
 
-        # Outer border frame (same look as _FocusEntry)
+        # Outer border frame — ipady=7 here matches _FocusEntry row height exactly
         border = tk.Frame(parent, bg=BORDER, bd=0, highlightthickness=0)
-        border.pack(fill="x", pady=(0, 14))
+        border.pack(fill="x", ipady=7, pady=(0, 14))
 
         entry = tk.Entry(
             border,
@@ -271,7 +271,7 @@ class LoginWindow(tk.Tk):
             bg=CARD_BG, fg=TEXT_DARK,
             insertbackground=ACCENT,
         )
-        entry.pack(side="left", fill="both", expand=True, padx=(1, 0), ipady=7, pady=1)
+        entry.pack(side="left", fill="both", expand=True, padx=(1, 0), pady=1)
         entry.bind("<FocusIn>",  lambda _: border.config(bg=ACCENT))
         entry.bind("<FocusOut>", lambda _: border.config(bg=BORDER))
 
@@ -285,13 +285,13 @@ class LoginWindow(tk.Tk):
         toggle_btn = tk.Button(
             border,
             text="Show",
-            font=("Segoe UI", 8),
+            font=("Segoe UI", 9),
             bg=CARD_BG, fg=TEXT_MID,
             activebackground=CARD_BG, activeforeground=ACCENT,
             relief="flat", bd=0, cursor="hand2",
             command=toggle,
         )
-        toggle_btn.pack(side="right", padx=(0, 6), pady=1)
+        toggle_btn.pack(side="right", fill="y", padx=(0, 8), pady=1)
 
         return entry
 
