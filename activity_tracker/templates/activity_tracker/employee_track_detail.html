@@ -3,11 +3,14 @@
 {% block content %}
 <div class="oh-wrapper">
   <style>
+    /* ── brand token — change here to retheme this page ── */
+    :root { --et-brand: #017391; }
+
     /* ── base ── */
-    .et-back   { font-size:13px; color:#017391; text-decoration:none; margin-bottom:12px; display:inline-block; }
+    .et-back   { font-size:13px; color:var(--et-brand); text-decoration:none; margin-bottom:12px; display:inline-block; }
     .et-back:hover { text-decoration:underline; }
     .et-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
-    .et-avatar { width:56px; height:56px; border-radius:50%; background:#e0f2fe; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; color:#017391; flex-shrink:0; }
+    .et-avatar { width:56px; height:56px; border-radius:50%; background:#e0f2fe; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; color:var(--et-brand); flex-shrink:0; }
     .et-name   { font-size:20px; font-weight:700; color:#132238; }
     .et-sub    { font-size:13px; color:#64748b; }
 
@@ -41,7 +44,7 @@
 
     /* ── detail cell ── */
     .et-detail { max-width:380px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#475569; font-size:12px; }
-    .et-url    { color:#017391; font-size:12px; }
+    .et-url    { color:var(--et-brand); font-size:12px; }
 
     /* ── duration chip ── */
     .et-dur { font-size:12px; color:#64748b; white-space:nowrap; font-variant-numeric:tabular-nums; }
@@ -55,13 +58,13 @@
     /* ── date nav ── */
     .et-date-nav { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
     .et-date-nav input[type=date] { border:1px solid #cbd5e1; border-radius:6px; padding:6px 10px; font-size:13px; }
-    .et-btn  { background:#017391; color:#fff; border:0; border-radius:6px; padding:7px 16px; font-weight:600; cursor:pointer; font-size:13px; }
+    .et-btn  { background:var(--et-brand); color:#fff; border:0; border-radius:6px; padding:7px 16px; font-weight:600; cursor:pointer; font-size:13px; }
     .et-muted { color:#94a3b8; }
 
     /* ── recent day pills ── */
     .et-recent   { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
     .et-recent a { padding:5px 12px; border-radius:20px; border:1px solid #cbd5e1; font-size:12px; color:#132238; text-decoration:none; background:#fff; }
-    .et-recent a.active { background:#017391; color:#fff; border-color:#017391; }
+    .et-recent a.active { background:var(--et-brand); color:#fff; border-color:var(--et-brand); }
 
     /* ── lightbox ── */
     .et-lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:9999; align-items:center; justify-content:center; }
@@ -135,7 +138,7 @@
     <div class="et-section-title">{% trans "Hourly Activity" %}</div>
     <canvas id="hourlyChart" height="80" style="width:100%;display:block;"></canvas>
     <div style="display:flex;gap:18px;margin-top:8px;font-size:11px;color:#94a3b8;">
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#017391;margin-right:4px;vertical-align:middle;"></span>{% trans "Active" %}</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--et-brand);margin-right:4px;vertical-align:middle;"></span>{% trans "Active" %}</span>
       <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#e2e8f0;margin-right:4px;vertical-align:middle;"></span>{% trans "Idle" %}</span>
     </div>
   </div>
@@ -149,12 +152,13 @@
     var W = canvas.width, H = canvas.height;
     var max = Math.max.apply(null, data.map(function(d){return d.active+d.idle;})) || 1;
     var bw = Math.floor(W / data.length) - 2;
+    var brandColor = getComputedStyle(document.documentElement).getPropertyValue('--et-brand').trim() || '#017391';
     data.forEach(function(d, i){
       var x = i * (bw + 2);
       var ah = Math.max(2, Math.round((d.active / max) * (H - 16)));
       var ih = Math.max(0, Math.round((d.idle   / max) * (H - 16)));
       if(ih > 0){ ctx.fillStyle='#e2e8f0'; ctx.fillRect(x, H-16-ah-ih, bw, ih); }
-      ctx.fillStyle='#017391'; ctx.fillRect(x, H-16-ah, bw, ah);
+      ctx.fillStyle=brandColor; ctx.fillRect(x, H-16-ah, bw, ah);
       ctx.fillStyle='#94a3b8'; ctx.font='9px sans-serif'; ctx.fillText(d.label.slice(0,2), x, H-2);
     });
     canvas.addEventListener('mousemove', function(e){
