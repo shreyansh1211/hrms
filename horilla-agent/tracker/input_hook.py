@@ -114,18 +114,22 @@ class InputMonitor:
 
     # ── state queries ────────────────────────────────────────────────────────
 
-    def is_active(self) -> bool:
+    def idle_seconds(self) -> float:
         """
-        True if the user had real input within the last idle_threshold seconds.
+        Return seconds elapsed since the last real user input.
 
-        Priority: Windows GetLastInputInfo (most reliable) → pynput timestamp.
+        Uses GetLastInputInfo on Windows (most reliable); falls back to the
+        pynput-tracked timestamp on other platforms.
         """
-        idle_secs = _win32_idle_seconds()
-        if idle_secs is not None:
-            return idle_secs < self.idle_threshold
-
+        s = _win32_idle_seconds()
+        if s is not None:
+            return s
         with self._lock:
-            return (time.monotonic() - self._last_input) < self.idle_threshold
+            return max(0.0, time.monotonic() - self._last_input)
+
+    def is_active(self) -> bool:
+        """True if idle_seconds() < idle_threshold."""
+        return self.idle_seconds() < self.idle_threshold
 
     @property
     def last_input_monotonic(self) -> float:
