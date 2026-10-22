@@ -96,7 +96,6 @@
           <th>{% trans "Active Today" %}</th>
           <th>{% trans "Today In Time" %}</th>
           <th>{% trans "Last Seen" %}</th>
-          <th>{% trans "Status" %}</th>
           <th style="text-align:right;">{% trans "Actions" %}</th>
         </tr>
       </thead>
@@ -140,17 +139,6 @@
             {% if r.last_seen %}{{ r.last_seen|date:"d M, h:i A" }}{% else %}—{% endif %}
           </td>
 
-          {# Status #}
-          <td>
-            {% if r.status == "online" %}
-              <span class="ept-badge ept-badge--online">{% trans "Online" %}</span>
-            {% elif r.has_data %}
-              <span class="ept-badge ept-badge--offline">{% trans "Offline" %}</span>
-            {% else %}
-              <span class="ept-badge ept-badge--none">{% trans "No agent" %}</span>
-            {% endif %}
-          </td>
-
           {# Action: go to detail page #}
           <td style="text-align:right;">
             <a class="ept-action-btn"
@@ -168,7 +156,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="7" class="ept-muted" style="text-align:center;padding:32px;">
+          <td colspan="6" class="ept-muted" style="text-align:center;padding:32px;">
             {% trans "No active employees found." %}
           </td>
         </tr>

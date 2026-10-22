@@ -166,3 +166,6 @@ CLAUDE.md
 .specify/
 # Added by code-review-graph
 .code-review-graph/
+
+# VPS deployment guide (local reference only, contains server-specific notes)
+VPS_SETUP.md
