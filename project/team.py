@@ -76,9 +76,16 @@ def project_team(request, project_id):
         if employee is None or role not in dict(ProjectMember.ROLES):
             error = "Choose an employee and a role."
         else:
-            ProjectMember.objects.update_or_create(
-                project=project, employee_id=employee, defaults={"role": role}
-            )
+            member = ProjectMember.objects.filter(
+                project=project, employee_id=employee
+            ).first()
+            if member:
+                member.role = role
+                member.save(update_fields=["role"])
+            else:
+                ProjectMember.objects.create(
+                    project=project, employee_id=employee, role=role
+                )
     return _render_team(request, project, error)
 
 
