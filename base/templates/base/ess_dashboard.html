@@ -1307,7 +1307,8 @@
                 .catch(function () {});
             }
 
-            // ── Project hours ─────────────────────────────────────────────────────────────            function loadProjectHours() {
+            // ── Project hours ─────────────────────────────────────────────────────────────
+            function loadProjectHours() {
                 fetchP('/project/my-hours/')
                 .then(function (r) { return r.json(); })
                 .then(function (d) {
