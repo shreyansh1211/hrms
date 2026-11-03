@@ -157,23 +157,22 @@ def apply_cycle_credits(
 
     credited, skipped, errors = [], [], []
 
+    from employee.models import Employee
+
     for policy in policies:
-        qs = AvailableLeave.objects.filter(
-            leave_type_id=policy.leave_type_id,
-            employee_id__is_active=True,
-        ).select_related(
-            "employee_id",
-            "employee_id__employee_work_info",
-            "employee_id__employee_work_info__employee_type_id",
+        # Iterate all active employees (not just those with an existing balance row).
+        # Employees who joined after the system was set up may have no AvailableLeave
+        # entry yet — we create one on first credit.
+        emp_qs = Employee.objects.filter(is_active=True).select_related(
+            "employee_work_info",
+            "employee_work_info__employee_type_id",
         )
         if policy.company_id_id:
-            qs = qs.filter(
-                employee_id__employee_work_info__company_id=policy.company_id
+            emp_qs = emp_qs.filter(
+                employee_work_info__company_id=policy.company_id
             )
 
-        for al in qs:
-            emp = al.employee_id
-
+        for emp in emp_qs:
             if is_trainee(emp):
                 skipped.append(f"{emp} | {policy.leave_type_id} | Trainee — skipped")
                 continue
@@ -216,6 +215,11 @@ def apply_cycle_credits(
 
             try:
                 with transaction.atomic():
+                    al, _ = AvailableLeave.objects.get_or_create(
+                        employee_id=emp,
+                        leave_type_id=policy.leave_type_id,
+                        defaults={"available_days": 0, "carryforward_days": 0},
+                    )
                     al_locked = AvailableLeave.objects.select_for_update().get(pk=al.pk)
                     al_locked.available_days = round(al_locked.available_days + days, 2)
                     al_locked._change_reason = (
