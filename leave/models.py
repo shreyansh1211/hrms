@@ -2826,6 +2826,12 @@ class LeaveCyclePolicy(HorillaModel):
     def __str__(self):
         return f"{self.leave_type_id} — Cycle {self.get_cycle_number_display()}"
 
+    def actions_col(self):
+        return render_template(
+            path="leave/cycle_policy/actions.html",
+            context={"instance": self},
+        )
+
 
 class LeaveCycleLog(models.Model):
     """

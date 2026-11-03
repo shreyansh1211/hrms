@@ -808,6 +808,11 @@ urlpatterns = [
         name="leave-cycle-policy-list",
     ),
     path(
+        "cycle-policy/nav/",
+        cycle_policy.LeaveCyclePolicyNav.as_view(),
+        name="leave-cycle-policy-nav",
+    ),
+    path(
         "cycle-policy/form/",
         cycle_policy.LeaveCyclePolicyFormView.as_view(),
         name="leave-cycle-policy-form",
@@ -816,6 +821,11 @@ urlpatterns = [
         "cycle-policy/form/<int:pk>/",
         cycle_policy.LeaveCyclePolicyFormView.as_view(),
         name="leave-cycle-policy-form-update",
+    ),
+    path(
+        "cycle-policy/delete/<int:pk>/",
+        cycle_policy.leave_cycle_policy_delete,
+        name="leave-cycle-policy-delete",
     ),
     path(
         "cycle-log/",

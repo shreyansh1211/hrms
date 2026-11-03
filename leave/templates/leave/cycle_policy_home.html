@@ -13,66 +13,30 @@
 </div>
 {% endif %}
 
-<section class="oh-wrapper oh-main__topbar" x-data="{searchShow: false}">
-    <div class="oh-main__titlebar oh-main__titlebar--left">
-        <h1 class="oh-main__titlebar-title fw-bold mb-0">{% trans "Leave Cycle Policies" %}</h1>
-        <a
-            class="oh-main__titlebar-search-toggle"
-            role="button"
-            aria-label="{% trans 'Toggle Search' %}"
-            @click="searchShow = !searchShow"
-        >
-            <ion-icon name="search-outline" class="oh-main__titlebar-serach-icon"></ion-icon>
-        </a>
-    </div>
+{% include "generic/components.html" %}
 
-    <div class="oh-main__titlebar oh-main__titlebar--right">
-        <div class="oh-main__titlebar-button-container">
-            <div
-                class="oh-input-group oh-input__search-group"
-                :class="searchShow ? 'oh-input__search-group--show' : ''"
-            >
-                <ion-icon name="search-outline" class="oh-input-group__icon oh-input-group__icon--left"></ion-icon>
-                <input
-                    type="text"
-                    class="oh-input oh-input__icon"
-                    aria-label="{% trans 'Search Input' %}"
-                    placeholder="{% trans 'Search' %}"
-                    name="search"
-                    hx-get="{% url 'leave-cycle-policy-list' %}"
-                    hx-trigger="keyup changed delay:300ms"
-                    hx-target="#cyclePolicyList"
-                />
-            </div>
+<div class="oh-inner-sidebar-content border border-[#ebebeb] rounded-md mb-5" id="cyclePolicyRoot">
+    {# Nav bar: title + search input + Add Policy button — rendered by LeaveCyclePolicyNav #}
+    <div
+        hx-get="{% url 'leave-cycle-policy-nav' %}"
+        hx-trigger="load"
+    ></div>
 
-            {% if perms.leave.change_leavetype %}
-            <div class="oh-btn-group ml-2">
-                <button
-                    class="oh-btn oh-btn--secondary oh-btn--shadow"
-                    data-toggle="oh-modal-toggle"
-                    data-target="#objectCreateModal"
-                    hx-get="{% url 'leave-cycle-policy-form' %}"
-                    hx-target="#objectCreateModalTarget"
-                >
-                    <ion-icon name="add-outline" class="me-1"></ion-icon>
-                    {% trans "+ Add Policy" %}
-                </button>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-</section>
+    {# Hidden reload trigger — HorillaFormView calls $('.reload-record').click() after save #}
+    <button
+        class="d-none reload-record"
+        hx-get="{% url 'leave-cycle-policy-list' %}"
+        hx-target="#cyclePolicyList"
+        hx-swap="innerHTML"
+    ></button>
 
-<div
-    class="oh-wrapper"
-    id="cyclePolicyList"
-    hx-get="{% url 'leave-cycle-policy-list' %}"
-    hx-trigger="load"
-    hx-swap="innerHTML"
->
-    <div class="oh-empty">
-        <h1 class="oh-empty__title">{% trans "Loading..." %}</h1>
-    </div>
+    <div
+        class="oh-wrapper"
+        id="cyclePolicyList"
+        hx-get="{% url 'leave-cycle-policy-list' %}"
+        hx-trigger="load"
+        hx-swap="innerHTML"
+    ></div>
 </div>
 
 <script src="{% static '/base/filter.js' %}"></script>

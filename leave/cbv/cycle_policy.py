@@ -4,15 +4,19 @@ CBV views for HR leave cycle policy management and credit log.
 
 from typing import Any
 
+from django.contrib import messages
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
+
+from django.contrib.auth.decorators import login_required as django_login_required
 
 from base.decorators import manager_can_enter
 from horilla_views.cbv_methods import login_required
 from horilla_views.generic.cbv.views import (
     HorillaFormView,
     HorillaListView,
+    HorillaNavView,
     TemplateView,
 )
 from leave.forms import LeaveCyclePolicyForm
@@ -39,16 +43,39 @@ class LeaveCyclePolicyList(HorillaListView):
         (_("Active"), "is_active"),
     ]
     search_url = ""
+    action_method = "actions_col"
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.search_url = reverse("leave-cycle-policy-list")
 
     def get_queryset(self, queryset=None, filtered=False):
-        # Must call super() so HorillaListView sets self.queryset and
-        # self._saved_filters — without this get_context_data crashes.
         qs = super().get_queryset(queryset=queryset, filtered=filtered)
         return qs.select_related("leave_type_id", "company_id")
+
+
+@method_decorator(login_required, name="dispatch")
+@method_decorator(manager_can_enter("leave.view_leavetype"), name="dispatch")
+class LeaveCyclePolicyNav(HorillaNavView):
+    """Nav bar for the cycle policy page — renders the title, search, and Add Policy button."""
+
+    nav_title = _("Leave Cycle Policies")
+    search_url = ""
+    search_swap_target = "#cyclePolicyList"
+    template_name = "generic/inline_nav.html"
+    apply_first_filter = True
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.search_url = reverse("leave-cycle-policy-list")
+        if self.request and self.request.user.has_perm("leave.change_leavetype"):
+            self.create_attrs = (
+                'onclick="event.stopPropagation();"'
+                ' data-toggle="oh-modal-toggle"'
+                ' data-target="#objectCreateModal"'
+                f' hx-get="{reverse("leave-cycle-policy-form")}"'
+                ' hx-target="#objectCreateModalTarget"'
+            )
 
 
 @method_decorator(login_required, name="dispatch")
@@ -59,6 +86,14 @@ class LeaveCyclePolicyFormView(HorillaFormView):
     new_display_title = _("Add Leave Cycle Policy")
     edit_display_title = _("Edit Leave Cycle Policy")
     http_method_names = ["get", "post"]
+
+    def form_valid(self, form):
+        if form.is_valid():
+            form.save()
+            messages.success(
+                self.request, _("Leave cycle policy saved successfully.")
+            )
+        return self.HttpResponse()
 
 
 @method_decorator(login_required, name="dispatch")
@@ -84,7 +119,6 @@ class LeaveCycleLogList(HorillaListView):
         self.search_url = reverse("leave-cycle-log-list")
 
     def get_queryset(self, queryset=None, filtered=False):
-        # Must call super() so HorillaListView sets self._saved_filters.
         qs = super().get_queryset(queryset=queryset, filtered=filtered)
         qs = qs.select_related("employee_id", "leave_type_id")
         year = self.request.GET.get("year")
@@ -97,3 +131,17 @@ class LeaveCycleLogList(HorillaListView):
         if emp:
             qs = qs.filter(employee_id=emp)
         return qs
+
+
+@django_login_required
+def leave_cycle_policy_delete(request, pk):
+    """Delete a LeaveCyclePolicy and return the refreshed list."""
+    if not request.user.has_perm("leave.delete_leavetype"):
+        messages.error(request, _("You do not have permission to delete policies."))
+        return LeaveCyclePolicyList.as_view()(request)
+    try:
+        LeaveCyclePolicy.objects.get(pk=pk).delete()
+        messages.success(request, _("Leave cycle policy deleted successfully."))
+    except LeaveCyclePolicy.DoesNotExist:
+        messages.error(request, _("Policy not found."))
+    return LeaveCyclePolicyList.as_view()(request)
