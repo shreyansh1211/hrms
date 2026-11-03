@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 
 from horilla.scheduling import register_job
 from horilla.signals import post_scheduler, pre_scheduler
@@ -6,28 +6,20 @@ from horilla.signals import post_scheduler, pre_scheduler
 
 def leave_reset():
     pre_scheduler.send(sender=leave_reset)
+    from datetime import datetime
+
     from leave.models import LeaveType
 
     today = datetime.now()
     today_date = today.date()
     leave_types = LeaveType.objects.filter(reset=True)
-    # Looping through filtered leave types with reset is true
     for leave_type in leave_types:
-        # Looping through all available leaves
         available_leaves = leave_type.employee_available_leave.all()
-
         for available_leave in available_leaves:
             reset_date = available_leave.reset_date
             expired_date = available_leave.expired_date
-            # <= (not ==): the job only runs every few hours inside a
-            # separate run_scheduler process, so a reset_date that's
-            # already in the past (a missed tick) must still be caught
-            # here -- otherwise that employee's leave never resets again.
-            # Matches the expired_date check right below, which already
-            # uses <=.
             if reset_date and reset_date <= today_date:
                 available_leave.update_carryforward()
-                # new_reset_date = available_leave.set_reset_date(assigned_date=today_date,available_leave = available_leave)
                 new_reset_date = available_leave.set_reset_date(
                     assigned_date=today_date, available_leave=available_leave
                 )
@@ -46,9 +38,7 @@ def leave_reset():
             leave_type.carryforward_expire_date
             and leave_type.carryforward_expire_date <= today_date
         ):
-            leave_type.carryforward_expire_date = leave_type.set_expired_date(
-                today_date
-            )
+            leave_type.carryforward_expire_date = leave_type.set_expired_date(today_date)
             leave_type.save()
     post_scheduler.send(
         sender=leave_reset,
@@ -56,47 +46,83 @@ def leave_reset():
             "today": today,
             "today_date": today_date,
             "leave_types": leave_types,
-        }
+        },
     )
 
 
-ACCRUAL_LEAVE_TYPES = ("Sick Leave", "Privilege Leave", "Casual Leave")
-ACCRUAL_DAYS = 2
-ACCRUAL_EVERY_MONTHS = 4
+# ---------------------------------------------------------------------------
+# Four-monthly cycle credit jobs (Apr 1, Aug 1, Dec 1) + year-end (Mar 31)
+# ---------------------------------------------------------------------------
 
 
-def leave_accrual():
-    """
-    Credit ACCRUAL_DAYS to SL/PL/CL every ACCRUAL_EVERY_MONTHS months,
-    counted from the day each employee was assigned the leave type.
+def _cycle_credit_job():
+    """Called by all three cron triggers. Reads today's date internally."""
+    from leave.credit_service import apply_cycle_credits
 
-    These leave types have reset=False, so the built-in leave_reset job never
-    touches them; AvailableLeave.reset_date is reused here as the date of the
-    next credit. Unused leave accumulates.
-    """
-    from dateutil.relativedelta import relativedelta
+    result = apply_cycle_credits()
+    if result["errors"]:
+        import logging
 
-    from leave.models import AvailableLeave
+        logging.getLogger(__name__).error(
+            "Cycle credit errors: %s", result["errors"]
+        )
 
-    today = datetime.now().date()
-    for available in AvailableLeave.objects.filter(
-        leave_type_id__name__in=ACCRUAL_LEAVE_TYPES
-    ).select_related("leave_type_id"):
-        if available.reset_date is None:
-            available.reset_date = available.assigned_date + relativedelta(
-                months=ACCRUAL_EVERY_MONTHS
-            )
-            available.save()
-            continue
-        credited = False
-        while available.reset_date <= today:
-            available.available_days += ACCRUAL_DAYS
-            available.reset_date += relativedelta(months=ACCRUAL_EVERY_MONTHS)
-            credited = True
-        if credited:
-            available._change_reason = "Four-monthly leave credit"
-            available.save()
+
+def _year_end_job():
+    """Called on 31 March. Applies carry-forward rules before Cycle 1 opens."""
+    from leave.credit_service import apply_year_end_carryforward
+
+    result = apply_year_end_carryforward()
+    if result["errors"]:
+        import logging
+
+        logging.getLogger(__name__).error(
+            "Year-end carry-forward errors: %s", result["errors"]
+        )
 
 
 register_job(leave_reset, "interval", hours=4)
-register_job(leave_accrual, "interval", hours=6, job_id="leave_accrual")
+
+# Cycle 1: 1 April — also the new leave year start
+register_job(
+    _cycle_credit_job,
+    "cron",
+    month=4,
+    day=1,
+    hour=1,
+    minute=0,
+    job_id="leave.credit_cycle1",
+)
+
+# Cycle 2: 1 August
+register_job(
+    _cycle_credit_job,
+    "cron",
+    month=8,
+    day=1,
+    hour=1,
+    minute=0,
+    job_id="leave.credit_cycle2",
+)
+
+# Cycle 3: 1 December
+register_job(
+    _cycle_credit_job,
+    "cron",
+    month=12,
+    day=1,
+    hour=1,
+    minute=0,
+    job_id="leave.credit_cycle3",
+)
+
+# Year-end: 31 March (carry-forward before Cycle 1)
+register_job(
+    _year_end_job,
+    "cron",
+    month=3,
+    day=31,
+    hour=23,
+    minute=0,
+    job_id="leave.year_end",
+)

@@ -91,6 +91,15 @@ SUBMENUS = [
         "accessibility": "leave.sidebar.company_leave_accessibility",
     },
     {
+        "menu": _("Cycle Policy"),
+        "redirect": reverse_lazy("leave-cycle-policy"),
+        "accessibility": "leave.sidebar.cycle_policy_accessibility",
+        "match_prefixes": [
+            "/leave/cycle-policy/",
+            "/leave/cycle-log/",
+        ],
+    },
+    {
         "menu": _("Configuration"),
         "redirect": reverse_lazy("leave-settings-view"),
         "accessibility": "leave.sidebar.leave_settings_accessibility",
@@ -152,6 +161,10 @@ def leave_rules_accessibility(request, submenu, user_perms, *args, **kwargs):
 
 def leave_settings_accessibility(request, submenu, user_perms, *args, **kwargs):
     return request.user.has_perm("leave.view_restrictleave")
+
+
+def cycle_policy_accessibility(request, submenu, user_perms, *args, **kwargs):
+    return request.user.has_perm("leave.view_leavetype")
 
 
 @settings_menu.register

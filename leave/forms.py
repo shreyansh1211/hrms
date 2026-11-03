@@ -32,6 +32,7 @@ from leave.models import (
     AvailableLeave,
     LeaveAllocationRequest,
     LeaveallocationrequestComment,
+    LeaveCyclePolicy,
     LeaveRequest,
     LeaverequestComment,
     LeaverequestFile,
@@ -1351,3 +1352,44 @@ if apps.is_installed("attendance"):
 
             model = CompensatoryLeaverequestComment
             fields = ("comment",)
+
+
+class LeaveCyclePolicyForm(HorillaModelForm):
+    """Form for HR to create/edit a LeaveCyclePolicy rule."""
+
+    class Meta:
+        model = LeaveCyclePolicy
+        fields = [
+            "company_id",
+            "leave_type_id",
+            "cycle_number",
+            "credit_month",
+            "credit_day",
+            "days_to_credit",
+            "carryforward_percent",
+            "is_active",
+        ]
+        widgets = {
+            "credit_day": forms.NumberInput(
+                attrs={"min": 1, "max": 31, "class": "oh-input w-100"}
+            ),
+            "days_to_credit": forms.NumberInput(
+                attrs={"step": "0.5", "min": 0, "class": "oh-input w-100"}
+            ),
+            "carryforward_percent": forms.NumberInput(
+                attrs={"step": "1", "min": 0, "max": 100, "class": "oh-input w-100"}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Apply Horilla's standard select styling to dropdown fields
+        select_style = (
+            "width:100%; height:50px;"
+            "border: 1px solid hsl(213deg,22%,84%);"
+            "border-radius: 0rem;"
+            "padding: 0.8rem 1.25rem;"
+        )
+        for field_name, field in self.fields.items():
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs.setdefault("style", select_style)

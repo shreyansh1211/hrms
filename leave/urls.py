@@ -12,6 +12,7 @@ if apps.is_installed("attendance"):
 from base.views import object_duplicate
 from leave.cbv import (
     assigned_leave,
+    cycle_policy,
     dashboard,
     leave_allocation_request,
     leave_requests,
@@ -794,6 +795,32 @@ urlpatterns = [
         "dashboard/api/upcoming/",
         leave_dashboard.leave_upcoming,
         name="leave-dashboard-upcoming",
+    ),
+    # ── Leave Cycle Policy ───────────────────────────────────────────────────
+    path(
+        "cycle-policy/",
+        cycle_policy.LeaveCyclePolicyPage.as_view(),
+        name="leave-cycle-policy",
+    ),
+    path(
+        "cycle-policy/list/",
+        cycle_policy.LeaveCyclePolicyList.as_view(),
+        name="leave-cycle-policy-list",
+    ),
+    path(
+        "cycle-policy/form/",
+        cycle_policy.LeaveCyclePolicyFormView.as_view(),
+        name="leave-cycle-policy-form",
+    ),
+    path(
+        "cycle-policy/form/<int:pk>/",
+        cycle_policy.LeaveCyclePolicyFormView.as_view(),
+        name="leave-cycle-policy-form-update",
+    ),
+    path(
+        "cycle-log/",
+        cycle_policy.LeaveCycleLogList.as_view(),
+        name="leave-cycle-log-list",
     ),
 ]
 

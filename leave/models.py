@@ -2766,6 +2766,122 @@ if apps.is_installed("attendance"):
         #             ).delete()
 
 
+CYCLE_CHOICES = [
+    ("1", _("Cycle 1 (Apr–Jul)")),
+    ("2", _("Cycle 2 (Aug–Nov)")),
+    ("3", _("Cycle 3 (Dec–Mar)")),
+    ("annual", _("Annual (Year Start)")),
+]
+
+CREDIT_MONTH_CHOICES = [
+    (4, _("April")),
+    (8, _("August")),
+    (12, _("December")),
+]
+
+
+class LeaveCyclePolicy(HorillaModel):
+    """
+    HR-editable rule: which leave type gets how many days on which date.
+    One row per company + leave_type + cycle. Dynamic — HR edits in the UI.
+    """
+
+    company_id = models.ForeignKey(
+        Company,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        verbose_name=_("Company"),
+    )
+    leave_type_id = models.ForeignKey(
+        LeaveType,
+        on_delete=models.CASCADE,
+        verbose_name=_("Leave Type"),
+    )
+    cycle_number = models.CharField(
+        max_length=10,
+        choices=CYCLE_CHOICES,
+        verbose_name=_("Cycle"),
+    )
+    credit_month = models.IntegerField(
+        choices=CREDIT_MONTH_CHOICES,
+        verbose_name=_("Credit Month"),
+    )
+    credit_day = models.IntegerField(default=1, verbose_name=_("Credit Day"))
+    days_to_credit = models.FloatField(verbose_name=_("Days to Credit"))
+    carryforward_percent = models.FloatField(
+        default=0.0,
+        verbose_name=_("Carry Forward %"),
+        help_text=_("0 = no carry forward, 100 = full, 50 = half. Applied at year-end (31 Mar)."),
+    )
+    is_active = models.BooleanField(default=True, verbose_name=_("Active"))
+
+    objects = HorillaCompanyManager(related_company_field="company_id")
+
+    class Meta:
+        unique_together = ("company_id", "leave_type_id", "cycle_number")
+        verbose_name = _("Leave Cycle Policy")
+        verbose_name_plural = _("Leave Cycle Policies")
+
+    def __str__(self):
+        return f"{self.leave_type_id} — Cycle {self.get_cycle_number_display()}"
+
+
+class LeaveCycleLog(models.Model):
+    """
+    Immutable record of every cycle credit event.
+    UniqueConstraint prevents double-crediting at the DB level.
+    """
+
+    employee_id = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        verbose_name=_("Employee"),
+    )
+    leave_type_id = models.ForeignKey(
+        LeaveType,
+        on_delete=models.CASCADE,
+        verbose_name=_("Leave Type"),
+    )
+    policy_id = models.ForeignKey(
+        LeaveCyclePolicy,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name=_("Policy"),
+    )
+    leave_year = models.CharField(max_length=10, verbose_name=_("Leave Year"))
+    cycle_number = models.CharField(max_length=10, verbose_name=_("Cycle"))
+    days_credited = models.FloatField(verbose_name=_("Days Credited"))
+    credited_on = models.DateField(verbose_name=_("Credit Date"))
+    source = models.CharField(
+        max_length=20,
+        choices=[("scheduler", _("Scheduler")), ("manual", _("Manual"))],
+        default="scheduler",
+        verbose_name=_("Source"),
+    )
+    note = models.TextField(blank=True, verbose_name=_("Note"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = HorillaCompanyManager(
+        related_company_field="employee_id__employee_work_info__company_id"
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["employee_id", "leave_type_id", "leave_year", "cycle_number"],
+                name="unique_leave_cycle_credit",
+            )
+        ]
+        ordering = ["-credited_on"]
+        verbose_name = _("Leave Cycle Log")
+        verbose_name_plural = _("Leave Cycle Logs")
+
+    def __str__(self):
+        return f"{self.employee_id} | {self.leave_type_id} | {self.leave_year} Cycle {self.cycle_number}"
+
+
 # @receiver(post_save, sender=LeaveRequest)
 # def update_available(sender, instance, **kwargs):
 #     """
